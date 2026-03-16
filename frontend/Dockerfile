@@ -20,9 +20,13 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# Install addgroup (needed for later commands)
+RUN apk add --no-cache shadow
+
 # Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 --gid 1001 --no-create-home --shell /bin/bash nodejs
+RUN addgroup --gid 1001 nodejs && \
+    adduser -D -h /app -s /bin/sh -G nodejs -u 1001 nodejs && \
+    chown -R nodejs:nodejs /app
 
 # Copy built application from builder
 COPY --from=builder --chown=nodejs:nodejs /app/.next /app/.next
