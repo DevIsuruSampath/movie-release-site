@@ -16,7 +16,7 @@
     "isolatedModules": true,
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "incremental": true,
+    "incremental": false,
     "noEmit": true,
     "paths": {
       "@/*": [
