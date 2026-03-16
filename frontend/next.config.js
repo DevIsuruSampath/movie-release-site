@@ -1,6 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
+  // Use Webpack compiler for better Docker build stability
+  compiler: {
+    // Remove console during production
+    removeConsole: {
+      exclude: ['webpackCache', 'Next.js', 'react-dom'],
+    },
+  },
+  
   images: {
     domains: [
       'localhost',
