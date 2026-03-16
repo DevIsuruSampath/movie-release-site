@@ -19,6 +19,9 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Clean build cache to ensure fresh TypeScript compilation
+RUN rm -rf .next
+
 RUN npm run build
 
 # ---------- Runner ----------
