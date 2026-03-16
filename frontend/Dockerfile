@@ -1,53 +1,47 @@
 # Multi-stage build for optimized production image
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS deps
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY package.json package-lock.json* ./
 
-# Install dependencies (use legacy peer deps to avoid strict peer dependency issues)
-RUN npm install --production=false --legacy-peer-deps
+# Install dependencies and generate lockfile
+RUN npm ci
 
-# Copy application code
+# ---------- Builder ----------
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build Next.js application
+ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN npm run build
 
-# Production stage
+# ---------- Runner ----------
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Install addgroup (needed for later commands)
-RUN apk add --no-cache shadow
-
-# Create non-root user for security
-RUN addgroup --gid 1001 nodejs && \
-    adduser -D -h /app -s /bin/sh -G nodejs -u 1001 nodejs && \
-    chown -R nodejs:nodejs /app
-
-# Copy built application from builder
-COPY --from=builder --chown=nodejs:nodejs /app/.next /app/.next
-
-# Copy public static files
-COPY --from=builder --chown=nodejs:nodejs /app/public /app/public
-
-# Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
 
-# Switch to non-root user
-USER nodejs
+# Create non-root user
+RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
-# Expose port
+# Copy only needed production files
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+
+# These require output: 'standalone' in next.config.js
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node --eval "require('http').get('http://localhost:3000', (res) => { if (res.statusCode !== 200) throw new Error('Health check failed') }).then(() => process.exit(0)).catch(() => process.exit(1))" || exit 1
-
-# Start Next.js production server
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
