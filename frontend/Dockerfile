@@ -4,10 +4,11 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json ./
 
-# Install dependencies and generate lockfile
-RUN npm ci
+# Check if package-lock.json exists and install accordingly
+COPY package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # ---------- Builder ----------
 FROM node:20-alpine AS builder
@@ -36,7 +37,7 @@ RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 
-# These require output: 'standalone' in next.config.js
+# These require 'standalone' output in next.config.js
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
