@@ -1,11 +1,11 @@
 import api from '@/lib/api'
-import { Movie } from '@/types'
+import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
 async function getFeaturedMovies() {
   try {
-    const response = await api.get('/api/v1/movies', {
+    const response = await api.get<MovieListResponse>('/api/v1/movies', {
       params: { is_published: true, featured: true, limit: 6 },
     })
     return response.data.items || []

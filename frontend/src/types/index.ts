@@ -68,6 +68,7 @@ export interface Movie {
   stream_enabled: boolean
   download_enabled: boolean
   status: string
+  is_published?: boolean
   meta_title?: string
   meta_description?: string
   meta_keywords?: string

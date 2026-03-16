@@ -1,11 +1,11 @@
 import api from '@/lib/api'
-import { Movie } from '@/types'
+import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
 async function getCategoryMovies(slug: string) {
   try {
-    const response = await api.get('/api/v1/movies', {
+    const response = await api.get<MovieListResponse>('/api/v1/movies', {
       params: { category: slug },
     })
     return response.data.items || []

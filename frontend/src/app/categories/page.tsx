@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 async function getAllCategories() {
   try {
-    const response = await api.get('/api/v1/categories')
+    const response = await api.get<Category[]>('/api/v1/categories')
     return response.data || []
   } catch (error) {
     console.error('Failed to fetch categories:', error)

@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
+  output: 'standalone',
+
   // Use Webpack compiler for better Docker build stability
   compiler: {
     // Remove console during production

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { Movie } from '@/types'
+import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
@@ -39,7 +39,7 @@ export default function MoviesPage() {
   const fetchMovies = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/api/v1/movies', {
+      const response = await api.get<MovieListResponse>('/api/v1/movies', {
         params: { skip: (page - 1) * 20, limit: 20 },
       })
       setMovies(response.data.items || [])

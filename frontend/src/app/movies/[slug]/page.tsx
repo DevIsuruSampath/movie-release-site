@@ -14,14 +14,14 @@ export default function MovieDetailsPage() {
 
   useEffect(() => {
     if (params.slug) {
-      fetchMovie(params.slug)
+      fetchMovie(Array.isArray(params.slug) ? params.slug[0] : params.slug)
     }
   }, [params.slug])
 
   const fetchMovie = async (slug: string) => {
     setLoading(true)
     try {
-      const response = await api.get(`/api/v1/movies/${slug}`)
+      const response = await api.get<Movie>(`/api/v1/movies/${slug}`)
       setMovie(response.data)
     } catch (error) {
       console.error('Failed to fetch movie:', error)

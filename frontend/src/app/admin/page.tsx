@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { Movie } from '@/types'
+import { Movie, MovieListResponse, Category } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -23,8 +23,8 @@ export default function DashboardPage() {
   const fetchDashboard = async () => {
     try {
       const [moviesRes, categoriesRes] = await Promise.all([
-        api.get('/api/v1/movies'),
-        api.get('/api/v1/categories'),
+        api.get<MovieListResponse>('/api/v1/movies'),
+        api.get<Category[]>('/api/v1/categories'),
       ])
 
       setMovies(moviesRes.data.items || [])

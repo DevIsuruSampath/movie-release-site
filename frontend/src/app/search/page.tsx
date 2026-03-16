@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
-import { Movie } from '@/types'
+import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') || '')
@@ -25,8 +25,8 @@ export default function SearchPage() {
   const performSearch = async (searchQuery: string, newPage: number = 1) => {
     setLoading(true)
     try {
-      const response = await api.get('/api/v1/movies', {
-        params: { 
+      const response = await api.get<MovieListResponse>('/api/v1/movies', {
+        params: {
           search: searchQuery,
           skip: (newPage - 1) * 20,
           limit: 20,
@@ -84,7 +84,7 @@ export default function SearchPage() {
             <p className="text-sm text-gray-600 mb-4">
               Found {results.length} movies
             </p>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {results.map((movie) => (
                 <Link
@@ -102,12 +102,12 @@ export default function SearchPage() {
                         />
                       </div>
                     )}
-                    
+
                     <div className="p-4">
                       <h3 className="text-lg font-semibold mb-2 group-hover:text-blue-600 transition-colors">
                         {movie.title}
                       </h3>
-                      
+
                       <div className="flex flex-wrap gap-2 mb-2 text-sm">
                         {movie.release_year && (
                           <span className="px-2 py-1 bg-gray-100 rounded-full">
@@ -120,7 +120,7 @@ export default function SearchPage() {
                           </span>
                         )}
                       </div>
-                      
+
                       {movie.short_description && (
                         <p className="text-gray-600 text-sm line-clamp-2">
                           {movie.short_description}
@@ -166,5 +166,13 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   )
 }
