@@ -12,12 +12,11 @@ const nextConfig = {
   },
   
   images: {
-    domains: [
-      'localhost',
-      's3.amazonaws.com',
-      'cloudfront.net',
-    ],
     remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
       {
         protocol: 'https',
         hostname: '**.s3.amazonaws.com',
