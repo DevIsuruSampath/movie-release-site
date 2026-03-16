@@ -3,6 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
 
+  // Set base URL for Docker deployment
+  basePath: '',
+  assetPrefix: process.env.NEXT_PUBLIC_URL || undefined,
+
   // Use Webpack compiler for better Docker build stability
   compiler: {
     // Remove console during production
@@ -10,7 +14,7 @@ const nextConfig = {
       exclude: ['webpackCache', 'Next.js', 'react-dom'],
     },
   },
-  
+
   images: {
     remotePatterns: [
       {
