@@ -6,9 +6,15 @@ WORKDIR /app
 # Copy package files
 COPY package.json ./
 
-# Check if package-lock.json exists and install accordingly
+# Copy package-lock.json if it exists
 COPY package-lock.json* ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+# Install dependencies with legacy peer deps to avoid peer dependency errors
+RUN if [ -f package-lock.json ]; then \
+    npm ci --legacy-peer-deps; \
+    else \
+    npm install --legacy-peer-deps; \
+    fi
 
 # ---------- Builder ----------
 FROM node:20-alpine AS builder
@@ -33,7 +39,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Create non-root user
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
-# Copy only needed production files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 
