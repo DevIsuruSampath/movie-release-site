@@ -1,202 +1,283 @@
-# Movie Release Website
+# Backend Setup Guide
 
-A modern movie release website with public streaming/download pages and admin dashboard.
+## Prerequisites
 
-## Tech Stack
+- Python 3.12+ installed
+- PostgreSQL 14+ (or use managed PostgreSQL service)
+- Node.js 20+ for frontend setup
 
-### Backend
-- **FastAPI** 0.115.6 - Modern Python web framework
-- **SQLAlchemy** 2.0.36 - ORM
-- **PostgreSQL** - Production database
-- **JWT** - Authentication
-- **Alembic** - Database migrations
-
-### Frontend
-- **Next.js** 16.1.6 - Latest stable
-- **React** 19.2.4 - Latest stable
-- **TypeScript** 5.8.3 - Type safety
-- **Tailwind CSS** 3.4.21 - Styling
-- **Zustand** 5.0.3 - State management
-- **Axios** 1.7.9 - HTTP client
-
-## Features
-
-### Public Site
-- 🎬 Browse movies by category, year, language
-- 🔍 Search movies by title
-- ▶️ Stream movies
-- 📥 Download movies
-- 🏷️ View movie details with poster/backdrop
-- ⭐ Featured movies on homepage
-
-### Admin Dashboard
-- 🔐 Secure admin login with JWT
-- 📊 Dashboard with stats
-- ➕ Add/edit/delete movies
-- 📂 Upload images to S3
-- 🏷️ Manage categories
-- 🔗 Manage stream links
-- 📥 Manage download links
-- 🔖 SEO metadata management
-
-## Quick Start
-
-### Prerequisites
-- Python 3.12+
-- Node.js 20+
-- PostgreSQL 14+
-- S3-compatible storage (or use local storage)
-
-### 1. Clone & Install Backend
+## Installation
 
 ```bash
+# Navigate to backend directory
 cd backend
-python3 -m venv venv
-source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+## Environment Configuration
+
+Create a `.env` file from the template:
 
 ```bash
 cp .env.example .env
-# Edit .env with your values:
-# - DATABASE_URL
-# - SECRET_KEY
-# - S3_BUCKET
-# - AWS credentials
+# Edit .env with your values
 ```
 
-### 3. Initialize Database
+### Environment Variables
+
+```env
+# Database Connection
+DATABASE_URL=postgresql://user:password@localhost:5432/movie_db
+
+# Security
+SECRET_KEY=your-super-secret-jwt-key-change-this-in-production
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# CORS - Add your frontend URLs
+ALLOWED_ORIGINS=["http://localhost:3000", "https://yourdomain.com"]
+
+# Local File Storage (No S3 needed!)
+UPLOAD_DIR=uploads
+MAX_FILE_SIZE_MB=10
+```
+
+### Database Setup Options
+
+#### Option 1: Local PostgreSQL
 
 ```bash
-# Run migrations
+# Install PostgreSQL
+sudo apt-get install postgresql postgresql-contrib
+
+# Start PostgreSQL
+sudo service postgresql start
+
+# Create database
+sudo -u postgres psql -c "CREATE DATABASE movie_db;"
+sudo -u postgres psql -c "CREATE USER movie_user WITH PASSWORD 'movie_pass';"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE movie_db TO movie_user;"
+```
+
+#### Option 2: Managed PostgreSQL
+
+```bash
+# Railway
+railway postgresql
+
+# Render
+# Create PostgreSQL database in Render dashboard
+
+# Supabase
+# Create project at https://supabase.com
+
+# Neon
+# Create project at https://neon.tech
+```
+
+## Database Migration
+
+```bash
+# Run migrations to create tables
 alembic upgrade head
 ```
 
-### 4. Start Backend
+## Starting the Server
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Development mode with hot reload
+uvicorn app.main:app --reload
+
+# Production mode
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-### 5. Install & Start Frontend
+## API Documentation
+
+After starting, visit:
+- **API Documentation:** http://localhost:8000/docs
+- **OpenAPI Schema:** http://localhost:8000/openapi.json
+- **Health Check:** http://localhost:8000/health
+
+## File Storage
+
+The backend uses **local file storage** (no S3 required!):
+
+- Images are saved to `/backend/uploads/` directory
+- Served at `http://localhost:8000/uploads/{filename}`
+- Files persist in Docker volume `movie_uploads`
+
+### Uploads API
+
+- **POST /api/v1/uploads/image** - Upload image (admin only)
+- **GET /api/v1/uploads/image/{filename}** - Get uploaded image
+- **DELETE /api/v1/uploads/image/{filename}** - Delete image (admin only)
+- **GET /api/v1/uploads/list** - List all uploads (admin only)
+- **POST /api/v1/uploads/cleanup** - Remove unused images
+
+## Troubleshooting
+
+### Database Connection Issues
 
 ```bash
-cd ../frontend
-npm install
-npm run dev
+# Check if PostgreSQL is running
+sudo service postgresql status
+
+# Test connection
+psql -U movie_user -d movie_db -h localhost -c "SELECT 1;"
 ```
 
-### 6. Create Admin User
+### Port Conflicts
 
 ```bash
-# Via API
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email":"admin@example.com",
-    "password":"admin123",
-    "full_name":"Admin User"
-  }'
+# Check if port 8000 is in use
+sudo lsof -i :8000
 
-# Or via Python
-python -c "
-import requests
-requests.post('http://localhost:8000/api/v1/auth/register', json={
-    'email': 'admin@example.com',
-    'password': 'admin123',
-    'full_name': 'Admin User'
-})
-"
+# Kill process if needed
+sudo kill -9 <PID>
 ```
 
-## Access URLs
+### Migration Errors
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
-- **Admin Login:** http://localhost:3000/admin/login
-- **Public Site:** http://localhost:3000/
+```bash
+# Reset migrations (DESTRUCTIVE - wipes data!)
+alembic downgrade base
+
+# Re-run migrations
+alembic upgrade head
+```
 
 ## Project Structure
 
 ```
-project-root/
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/          # API routes
-│   │   ├── core/            # Config, security
-│   │   ├── db/              # Database connection
-│   │   ├── models/          # SQLAlchemy models
-│   │   └── schemas/         # Pydantic schemas
-│   ├── alembic/             # Migrations
-│   ├── requirements.txt       # Python dependencies
-│   └── .env.example         # Environment template
-│
-└── frontend/
-    ├── src/
-    │   ├── app/             # Next.js pages
-    │   ├── components/       # React components
-    │   ├── lib/             # Utilities & API client
-    │   ├── stores/          # Zustand stores
-    │   └── types/           # TypeScript types
-    └── package.json          # Frontend dependencies
+backend/
+├── app/
+│   ├── api/v1/           # API routes
+│   ├── core/            # Config, security
+│   ├── db/              # Database connection
+│   ├── models/          # SQLAlchemy models
+│   └── schemas/         # Pydantic schemas
+├── alembic/             # Database migrations
+├── uploads/             # Local file storage
+│   └── .gitkeep          # Track empty directory
+├── requirements.txt       # Python dependencies
+├── .env.example         # Environment template
+└── Dockerfile           # Docker image build
 ```
 
-## Database Schema
+## Production Deployment
 
-- **users** - Admin accounts
-- **movies** - Movie details
-- **categories** - Movie categories
-- **stream_links** - Streaming URLs
-- **download_links** - Download mirrors
-- **movie_gallery** - Movie images
-- **movie_categories** - Many-to-many relationship
+### Docker Deployment
 
-## API Endpoints
-
-### Auth
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/refresh`
-
-### Movies
-- `GET /api/v1/movies` - List with filters
-- `GET /api/v1/movies/{slug}` - Get by slug
-- `POST /api/v1/movies` - Create (admin)
-- `PUT /api/v1/movies/{id}` - Update (admin)
-- `DELETE /api/v1/movies/{id}` - Delete (admin)
-- `PATCH /api/v1/movies/{id}/publish` - Publish (admin)
-- `PATCH /api/v1/movies/{id}/unpublish` - Unpublish (admin)
-
-### Categories
-- `GET /api/v1/categories` - List all
-- `POST /api/v1/categories` - Create (admin)
-- `PUT /api/v1/categories/{id}` - Update (admin)
-- `DELETE /api/v1/categories/{id}` - Delete (admin)
-
-### Uploads
-- `POST /api/v1/uploads/image` - Upload image (admin)
-
-## Deployment
-
-### Backend (Docker)
 ```bash
-docker build -t movie-api .
-docker run -p 8000:8000 --env-file .env movie-api
+# Build and run with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+docker-compose logs -f postgres
+
+# Stop services
+docker-compose down
 ```
 
-### Frontend (Vercel/Netlify)
+### Direct Deployment
+
 ```bash
-npm run build
-# Deploy dist folder
+# Run backend directly
+python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-## License
+## Security Notes
 
-MIT
+1. **JWT Secret Key** - Must be unique and complex
+2. **Database Password** - Use strong passwords
+3. **File Upload Limits** - MAX_FILE_SIZE_MB set to 10MB
+4. **Admin Routes** - All admin endpoints check user permissions
+5. **CORS** - Only allow frontend origins
+6. **File Types** - Only allow images (JPEG, PNG, GIF, WebP)
 
-## Support
+## Monitoring
 
-For issues or questions, please create an issue in the repository.
+### Health Checks
+
+```bash
+# Check backend health
+curl http://localhost:8000/health
+
+# Expected response:
+{
+  "status": "healthy",
+  "storage": "local"
+}
+```
+
+### Logs
+
+```bash
+# View uvicorn logs
+docker-compose logs backend
+
+# Check for errors
+docker-compose logs backend | grep -i "error"
+```
+
+## Performance Tuning
+
+1. **Database Connection Pooling** - Already configured in db/database.py
+2. **Static File Serving** - FastAPI serves uploads efficiently
+3. **Response Compression** - Consider adding for production
+4. **Caching** - Add Redis for rate limiting and caching
+
+## Integration with Dokploy
+
+When deploying to Dokploy + VPS:
+
+1. **Push code to GitHub** (already done!)
+2. **Connect GitHub repository to Dokploy**
+3. **Use Docker Compose deployment** in Dokploy
+4. **Ensure uploads volume persists** between restarts
+5. **Set environment variables** in Dokploy dashboard
+
+### Dokploy Deployment Steps
+
+1. Go to your Dokploy project
+2. Click "Create Service" → "Git Repository"
+3. Enter your GitHub repo URL:
+   ```
+   https://github.com/DevIsuruSampath/movie-release-site.git
+   ```
+4. Configure deployment:
+   - Branch: `main`
+   - Docker Compose: ✅
+   - Auto-deploy on push: ✅ (recommended)
+5. Click "Deploy"
+6. Environment variables: Set these in Dokploy:
+   - `DATABASE_URL`: Your PostgreSQL connection string
+   - `SECRET_KEY`: Your JWT secret
+   - `ALLOWED_ORIGINS`: Your frontend URL
+
+### Environment Variables for Dokploy
+
+```env
+DATABASE_URL=postgresql://movie_user:password@postgres:5432/movie_db
+SECRET_KEY=your-super-secret-key
+ALLOWED_ORIGINS=https://your-domain.com,https://your-domain.com
+```
+
+## Next Steps
+
+1. ✅ Configure environment variables
+2. ✅ Start PostgreSQL database
+3. ✅ Run migrations: `alembic upgrade head`
+4. ✅ Start backend: `uvicorn app.main:app --reload`
+5. ✅ Set up frontend (see ../FRONTEND_SETUP.md)
+6. ✅ Test API endpoints
+7. ✅ Deploy to production
+
+---
+
+**Ready to deploy!** Your backend is configured for Dokploy + VPS hosting with local file storage.
