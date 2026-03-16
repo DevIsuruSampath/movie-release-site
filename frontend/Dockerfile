@@ -31,26 +31,22 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 
 # Create non-root user
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
-# Copy only needed production files
-COPY --from=builder /app/public ./public
+# Copy all needed files
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-
-# Copy standalone Next.js build
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/next.config.js ./next.config.js
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/server.js ./server.js
 
 USER nextjs
 
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node --eval "require('http').get('http://0.0.0.0:3000', (res) => { if (res.statusCode !== 200) throw new Error('Health check failed') }).then(() => process.exit(0)).catch(() => process.exit(1))" || exit 1
-
-# Start Next.js production server
+# Start Next.js production server binding to all interfaces
 CMD ["node", "server.js"]
