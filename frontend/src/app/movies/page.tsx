@@ -1,94 +1,63 @@
 import api from '@/lib/api'
-import { Movie, MovieListResponse, Category } from '@/types'
+import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
 
-async function getCategoryMovies(slug: string) {
+async function getMovies() {
   try {
     const response = await api.get<MovieListResponse>('/api/v1/movies', {
-      params: { category: slug },
+      params: { is_published: true, limit: 100 },
     })
     return response.data.items || []
   } catch (error) {
-    console.error('Failed to fetch category movies:', error)
+    console.error('Failed to fetch movies:', error)
     return []
   }
 }
 
-async function getCategoryDetails(slug: string): Promise<Category | null> {
-  try {
-    const response = await api.get<Category[]>('/api/v1/categories')
-    const category = response.data?.find((c) => c.slug === slug)
-    return category || null
-  } catch (error) {
-    console.error('Failed to fetch category:', error)
-    return null
-  }
-}
-
-export default async function CategoryPage({ params }: { params: { slug: string } }) {
-  const movies = await getCategoryMovies(params.slug)
-  const category = await getCategoryDetails(params.slug)
-  const categoryName = category?.name || params.slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-
-  const categoryGradients: Record<string, string> = {
-    'action': 'from-red-500 to-orange-600',
-    'comedy': 'from-yellow-500 to-amber-600',
-    'drama': 'from-blue-500 to-indigo-600',
-    'horror': 'from-gray-800 to-red-900',
-    'thriller': 'from-purple-600 to-red-800',
-    'romance': 'from-pink-500 to-rose-600',
-    'sci-fi': 'from-cyan-500 to-blue-600',
-    'animation': 'from-green-500 to-emerald-600',
-    'documentary': 'from-slate-500 to-gray-700',
-    'fantasy': 'from-violet-500 to-purple-600',
-  }
-
-  const gradientClass = categoryGradients[params.slug.toLowerCase()] || 'from-[#e50914] to-[#b20710]'
+export default async function MoviesPage() {
+  const movies = await getMovies()
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
 
       {/* Hero Section */}
-      <section className={`relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br ${gradientClass}`}>
-        <div className="absolute inset-0 bg-black/30" />
+      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-20 right-20 w-96 h-96 bg-[#e50914] rounded-full blur-[200px] opacity-10" />
+          <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#b20710] rounded-full blur-[150px] opacity-10" />
+        </div>
 
         <div className="relative max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6 animate-slide-up">
-            <Link href="/" className="text-white/70 hover:text-white transition-colors text-sm">
+            <Link href="/" className="text-gray-400 hover:text-white transition-colors text-sm">
               Home
             </Link>
-            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <Link href="/categories" className="text-white/70 hover:text-white transition-colors text-sm">
-              Categories
-            </Link>
-            <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <span className="text-white text-sm font-medium">{categoryName}</span>
+            <span className="text-[#e50914] text-sm font-medium">All Movies</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            {categoryName}
+            All <span className="text-gradient">Movies</span>
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mb-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            {category?.description || `Browse all ${movies.length} ${categoryName.toLowerCase()} movies`}
+          <p className="text-xl text-gray-400 max-w-2xl animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            Browse our complete collection of movies and find your next favorite film
           </p>
 
           <div className="flex items-center gap-6 mt-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center gap-2 text-white/70">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2 text-gray-400">
+              <svg className="w-5 h-5 text-[#e50914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
               </svg>
               <span className="text-white font-semibold">{movies.length} Movies</span>
             </div>
             <Link href="/search">
-              <Button variant="outline" size="sm" className="border-white/30 text-white hover:bg-white/10 rounded-full text-sm">
+              <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 rounded-full text-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -108,11 +77,11 @@ export default async function CategoryPage({ params }: { params: { slug: string 
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No movies found</h3>
-            <p className="text-gray-400 mb-6">No movies in this category yet</p>
-            <Link href="/categories">
+            <h3 className="text-xl font-semibold text-white mb-2">No movies available</h3>
+            <p className="text-gray-400 mb-6">Check back later for new releases</p>
+            <Link href="/">
               <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-full">
-                Browse All Categories
+                Back to Home
               </Button>
             </Link>
           </div>
@@ -144,6 +113,13 @@ export default async function CategoryPage({ params }: { params: { slug: string 
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                         {movie.imdb_rating}
+                      </div>
+                    )}
+
+                    {/* Featured Badge */}
+                    {movie.featured && (
+                      <div className="absolute top-2 left-2 px-2 py-1 bg-[#e50914] text-white text-xs font-semibold rounded-md">
+                        Featured
                       </div>
                     )}
 

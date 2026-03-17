@@ -2,7 +2,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'primary' | 'secondary' | 'destructive' | 'ghost'
+  variant?: 'default' | 'primary' | 'secondary' | 'destructive' | 'ghost' | 'outline'
   size?: 'sm' | 'md' | 'lg'
 }
 
@@ -12,13 +12,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e50914] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] disabled:pointer-events-none disabled:opacity-50 active:scale-95',
           {
-            'default': 'bg-gray-100 text-gray-900 hover:bg-gray-200',
-            'primary': 'bg-blue-600 text-white hover:bg-blue-700',
-            'secondary': 'bg-gray-200 text-gray-900 hover:bg-gray-300',
-            'destructive': 'bg-red-600 text-white hover:bg-red-700',
-            'ghost': 'bg-transparent hover:bg-gray-100',
+            'default': 'bg-[#e50914] text-white hover:bg-[#b20710] shadow-lg shadow-red-900/20',
+            'primary': 'bg-[#e50914] text-white hover:bg-[#b20710] shadow-lg shadow-red-900/20',
+            'secondary': 'bg-white/10 text-white hover:bg-white/20 border border-white/20',
+            'destructive': 'bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/20',
+            'ghost': 'bg-transparent text-gray-400 hover:text-white hover:bg-white/5',
+            'outline': 'bg-transparent text-white border border-white/20 hover:bg-white/10 hover:border-white/30',
           }[variant],
           {
             'sm': 'h-8 px-3 text-sm',

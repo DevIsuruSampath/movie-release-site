@@ -5,6 +5,9 @@ import { useParams, useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { Movie } from '@/types'
 import { Button } from '@/components/ui/button'
+import Navbar from '@/components/navbar'
+import Footer from '@/components/footer'
+import Link from 'next/link'
 
 export default function MovieDetailsPage() {
   const params = useParams()
@@ -16,6 +19,7 @@ export default function MovieDetailsPage() {
     if (params.slug) {
       fetchMovie(Array.isArray(params.slug) ? params.slug[0] : params.slug)
     }
+    window.scrollTo(0, 0)
   }, [params.slug])
 
   const fetchMovie = async (slug: string) => {
@@ -47,128 +51,244 @@ export default function MovieDetailsPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    return (
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 border-4 border-[#e50914] border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400">Loading movie details...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!movie) {
-    return <div className="flex items-center justify-center min-h-screen">Movie not found</div>
+    return (
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+            </svg>
+            <h2 className="text-xl font-semibold text-white mb-2">Movie not found</h2>
+            <Link href="/movies">
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 rounded-full mt-4">
+                Browse Movies
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Backdrop */}
-      {movie.backdrop_url && (
-        <div className="relative h-96 w-full">
-          <img
-            src={movie.backdrop_url}
-            alt={movie.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        </div>
-      )}
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <Navbar />
+
+      {/* Hero Backdrop */}
+      <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
+        {movie.backdrop_url && (
+          <>
+            <img
+              src={movie.backdrop_url}
+              alt={movie.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 hero-gradient" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
+          </>
+        )}
+      </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 -mt-48">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="md:flex">
-            {/* Poster */}
+      <div className="relative -mt-32 md:-mt-40 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="grid md:grid-cols-[300px_1fr] gap-8 lg:gap-12">
+          {/* Poster */}
+          <div className="relative animate-slide-up">
             {movie.poster_url && (
-              <div className="md:w-1/3">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
                   src={movie.poster_url}
                   alt={movie.title}
-                  className="w-full h-auto object-cover"
+                  className="w-full aspect-[2/3] object-cover"
                 />
+                {movie.imdb_rating && (
+                  <div className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg">
+                    <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span className="text-white font-semibold">{movie.imdb_rating}</span>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Details */}
-            <div className="p-8 md:w-2/3 md:pl-8">
-              <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
-              
-              {movie.original_title && (
-                <p className="text-muted-foreground text-lg mb-4">{movie.original_title}</p>
+            {/* Quick Actions Mobile */}
+            <div className="md:hidden mt-4 space-y-3">
+              {movie.stream_enabled && (
+                <Button onClick={handleStream} className="w-full bg-[#e50914] hover:bg-[#b20710] text-white btn-glow">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                  </svg>
+                  Watch Now
+                </Button>
               )}
+              {movie.download_enabled && (movie.download_links || []).length > 0 && (
+                <Button variant="outline" onClick={() => handleDownload((movie.download_links || [])[0])} className="w-full border-white/30 text-white">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </Button>
+              )}
+            </div>
+          </div>
 
-              <div className="flex flex-wrap gap-4 mb-6 text-sm">
+          {/* Details */}
+          <div className="space-y-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            {/* Title Section */}
+            <div>
+              {movie.original_title && movie.original_title !== movie.title && (
+                <p className="text-[#e50914] font-medium mb-2">{movie.original_title}</p>
+              )}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
+                {movie.title}
+              </h1>
+
+              {/* Meta Tags */}
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 {movie.release_year && (
-                  <span className="px-3 py-1 bg-gray-100 rounded-full">
+                  <span className="px-3 py-1 bg-white/10 text-white rounded-full">
                     {movie.release_year}
                   </span>
                 )}
                 {movie.duration_minutes && (
-                  <span className="px-3 py-1 bg-gray-100 rounded-full">
+                  <span className="px-3 py-1 bg-white/10 text-white rounded-full">
                     {Math.floor(movie.duration_minutes / 60)}h {movie.duration_minutes % 60}m
                   </span>
                 )}
                 {movie.language && (
-                  <span className="px-3 py-1 bg-gray-100 rounded-full">
+                  <span className="px-3 py-1 bg-white/10 text-white rounded-full">
                     {movie.language}
                   </span>
                 )}
-                {movie.imdb_rating && (
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">
-                    ★ {movie.imdb_rating}
+                {movie.quality && (
+                  <span className="px-3 py-1 bg-[#e50914] text-white rounded-full font-semibold">
+                    {movie.quality}
                   </span>
                 )}
               </div>
+            </div>
 
-              {movie.description && (
-                <p className="text-gray-700 mb-6">{movie.description}</p>
+            {/* Description */}
+            {movie.description && (
+              <div className="prose prose-invert max-w-none">
+                <p className="text-gray-300 text-lg leading-relaxed">{movie.description}</p>
+              </div>
+            )}
+
+            {/* Action Buttons Desktop */}
+            <div className="hidden md:flex flex-wrap gap-4">
+              {movie.stream_enabled && (
+                <Button onClick={handleStream} size="lg" className="bg-[#e50914] hover:bg-[#b20710] text-white btn-glow px-8">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                  </svg>
+                  Watch Now
+                </Button>
               )}
-
-              {/* Stream Button */}
-              {movie.stream_enabled && movie.stream_links && movie.stream_links.length > 0 && (
-                <div className="mb-6">
-                  <Button size="lg" className="w-full" onClick={handleStream}>
-                    ▶ Stream Now
-                  </Button>
-                </div>
-              )}
-
-              {/* Download Links */}
-              {movie.download_enabled && movie.download_links && movie.download_links.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-4">Download Options</h3>
-                  <div className="space-y-3">
-                    {movie.download_links.map((link) => (
-                      <Button
-                        key={link.id}
-                        variant="secondary"
-                        className="w-full justify-between"
-                        onClick={() => handleDownload(link)}
-                      >
-                        <span>{link.title}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {link.quality} {link.file_size && `(${link.file_size})`}
-                        </span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Categories */}
-              {movie.categories && movie.categories.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3">Categories</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {movie.categories.map((cat) => (
-                      <span
-                        key={cat.id}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-                      >
-                        {cat.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              {movie.download_enabled && (movie.download_links || []).length > 0 && (
+                <Button onClick={() => handleDownload((movie.download_links || [])[0])} size="lg" variant="outline" className="border-white/30 text-white px-8">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </Button>
               )}
             </div>
+
+            {/* Categories */}
+            {movie.categories && movie.categories.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {movie.categories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      href={`/categories/${cat.slug}`}
+                      className="tag bg-white/10 text-white hover:bg-[#e50914]/80 hover:text-white"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Download Links */}
+            {movie.download_enabled && (movie.download_links || []).length > 0 && (
+              <div className="bg-[#141414] rounded-2xl p-6">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-[#e50914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Options
+                </h3>
+                <div className="grid gap-3">
+                  {(movie.download_links || []).map((link, index) => (
+                    <button
+                      key={link.id}
+                      onClick={() => handleDownload(link)}
+                      className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-all group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#e50914]/20 flex items-center justify-center group-hover:bg-[#e50914] transition-colors">
+                          <svg className="w-5 h-5 text-[#e50914] group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </div>
+                        <div className="text-left">
+                          <div className="text-white font-medium">{link.title}</div>
+                          <div className="text-sm text-gray-400">{link.quality}</div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {link.file_size || 'Click to download'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Short Description */}
+            {movie.short_description && (
+              <div className="glass rounded-2xl p-6">
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Quick Info</h3>
+                <p className="text-gray-300">{movie.short_description}</p>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Back Button */}
+        <div className="mt-12">
+          <Link href="/movies">
+            <Button variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/5 rounded-full">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Movies
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

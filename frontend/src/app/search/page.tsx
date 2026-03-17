@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import Link from 'next/link'
+import Navbar from '@/components/navbar'
+import Footer from '@/components/footer'
 
 function SearchPageContent() {
   const router = useRouter()
@@ -14,26 +15,25 @@ function SearchPageContent() {
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [results, setResults] = useState<Movie[]>([])
   const [loading, setLoading] = useState(false)
-  const [page, setPage] = useState(1)
+  const [hasSearched, setHasSearched] = useState(false)
 
   useEffect(() => {
     if (query) {
       performSearch(query)
     }
-  }, [query])
+  }, [])
 
-  const performSearch = async (searchQuery: string, newPage: number = 1) => {
+  const performSearch = async (searchQuery: string) => {
     setLoading(true)
+    setHasSearched(true)
     try {
       const response = await api.get<MovieListResponse>('/api/v1/movies', {
         params: {
           search: searchQuery,
-          skip: (newPage - 1) * 20,
-          limit: 20,
+          limit: 50,
         },
       })
       setResults(response.data.items || [])
-      setPage(newPage)
     } catch (error) {
       console.error('Search failed:', error)
     } finally {
@@ -45,133 +45,200 @@ function SearchPageContent() {
     e.preventDefault()
     if (query.trim()) {
       performSearch(query)
+      router.push(`/search?q=${encodeURIComponent(query)}`)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div>
-          <h1 className="text-4xl font-bold mb-4">Search Movies</h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Find your favorite movies
-          </p>
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <Navbar />
+
+      {/* Hero Search Section */}
+      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-20 right-20 w-96 h-96 bg-[#e50914] rounded-full blur-[200px] opacity-10" />
+          <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#b20710] rounded-full blur-[150px] opacity-10" />
         </div>
 
-        {/* Search Form */}
-        <form onSubmit={handleSubmit} className="mb-8">
-          <div className="flex gap-4 max-w-2xl">
-            <Input
-              placeholder="Search movies by title..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Searching...' : 'Search'}
-            </Button>
-          </div>
-        </form>
+        <div className="relative max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up">
+            Find Your Next <span className="text-gradient">Favorite Movie</span>
+          </h1>
+          <p className="text-xl text-gray-400 mb-10">
+            Search through our extensive collection of movies
+          </p>
 
-        {/* Results */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 border-4 border-t-4 border-gray-300 rounded-full animate-spin" />
-            <p className="mt-4 text-gray-600">Searching movies...</p>
-          </div>
-        ) : results.length > 0 ? (
-          <div>
-            <p className="text-sm text-gray-600 mb-4">
-              Found {results.length} movies
-            </p>
+          {/* Search Form */}
+          <form onSubmit={handleSubmit} className="max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <div className="relative group">
+              <svg
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#e50914] transition-colors"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search movies by title..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="search-input w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none text-lg"
+              />
+              <Button
+                type="submit"
+                disabled={loading}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#e50914] hover:bg-[#b20710] text-white px-6 py-2 rounded-full font-medium btn-glow"
+              >
+                {loading ? (
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  'Search'
+                )}
+              </Button>
+            </div>
+          </form>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {results.map((movie) => (
-                <Link
-                  key={movie.id}
-                  href={`/movies/${movie.slug}`}
-                  className="group"
+          {/* Quick Search Tags */}
+          {!hasSearched && (
+            <div className="mt-8 flex flex-wrap justify-center gap-3 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <span className="text-gray-500 text-sm">Popular:</span>
+              {['Action', 'Drama', 'Comedy', 'Horror', 'Thriller'].map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => {
+                    setQuery(tag)
+                    performSearch(tag)
+                  }}
+                  className="px-4 py-2 bg-white/5 hover:bg-[#e50914] border border-white/10 hover:border-[#e50914] rounded-full text-sm text-gray-300 hover:text-white transition-all"
                 >
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                    {movie.poster_url && (
-                      <div className="aspect-[2/3] overflow-hidden bg-gray-200">
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Results Section */}
+      {hasSearched && (
+        <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 border-4 border-[#e50914] border-t-transparent rounded-full animate-spin" />
+                <p className="text-gray-400">Searching movies...</p>
+              </div>
+            </div>
+          ) : results.length > 0 ? (
+            <>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">
+                    Search Results
+                  </h2>
+                  <p className="text-gray-400 mt-1">
+                    Found {results.length} movies for "{query}"
+                  </p>
+                </div>
+                <Link href="/movies">
+                  <Button variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/5 rounded-full">
+                    Browse All
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
+                {results.map((movie) => (
+                  <Link
+                    key={movie.id}
+                    href={`/movies/${movie.slug}`}
+                    className="group"
+                  >
+                    <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
+                      <div className="movie-poster relative">
                         <img
                           src={movie.poster_url}
                           alt={movie.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          className="card-image w-full h-full object-cover"
                         />
-                      </div>
-                    )}
 
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold mb-2 group-hover:text-blue-600 transition-colors">
-                        {movie.title}
-                      </h3>
+                        {movie.imdb_rating && (
+                          <div className="rating-badge text-yellow-400 text-xs">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            {movie.imdb_rating}
+                          </div>
+                        )}
 
-                      <div className="flex flex-wrap gap-2 mb-2 text-sm">
-                        {movie.release_year && (
-                          <span className="px-2 py-1 bg-gray-100 rounded-full">
-                            {movie.release_year}
-                          </span>
-                        )}
-                        {movie.language && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                            {movie.language}
-                          </span>
-                        )}
+                        <div className="play-overlay">
+                          <div className="play-button">
+                            <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
 
-                      {movie.short_description && (
-                        <p className="text-gray-600 text-sm line-clamp-2">
-                          {movie.short_description}
-                        </p>
-                      )}
+                      <div className="p-4">
+                        <h3 className="text-white font-semibold text-sm mb-2 line-clamp-2 group-hover:text-[#e50914] transition-colors">
+                          {movie.title}
+                        </h3>
+
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          {movie.release_year && (
+                            <span className="px-2 py-0.5 bg-white/10 rounded-full">
+                              {movie.release_year}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-20 animate-slide-up">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/5 flex items-center justify-center">
+                <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                No results found for "{query}"
+              </h3>
+              <p className="text-gray-400 mb-6">Try a different search term or browse all movies</p>
+              <Link href="/movies">
+                <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-full">
+                  Browse All Movies
+                </Button>
+              </Link>
             </div>
+          )}
+        </section>
+      )}
 
-            {/* Pagination */}
-            <div className="flex justify-center gap-2 mt-8">
-              <Button
-                variant="ghost"
-                disabled={page === 1}
-                onClick={() => {
-                  if (query) performSearch(query, page - 1)
-                }}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={results.length < 20}
-                onClick={() => {
-                  if (query) performSearch(query, page + 1)
-                }}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-600">
-              {query ? `No results found for "${query}"` : 'Enter a search term above'}
-            </p>
-            <Link href="/">
-              <Button variant="secondary">Browse All Movies</Button>
-            </Link>
-          </div>
-        )}
-      </div>
+      <Footer />
     </div>
   )
 }
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0a]">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="w-16 h-16 border-4 border-[#e50914] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    }>
       <SearchPageContent />
     </Suspense>
   )

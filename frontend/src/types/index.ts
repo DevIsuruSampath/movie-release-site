@@ -61,6 +61,7 @@ export interface Movie {
   poster_url?: string
   backdrop_url?: string
   thumbnail_url?: string
+  quality?: string
   age_rating?: string
   content_warning?: string
   visibility: string
