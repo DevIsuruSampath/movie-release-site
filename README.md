@@ -75,8 +75,14 @@ cd movie-release-site
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your database credentials
+# Edit .env with your database credentials and registration settings
 alembic upgrade head
+```
+
+**Important:** Set your admin registration code in `.env`:
+```env
+ADMIN_REGISTRATION_CODE=your-secure-secret-code-here
+ALLOW_PUBLIC_REGISTRATION=false
 ```
 
 ### Step 3: Start Services
@@ -109,17 +115,25 @@ docker-compose logs -f
 
 ### Step 4: Create Admin User
 
+**First admin registration requires a code:**
+
 ```bash
-# Via API
+# Via API with registration code
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email":"admin@example.com",
-    "password":"admin123",
-    "full_name":"Admin User"
+    "password":"SecurePass123!",
+    "full_name":"Admin User",
+    "registration_code":"your-secure-secret-code-here"
   }'
 
 # Then login at: http://localhost:3000/admin/login
+```
+
+**Additional users can be created by admins via:**
+```bash
+POST /api/v1/auth/admin/users (requires admin token)
 ```
 
 ### Step 5: Deploy to Dokploy
@@ -142,6 +156,10 @@ DATABASE_URL=postgresql://movie_user:password@postgres:5432/movie_db
 
 # Security
 SECRET_KEY=your-super-secret-key-change-this-in-production
+
+# Registration (important!)
+ALLOW_PUBLIC_REGISTRATION=false
+ADMIN_REGISTRATION_CODE=your-secure-admin-code-change-this
 
 # Frontend URLs
 ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
@@ -202,6 +220,8 @@ movie-release-site/
 - ✅ File upload validation (type, size)
 - ✅ SQL injection protection via SQLAlchemy
 - ✅ XSS protection via FastAPI
+- ✅ Registration code required (disabled public registration by default)
+- ✅ Admin-only user creation endpoint
 
 ## 📊 Database Schema
 
@@ -225,7 +245,8 @@ movie-release-site/
 
 ### Authentication
 - `POST /api/v1/auth/login` - Admin login
-- `POST /api/v1/auth/register` - Create admin user
+- `POST /api/v1/auth/register` - Register user (requires code when public registration disabled)
+- `POST /api/v1/auth/admin/users` - Create user (admin only)
 - `POST /api/v1/auth/refresh` - Refresh access token
 
 ### Movies
@@ -298,6 +319,8 @@ movie-release-site/
    ```env
    DATABASE_URL=postgresql://movie_user:password@postgres.dokploy.internal:5432/movie_db
    SECRET_KEY=your-super-secret-key
+   ALLOW_PUBLIC_REGISTRATION=false
+   ADMIN_REGISTRATION_CODE=your-secure-admin-code
    ALLOWED_ORIGINS=https://your-domain.com
    ```
 
