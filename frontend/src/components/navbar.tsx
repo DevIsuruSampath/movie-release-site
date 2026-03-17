@@ -37,23 +37,23 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative w-10 h-10 flex items-center justify-center bg-[#e50914] rounded-lg group-hover:scale-110 transition-transform">
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="relative w-9 h-9 flex items-center justify-center bg-[#e50914] rounded-lg group-hover:scale-110 transition-transform">
+              <svg className="w-4.5 h-4.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold text-white">
+            <span className="text-xl font-bold text-white">
               Movie<span className="text-[#e50914]">Hub</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`nav-link text-sm font-medium transition-colors ${
+                className={`nav-link text-base font-medium transition-colors ${
                   pathname === link.href
                     ? 'text-[#e50914] active'
                     : 'text-gray-300 hover:text-white'
@@ -65,14 +65,14 @@ export default function Navbar() {
           </div>
 
           {/* Right Actions */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             <Link href="/search">
               <Button
                 variant="ghost"
                 size="sm"
                 className="text-gray-300 hover:text-white hover:bg-white/10"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </Button>
@@ -81,7 +81,7 @@ export default function Navbar() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/20 text-white hover:bg-white/10 rounded-full"
+                className="border-white/20 text-white hover:bg-white/10 rounded-full text-sm"
               >
                 Admin
               </Button>
@@ -94,7 +94,7 @@ export default function Navbar() {
             className="md:hidden p-2 text-gray-300 hover:text-white"
             aria-label="Toggle menu"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMobileMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (

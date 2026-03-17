@@ -67,7 +67,7 @@ export default function DashboardPage() {
                     <p className="text-3xl font-bold text-white mt-2">{stats.total}</p>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-[#e50914]/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-[#e50914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-[#e50914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                     </svg>
                   </div>
@@ -81,7 +81,7 @@ export default function DashboardPage() {
                     <p className="text-3xl font-bold text-green-400 mt-2">{stats.published}</p>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -95,7 +95,7 @@ export default function DashboardPage() {
                     <p className="text-3xl font-bold text-yellow-400 mt-2">{stats.draft}</p>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                   </div>
@@ -109,7 +109,7 @@ export default function DashboardPage() {
                     <p className="text-3xl font-bold text-blue-400 mt-2">{stats.categories}</p>
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
                   </div>

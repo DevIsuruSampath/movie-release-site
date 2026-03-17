@@ -22,9 +22,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'outline': 'bg-transparent text-white border border-white/20 hover:bg-white/10 hover:border-white/30',
           }[variant],
           {
-            'sm': 'h-8 px-3 text-sm',
-            'md': 'h-10 px-4 text-base',
-            'lg': 'h-12 px-6 text-lg',
+            'sm': 'h-9 px-3.5 text-sm',
+            'md': 'h-10.5 px-4.5 text-base',
+            'lg': 'h-12 px-6 text-base',
           }[size],
           className
         )}

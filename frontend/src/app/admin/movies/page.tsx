@@ -88,7 +88,7 @@ export default function MoviesPage() {
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1 max-w-md">
             <svg
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4.5 h-4.5 text-gray-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
