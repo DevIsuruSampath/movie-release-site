@@ -52,8 +52,8 @@ export default async function CategoryPage({ params }: { params: { slug: string 
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className={`relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br ${gradientClass}`}>
+      {/* Hero Section - Account for fixed navbar with pt-16 md:pt-20 */}
+      <section className={`relative pt-16 md:pt-20 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br ${gradientClass}`}>
         <div className="absolute inset-0 bg-black/30" />
 
         <div className="relative max-w-7xl mx-auto">

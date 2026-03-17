@@ -45,7 +45,7 @@ export default async function CategoriesPage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative pt-24 md:pt-28 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-20 right-20 w-96 h-96 bg-[#e50914] rounded-full blur-[200px] opacity-10" />
           <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#b20710] rounded-full blur-[150px] opacity-10" />
@@ -91,7 +91,7 @@ export default async function CategoriesPage() {
                 className="group"
               >
                 <div className={`category-card bg-gradient-to-br ${categoryGradients[index % categoryGradients.length]} animate-slide-up stagger-${(index % 6) + 1}`}>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white relative z-10">
                     <div className="category-icon w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={categoryIcons[index % categoryIcons.length].path} />
