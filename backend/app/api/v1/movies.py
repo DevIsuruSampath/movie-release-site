@@ -8,8 +8,8 @@ from app.models.movie import Movie, StreamLink, DownloadLink, MovieGallery
 from app.models.category import Category
 from app.schemas.movie import (
     MovieCreate, MovieUpdate, MovieResponse, MovieListResponse,
-    StreamLinkCreate, StreamLinkResponse,
-    DownloadLinkCreate, DownloadLinkResponse,
+    StreamLinkCreate, StreamLinkUpdate, StreamLinkResponse,
+    DownloadLinkCreate, DownloadLinkUpdate, DownloadLinkResponse,
     MovieGalleryCreate, MovieGalleryResponse,
 )
 from app.api.v1.auth import get_current_user
@@ -36,11 +36,12 @@ def list_movies(
     language: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     is_published: Optional[bool] = Query(True),
+    featured: Optional[bool] = Query(None),
     db: Session = Depends(get_db),
 ):
     """List movies with filters (public)."""
     query = db.query(Movie)
-    
+
     if category:
         query = query.join(Movie.categories).filter(Category.slug == category)
     if year:
@@ -50,13 +51,15 @@ def list_movies(
     if search:
         query = query.filter(Movie.title.ilike(f"%{search}%"))
     if is_published is not None:
-        query = query.filter(Movie.is_published == is_published)
-    
+        query = query.filter(Movie.status == "published")
+    if featured is not None:
+        query = query.filter(Movie.featured == featured)
+
     total = query.count()
     movies = query.offset(skip).limit(limit).all()
-    
+
     pages = (total + limit - 1) // limit if limit > 0 else 0
-    
+
     return MovieListResponse(
         items=[MovieResponse.from_orm(m) for m in movies],
         total=total,

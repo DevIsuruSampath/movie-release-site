@@ -1,7 +1,9 @@
+from __future__ import annotations
 from pydantic import BaseModel, HttpUrl
 from datetime import datetime, date
 from typing import Optional, List
 from enum import Enum
+from app.schemas.category import CategoryResponse
 
 class MovieStatus(str, Enum):
     DRAFT = "draft"

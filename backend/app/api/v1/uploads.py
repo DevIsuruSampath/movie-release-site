@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.api.v1.auth import get_current_user, check_admin
+from app.api.v1.auth import get_current_user
 from app.models.movie import Movie
 from app.schemas.movie import MovieGalleryCreate, MovieGalleryResponse
 import aiofiles
