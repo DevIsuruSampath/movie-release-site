@@ -24,7 +24,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Build the application
+# Build application
 RUN npm run build
 
 # ---------- Runner ----------

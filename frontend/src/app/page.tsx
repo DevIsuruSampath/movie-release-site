@@ -38,7 +38,7 @@ export default async function HomePage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative min-h-screen md:min-h-[calc(100vh-5rem)] flex items-center overflow-hidden">
+      <section className="relative min-h-screen md:min-h-[calc(100vh-5rem)] flex items-center overflow-hidden pt-20 md:pt-24">
         {/* Animated background */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#141414] to-[#1a0a0a]" />
@@ -154,7 +154,8 @@ export default async function HomePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </div>
-        </section>
+        </div>
+      </section>
 
       {/* Featured Movies Section */}
       {featuredMovies.length > 0 && (
