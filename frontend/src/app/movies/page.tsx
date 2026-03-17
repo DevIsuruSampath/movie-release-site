@@ -99,6 +99,8 @@ export default async function MoviesPage() {
                       src={movie.poster_url}
                       alt={movie.title}
                       className="card-image w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
 
                     {/* Quality Badge */}

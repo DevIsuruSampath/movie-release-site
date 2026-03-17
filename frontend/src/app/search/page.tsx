@@ -21,6 +21,7 @@ function SearchPageContent() {
     if (query) {
       performSearch(query)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const performSearch = async (searchQuery: string) => {
@@ -165,6 +166,8 @@ function SearchPageContent() {
                           src={movie.poster_url}
                           alt={movie.title}
                           className="card-image w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
 
                         {movie.imdb_rating && (

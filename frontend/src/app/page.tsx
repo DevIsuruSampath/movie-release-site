@@ -109,6 +109,8 @@ export default async function HomePage() {
                       src={featuredMovies[0].poster_url}
                       alt={featuredMovies[0].title}
                       className="w-full h-[500px] object-cover"
+                      loading="eager"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
@@ -132,12 +134,16 @@ export default async function HomePage() {
                 )}
 
                 {/* Floating secondary cards */}
-                <div className="absolute -top-8 -right-8 w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '1s' }}>
-                  <img src={featuredMovies[1]?.poster_url} alt="" className="w-full h-56 object-cover" />
-                </div>
-                <div className="absolute -bottom-8 -left-8 w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '2s' }}>
-                  <img src={featuredMovies[2]?.poster_url} alt="" className="w-full h-56 object-cover" />
-                </div>
+                {featuredMovies[1] && (
+                  <div className="absolute -top-8 -right-8 w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '1s' }}>
+                    <img src={featuredMovies[1].poster_url} alt={featuredMovies[1].title} className="w-full h-56 object-cover" loading="lazy" decoding="async" />
+                  </div>
+                )}
+                {featuredMovies[2] && (
+                  <div className="absolute -bottom-8 -left-8 w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '2s' }}>
+                    <img src={featuredMovies[2].poster_url} alt={featuredMovies[2].title} className="w-full h-56 object-cover" loading="lazy" decoding="async" />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -182,6 +188,8 @@ export default async function HomePage() {
                       src={movie.poster_url}
                       alt={movie.title}
                       className="card-image w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
 
                     {/* Quality Badge */}

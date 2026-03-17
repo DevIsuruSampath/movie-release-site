@@ -30,15 +30,27 @@ export const useAuthStore = create<AuthState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
           })
+
+          if (!response.ok) {
+            let errorMessage = 'Login failed'
+            try {
+              const errorData = await response.json()
+              errorMessage = errorData.detail || errorMessage
+            } catch {
+              errorMessage = response.statusText || errorMessage
+            }
+            throw new Error(errorMessage)
+          }
+
           const data = await response.json()
-          
+
           set({
             accessToken: data.access_token,
             refreshToken: data.refresh_token,
             isAuthenticated: true,
             isAdmin: data.is_superuser || false,
           })
-          
+
           localStorage.setItem('access_token', data.access_token)
           localStorage.setItem('refresh_token', data.refresh_token)
         } catch (error) {

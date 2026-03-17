@@ -130,6 +130,8 @@ export default async function CategoryPage({ params }: { params: { slug: string 
                       src={movie.poster_url}
                       alt={movie.title}
                       className="card-image w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
 
                     {/* Quality Badge */}

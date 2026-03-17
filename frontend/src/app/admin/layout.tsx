@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
@@ -12,14 +12,15 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { isAuthenticated, logout } = useAuthStore()
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated && pathname !== '/admin/login') {
-      window.location.href = '/admin/login'
+      router.push('/admin/login')
     }
-  }, [isAuthenticated, pathname])
+  }, [isAuthenticated, pathname, router])
 
   if (pathname === '/admin/login') {
     return <>{children}</>

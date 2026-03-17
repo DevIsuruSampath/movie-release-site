@@ -44,7 +44,7 @@ export default function MovieDetailsPage() {
     }
   }
 
-  const handleDownload = (link: any) => {
+  const handleDownload = (link: { id: number; title: string; url: string; quality: string; file_size?: string }) => {
     if (link.url) {
       window.open(link.url, '_blank')
     }
@@ -97,6 +97,8 @@ export default function MovieDetailsPage() {
               src={movie.backdrop_url}
               alt={movie.title}
               className="w-full h-full object-cover"
+              loading="eager"
+              decoding="async"
             />
             <div className="absolute inset-0 hero-gradient" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
@@ -115,6 +117,8 @@ export default function MovieDetailsPage() {
                   src={movie.poster_url}
                   alt={movie.title}
                   className="w-full aspect-[2/3] object-cover"
+                  loading="eager"
+                  decoding="async"
                 />
                 {movie.imdb_rating && (
                   <div className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg">
