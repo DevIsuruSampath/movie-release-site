@@ -35,6 +35,8 @@ services:
       ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
       UPLOAD_DIR: /app/uploads
       MAX_FILE_SIZE_MB: 10
+      ALLOW_PUBLIC_REGISTRATION: false
+      ADMIN_REGISTRATION_CODE: change-this-to-secure-code
     depends_on:
       postgres:
         condition: service_healthy

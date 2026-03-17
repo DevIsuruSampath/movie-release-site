@@ -9,6 +9,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserRegister(UserBase):
+    password: str
+    registration_code: Optional[str] = None
+
+class AdminUserCreate(UserCreate):
+    is_superuser: Optional[bool] = False
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
