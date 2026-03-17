@@ -11,7 +11,7 @@ from app.db.database import get_db
 from app.core.security import verify_password, create_access_token, create_refresh_token, decode_token, get_password_hash
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserResponse, TokenResponse
+from app.schemas.user import UserCreate, UserRegister, AdminUserCreate, UserLogin, UserResponse, TokenResponse
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -103,17 +103,49 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register new user."""
+def register(user_data: UserRegister, db: Session = Depends(get_db)):
+    """Register new user. Requires registration code unless public registration is enabled."""
+    # Check if public registration is allowed
+    if not settings.ALLOW_PUBLIC_REGISTRATION:
+        # Require registration code
+        if not user_data.registration_code:
+            raise HTTPException(status_code=400, detail="Registration code is required")
+        if user_data.registration_code != settings.ADMIN_REGISTRATION_CODE:
+            raise HTTPException(status_code=403, detail="Invalid registration code")
+
     existing = db.query(User).filter(User.email == user_data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
+
     hashed_password = get_password_hash(user_data.password)
     user = User(
         email=user_data.email,
         hashed_password=hashed_password,
         full_name=user_data.full_name,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/admin/users", response_model=UserResponse, status_code=201)
+def create_user_admin(
+    user_data: AdminUserCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """Create a new user (admin only)."""
+    existing = db.query(User).filter(User.email == user_data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    hashed_password = get_password_hash(user_data.password)
+    user = User(
+        email=user_data.email,
+        hashed_password=hashed_password,
+        full_name=user_data.full_name,
+        is_superuser=user_data.is_superuser,
     )
     db.add(user)
     db.commit()

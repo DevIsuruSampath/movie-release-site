@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 100
 
+    # Registration
+    ADMIN_REGISTRATION_CODE: Optional[str] = None
+    ALLOW_PUBLIC_REGISTRATION: bool = False
+
     @field_validator('ALLOWED_ORIGINS', mode='before')
     @classmethod
     def parse_allowed_origins(cls, v):
