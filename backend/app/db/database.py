@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
+from app.models import Base
 from contextlib import contextmanager
 from typing import Generator, Any
 
@@ -14,7 +14,10 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
+
+def init_db():
+    """Create all database tables."""
+    Base.metadata.create_all(bind=engine)
 
 
 def get_db() -> Generator[Any, None, None]:

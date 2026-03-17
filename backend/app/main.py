@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
+from app.db.database import init_db
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.movies import router as movies_router
@@ -12,6 +13,7 @@ app = FastAPI(
     title="Movie Release API",
     description="Backend API for movie release website",
     version="0.1.0",
+    on_startup=[init_db],
 )
 
 # CORS configuration
