@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Set Turbopack root to avoid conflicts with workspace
+  turbopack: {
+    root: __dirname,
+  },
+
+  // Enable standalone output for Docker
+  output: 'standalone',
+
   // Set base URL for Docker deployment
   basePath: '',
   assetPrefix: process.env.NEXT_PUBLIC_URL || undefined,

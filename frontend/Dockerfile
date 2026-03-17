@@ -4,24 +4,27 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json ./
+COPY package.json package-lock.json* ./
 
-# Install dependencies (use legacy peer deps to avoid strict errors)
-RUN npm install --legacy-peer-deps
+# Install dependencies
+RUN npm ci --legacy-peer-deps
 
 # ---------- Builder ----------
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code and config files
 COPY . .
 
+# Set build environment
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 
-# Clean build cache to ensure fresh TypeScript compilation
-RUN rm -rf .next
-
+# Build the application
 RUN npm run build
 
 # ---------- Runner ----------
@@ -32,21 +35,21 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 # Create non-root user
-RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
+RUN addgroup -g 1001 -S nextjs && \
+    adduser -S nextjs -u 1001
 
-# Copy all needed files
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/next.config.js ./next.config.js
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/server.js ./server.js
+# Copy only the necessary files from standalone output
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
+# Switch to non-root user
 USER nextjs
 
 EXPOSE 3000
 
-# Start Next.js production server binding to all interfaces
+# Start Next.js production server
 CMD ["node", "server.js"]

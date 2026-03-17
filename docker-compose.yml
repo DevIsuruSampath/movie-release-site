@@ -48,15 +48,13 @@ services:
   frontend:
     build: ./frontend
     container_name: movie_frontend
-    command: npm run dev
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    command: ["node", "server.js"]
     ports:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
       NEXT_PUBLIC_API_TIMEOUT: 30000
+      NODE_ENV: production
     depends_on:
       - backend
 
