@@ -75,7 +75,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-500 pointer-events-none"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -89,7 +89,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="search-input w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder-gray-500"
+                  className="search-input w-full pl-12 pr-4 py-3.5 rounded-xl text-white placeholder-gray-500"
                 />
               </div>
             </div>
@@ -100,7 +100,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-500 pointer-events-none"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -114,7 +114,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="search-input w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder-gray-500"
+                  className="search-input w-full pl-12 pr-4 py-3.5 rounded-xl text-white placeholder-gray-500"
                 />
               </div>
             </div>

@@ -73,7 +73,7 @@ function SearchPageContent() {
           <form onSubmit={handleSubmit} className="max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
             <div className="relative group">
               <svg
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4.5 h-4.5 text-gray-400 group-focus-within:text-[#e50914] transition-colors"
+                className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 group-focus-within:text-[#e50914] transition-colors pointer-events-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -85,15 +85,15 @@ function SearchPageContent() {
                 placeholder="Search movies by title..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="search-input w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none text-lg"
+                className="search-input w-full pl-14 pr-32 py-4 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none text-lg"
               />
               <Button
                 type="submit"
                 disabled={loading}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#e50914] hover:bg-[#b20710] text-white px-6 py-2 rounded-full font-medium btn-glow"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#e50914] hover:bg-[#b20710] text-white px-6 py-2.5 rounded-full font-medium btn-glow"
               >
                 {loading ? (
-                  <svg className="w-4.5 h-4.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -208,8 +208,8 @@ function SearchPageContent() {
             </>
           ) : (
             <div className="text-center py-20 animate-slide-up">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/5 flex items-center justify-center">
-                <svg className="w-9 h-9 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-white/5 flex items-center justify-center">
+                <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
