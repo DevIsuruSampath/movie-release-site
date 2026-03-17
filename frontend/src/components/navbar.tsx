@@ -23,14 +23,14 @@ export default function Navbar() {
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden'
-      document.body.style.paddingRight = `${window.innerWidth - document.documentElement.clientWidth}px`
+      document.body.classList.add('mobile-menu-open')
     } else {
       document.body.style.overflow = ''
-      document.body.style.paddingRight = ''
+      document.body.classList.remove('mobile-menu-open')
     }
     return () => {
       document.body.style.overflow = ''
-      document.body.style.paddingRight = ''
+      document.body.classList.remove('mobile-menu-open')
     }
   }, [isMobileMenuOpen])
 
@@ -142,95 +142,98 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Menu Backdrop */}
-      {isMobileMenuOpen && (
+      {/* Mobile Menu Container - Contains both backdrop and drawer */}
+      <div
+        id="mobile-menu-container"
+        className={`fixed inset-0 z-[60] md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}
+        aria-hidden={!isMobileMenuOpen}
+      >
+        {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] md:hidden"
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
           aria-hidden="true"
         />
-      )}
 
-      {/* Mobile Menu */}
-      <div
-        id="mobile-menu"
-        className={`fixed inset-y-0 right-0 z-[60] w-full max-w-sm bg-[#0a0a0a] shadow-2xl transform transition-transform duration-300 ease-out md:hidden ${
-          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        aria-label="Mobile navigation menu"
-      >
-        {/* Mobile Menu Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <span className="text-lg font-bold text-white">
-            Menu
-          </span>
-          <button
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
-            aria-label="Close menu"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile Menu Content */}
-        <div className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-73px)]">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
+        {/* Mobile Menu Drawer */}
+        <div
+          id="mobile-menu"
+          className="absolute inset-y-0 right-0 w-full max-w-sm bg-[#0a0a0a] shadow-2xl transform transition-transform duration-300 ease-out flex flex-col"
+          aria-label="Mobile navigation menu"
+        >
+          {/* Mobile Menu Header */}
+          <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+            <span className="text-lg font-bold text-white">
+              Menu
+            </span>
+            <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
-                pathname === link.href
-                  ? 'bg-[#e50914]/15 text-[#e50914] border border-[#e50914]/30'
-                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
-              }`}
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
+              aria-label="Close menu"
             >
-              {link.href === '/' && (
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-              )}
-              {link.href === '/movies' && (
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                </svg>
-              )}
-              {link.href === '/categories' && (
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              )}
-              {link.href === '/search' && (
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              )}
-              {link.label}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Mobile Menu Content */}
+          <div className="flex-1 p-4 space-y-1 overflow-y-auto">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
+                  pathname === link.href
+                    ? 'bg-[#e50914]/15 text-[#e50914] border border-[#e50914]/30'
+                    : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                {link.href === '/' && (
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                )}
+                {link.href === '/movies' && (
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                  </svg>
+                )}
+                {link.href === '/categories' && (
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                )}
+                {link.href === '/search' && (
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
+                {link.label}
+              </Link>
+            ))}
+
+            <div className="border-t border-white/10 my-4" />
+
+            <Link
+              href="/admin/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all min-h-[44px]"
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Admin Login
             </Link>
-          ))}
+          </div>
 
-          <div className="border-t border-white/10 my-4" />
-
-          <Link
-            href="/admin/login"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all min-h-[44px]"
-          >
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            Admin Login
-          </Link>
-        </div>
-
-        {/* Mobile Menu Footer */}
-        <div className="p-4 border-t border-white/10">
-          <p className="text-xs text-gray-500 text-center">
-            Press Escape to close
-          </p>
+          {/* Mobile Menu Footer */}
+          <div className="p-4 border-t border-white/10 shrink-0">
+            <p className="text-xs text-gray-500 text-center">
+              Press Escape to close
+            </p>
+          </div>
         </div>
       </div>
     </>

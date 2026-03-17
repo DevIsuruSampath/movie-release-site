@@ -541,12 +541,6 @@ body.mobile-menu-open {
     min-width: 44px;
   }
 
-  /* Prevent text selection on mobile menu */
-  #mobile-menu {
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
   /* Smooth scroll for mobile menu content */
   #mobile-menu > div {
     -webkit-overflow-scrolling: touch;
@@ -571,9 +565,15 @@ section + section {
   border-top: none;
 }
 
-/* Mobile search form adjustments */
+/* Mobile search form improvements */
 @media (max-width: 640px) {
   .search-input {
-    padding-right: 5.5rem;
+    padding-left: 3rem;
+    padding-right: 1rem;
   }
+}
+
+/* Ensure mobile menu backdrop prevents clicks to underlying content */
+#mobile-menu-container {
+  /* This element acts as both backdrop and container for the mobile menu */
 }
