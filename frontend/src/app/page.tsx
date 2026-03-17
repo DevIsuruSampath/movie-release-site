@@ -38,9 +38,9 @@ export default async function HomePage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)] flex items-center overflow-hidden pt-16 md:pt-20">
+      <section className="relative min-h-screen md:min-h-[calc(100vh-5rem)] flex items-center overflow-hidden">
         {/* Animated background */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#141414] to-[#1a0a0a]" />
           <div className="absolute inset-0 opacity-30">
             <div className="absolute top-20 left-10 w-72 h-72 bg-[#e50914] rounded-full blur-[120px] animate-pulse" />
@@ -49,7 +49,7 @@ export default async function HomePage() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-white space-y-8 animate-slide-up">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-white/20">
@@ -147,19 +147,18 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
-        </div>
-      </section>
+          {/* Scroll indicator */}
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
+        </section>
 
       {/* Featured Movies Section */}
       {featuredMovies.length > 0 && (
-        <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-10">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-white section-title">
@@ -252,14 +251,14 @@ export default async function HomePage() {
 
       {/* Latest Movies Section */}
       {latestMovies.length > 0 && (
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-[#0f0f0f]">
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0f0f0f]">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-10">
               <div>
                 <h2 className="text-3xl sm:text-4xl font-bold text-white section-title">
                   Latest Releases
                 </h2>
-                <p className="text-gray-400 mt-3">Fresh from the studio</p>
+                <p className="text-gray-400 mt-3">Fresh from studio</p>
               </div>
               <Link href="/movies" className="hidden sm:flex items-center gap-2 text-[#e50914] hover:text-white transition-colors font-medium">
                 View All
@@ -283,7 +282,6 @@ export default async function HomePage() {
                         alt={movie.title}
                         className="card-image w-full h-full object-cover"
                       />
-
                       {movie.imdb_rating && (
                         <div className="rating-badge text-yellow-400 text-xs">
                           <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
@@ -325,11 +323,11 @@ export default async function HomePage() {
 
       {/* CTA Section */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 z-0">
           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#e50914] rounded-full blur-[200px] opacity-20" />
         </div>
 
-        <div className="relative max-w-4xl mx-auto text-center">
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
             Ready to Start <span className="text-gradient">Watching?</span>
           </h2>

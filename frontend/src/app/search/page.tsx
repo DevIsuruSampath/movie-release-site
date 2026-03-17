@@ -55,13 +55,13 @@ function SearchPageContent() {
       <Navbar />
 
       {/* Hero Search Section */}
-      <section className="relative pt-24 md:pt-28 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute inset-0">
+      <section className="relative pt-20 pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden md:pt-24 md:pb-20">
+        <div className="absolute inset-0 z-0">
           <div className="absolute top-20 right-20 w-96 h-96 bg-[#e50914] rounded-full blur-[200px] opacity-10" />
           <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#b20710] rounded-full blur-[150px] opacity-10" />
         </div>
 
-        <div className="relative max-w-4xl mx-auto text-center">
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up">
             Find Your Next <span className="text-gradient">Favorite Movie</span>
           </h1>
@@ -70,7 +70,7 @@ function SearchPageContent() {
           </p>
 
           {/* Search Form */}
-          <form onSubmit={handleSubmit} className="max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <form onSubmit={handleSubmit} className="max-w-3xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
             <div className="relative group">
               <svg
                 className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 group-focus-within:text-[#e50914] transition-colors pointer-events-none"
@@ -85,12 +85,12 @@ function SearchPageContent() {
                 placeholder="Search movies by title..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="search-input w-full pl-14 pr-32 py-4 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none text-lg"
+                className="search-input w-full pl-14 pr-36 py-4 sm:pr-40 sm:py-4.5 bg-white/10 border border-white/20 rounded-full text-white placeholder-gray-400 focus:outline-none text-lg sm:text-xl"
               />
               <Button
                 type="submit"
                 disabled={loading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#e50914] hover:bg-[#b20710] text-white px-6 py-2.5 rounded-full font-medium btn-glow"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#e50914] hover:bg-[#b20710] text-white px-6 py-2.5 rounded-full font-medium btn-glow sm:px-8 sm:py-3 sm:rounded-full"
               >
                 {loading ? (
                   <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@ function SearchPageContent() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                 ) : (
-                  'Search'
+                  <span className="hidden sm:inline">Search</span>
                 )}
               </Button>
             </div>
@@ -115,7 +115,7 @@ function SearchPageContent() {
                     setQuery(tag)
                     performSearch(tag)
                   }}
-                  className="px-4 py-2 bg-white/5 hover:bg-[#e50914] border border-white/10 hover:border-[#e50914] rounded-full text-sm text-gray-300 hover:text-white transition-all"
+                  className="px-4 py-2.5 bg-white/5 hover:bg-[#e50914] border border-white/10 hover:border-[#e50914] rounded-full text-sm text-gray-300 hover:text-white transition-all"
                 >
                   {tag}
                 </button>
@@ -127,7 +127,7 @@ function SearchPageContent() {
 
       {/* Results Section */}
       {hasSearched && (
-        <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="flex flex-col items-center gap-4">

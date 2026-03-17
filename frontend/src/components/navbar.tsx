@@ -62,7 +62,7 @@ export default function Navbar() {
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[#0a0a0a]/95 backdrop-blur-md shadow-lg shadow-black/30'
+            ? 'bg-[#0a0a0a]/95 backdrop-blur-sm shadow-lg shadow-black/30'
             : 'bg-gradient-to-b from-[#0a0a0a]/90 to-transparent'
         }`}
       >
@@ -125,7 +125,7 @@ export default function Navbar() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
@@ -166,7 +166,7 @@ export default function Navbar() {
           </span>
           <button
             onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
             aria-label="Close menu"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +182,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
                 pathname === link.href
                   ? 'bg-[#e50914]/15 text-[#e50914] border border-[#e50914]/30'
                   : 'text-gray-300 hover:bg-white/5 hover:text-white'
@@ -217,7 +217,7 @@ export default function Navbar() {
           <Link
             href="/admin/login"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all min-h-[44px]"
           >
             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
