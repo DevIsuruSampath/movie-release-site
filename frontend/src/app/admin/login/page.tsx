@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'next/navigation'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -33,12 +32,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-12 relative overflow-hidden">
       {/* Background Effects */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-20 right-20 w-96 h-96 bg-[#e50914] rounded-full blur-[200px] opacity-10" />
         <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#b20710] rounded-full blur-[150px] opacity-10" />
       </div>
 
-      <div className="relative max-w-md w-full">
+      <div className="relative max-w-md w-full z-10">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="relative w-10 h-10 flex items-center justify-center bg-[#e50914] rounded-lg">
@@ -62,10 +61,10 @@ export default function LoginPage() {
             {error && (
               <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  {error}
+                  <span>{error}</span>
                 </div>
               </div>
             )}
@@ -76,7 +75,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4.5 h-4.5 text-gray-500"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-500 pointer-events-none"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -90,7 +89,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="search-input w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#e50914]"
+                  className="search-input w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder-gray-500"
                 />
               </div>
             </div>
@@ -101,7 +100,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <svg
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4.5 h-4.5 text-gray-500"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-500 pointer-events-none"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -111,18 +110,18 @@ export default function LoginPage() {
                 <input
                   id="password"
                   type="password"
-                  placeholder="•••••••••"
+                  placeholder="•••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="search-input w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#e50914]"
+                  className="search-input w-full pl-10 pr-4 py-3 rounded-xl text-white placeholder-gray-500"
                 />
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-[#e50914] hover:bg-[#b20710] text-white py-3 rounded-xl font-semibold btn-glow"
+              className="w-full py-3 rounded-xl font-semibold btn-glow"
               disabled={loading}
             >
               {loading ? (
