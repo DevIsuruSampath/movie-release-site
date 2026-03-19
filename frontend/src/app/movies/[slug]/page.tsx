@@ -1,106 +1,172 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import api, { toAbsoluteUrl } from '@/lib/api'
-import { Movie } from '@/types'
-import { Button } from '@/components/ui/button'
-import Navbar from '@/components/navbar'
-import Footer from '@/components/footer'
+import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 
-export default function MovieDetailsPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [movie, setMovie] = useState<Movie | null>(null)
-  const [loading, setLoading] = useState(true)
+import Footer from '@/components/footer'
+import Navbar from '@/components/navbar'
+import { Button } from '@/components/ui/button'
+import api, { toAbsoluteUrl } from '@/lib/api'
+import type { Movie } from '@/types'
+import { cn } from '@/lib/utils'
 
-  useEffect(() => {
-    if (params.slug) {
-      fetchMovie(Array.isArray(params.slug) ? params.slug[0] : params.slug)
+type MoviePageProps = {
+  params: Promise<{ slug: string }>
+}
+
+function getRenderableImageSrc(path?: string | null): string {
+  if (!path) return ''
+  if (path.startsWith('/')) return path
+  return toAbsoluteUrl(path)
+}
+
+function isLocalImage(path?: string | null): boolean {
+  return Boolean(path && path.startsWith('/'))
+}
+
+function getTrailerEmbedUrl(url?: string | null): string | null {
+  if (!url) return null
+
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname.includes('youtube.com')) {
+      const videoId = parsed.searchParams.get('v')
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null
     }
-    window.scrollTo(0, 0)
-  }, [params.slug])
-
-  const fetchMovie = async (slug: string) => {
-    setLoading(true)
-    try {
-      const response = await api.get<Movie>(`/api/v1/movies/${slug}`)
-      setMovie(response.data)
-    } catch (error) {
-      console.error('Failed to fetch movie:', error)
-      router.push('/movies')
-    } finally {
-      setLoading(false)
+    if (parsed.hostname.includes('youtu.be')) {
+      const videoId = parsed.pathname.replace('/', '')
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null
     }
+    if (parsed.hostname.includes('vimeo.com')) {
+      const videoId = parsed.pathname.split('/').filter(Boolean).pop()
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : null
+    }
+  } catch {}
+
+  return null
+}
+
+function parseRobots(robots?: string | null): Metadata['robots'] | undefined {
+  if (!robots) return undefined
+
+  const lowered = robots.toLowerCase()
+  return {
+    index: lowered.includes('noindex') ? false : lowered.includes('index'),
+    follow: lowered.includes('nofollow') ? false : lowered.includes('follow'),
   }
+}
 
-  const handleStream = () => {
-    if (movie?.media_url) {
-      window.open(movie.media_url, '_blank')
-      return
-    }
-    if (movie?.stream_links && movie.stream_links.length > 0) {
-      const primaryLink = movie.stream_links.find((link) => link.is_primary) || movie.stream_links[0]
-      if (primaryLink && primaryLink.url) {
-        window.open(primaryLink.url, '_blank')
-      }
-    }
-  }
-
-  const getTrailerEmbedUrl = (url?: string | null) => {
-    if (!url) return null
-    try {
-      const parsed = new URL(url)
-      if (parsed.hostname.includes('youtube.com')) {
-        const videoId = parsed.searchParams.get('v')
-        return videoId ? `https://www.youtube.com/embed/${videoId}` : null
-      }
-      if (parsed.hostname.includes('youtu.be')) {
-        const videoId = parsed.pathname.replace('/', '')
-        return videoId ? `https://www.youtube.com/embed/${videoId}` : null
-      }
-      if (parsed.hostname.includes('vimeo.com')) {
-        const videoId = parsed.pathname.split('/').filter(Boolean).pop()
-        return videoId ? `https://player.vimeo.com/video/${videoId}` : null
-      }
-    } catch {}
+async function getMovie(slug: string): Promise<Movie | null> {
+  try {
+    return await api.get<Movie>(`/api/v1/movies/${slug}`).then((response) => response.data)
+  } catch {
     return null
   }
+}
 
-  if (loading) {
+function buildMetadata(movie: Movie): Metadata {
+  const title = movie.meta_title || movie.title
+  const description = movie.meta_description || movie.short_description || movie.description || `Watch ${movie.title}`
+  const canonical = movie.canonical_url || `/movies/${movie.slug}`
+  const image = movie.open_graph_image || movie.backdrop_url || movie.poster_url || movie.thumbnail_url
+  const imageUrl = image ? toAbsoluteUrl(image) : undefined
+
+  return {
+    title,
+    description,
+    keywords: movie.meta_keywords || undefined,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: toAbsoluteUrl(canonical),
+      images: imageUrl ? [{ url: imageUrl, alt: movie.title }] : undefined,
+    },
+    twitter: {
+      card: imageUrl ? 'summary_large_image' : 'summary',
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    },
+    robots: parseRobots(movie.robots),
+  }
+}
+
+export async function generateMetadata({ params }: MoviePageProps): Promise<Metadata> {
+  const { slug } = await params
+  const movie = await getMovie(slug)
+
+  if (!movie) {
+    return {
+      title: 'Movie not found',
+    }
+  }
+
+  return buildMetadata(movie)
+}
+
+function HeroImage({ src, alt }: { src: string; alt: string }) {
+  if (isLocalImage(src)) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
-        <Navbar />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 border-4 border-[#e50914] border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400">Loading movie details...</p>
-          </div>
-        </div>
-      </div>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
+      />
     )
   }
 
-  if (!movie) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-full object-cover"
+      loading="eager"
+      decoding="async"
+      fetchPriority="high"
+    />
+  )
+}
+
+function PosterImage({ src, alt }: { src: string; alt: string }) {
+  if (isLocalImage(src)) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
-        <Navbar />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-            </svg>
-            <h2 className="text-xl font-semibold text-white mb-2">Movie not found</h2>
-            <Link href="/movies">
-              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 rounded-full mt-4">
-                Browse Movies
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <Image
+        src={src}
+        alt={alt}
+        width={600}
+        height={900}
+        priority
+        sizes="(max-width: 768px) 100vw, 300px"
+        className="w-full aspect-[2/3] object-cover"
+      />
     )
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full aspect-[2/3] object-cover"
+      loading="eager"
+      decoding="async"
+      fetchPriority="high"
+    />
+  )
+}
+
+export default async function MovieDetailsPage({ params }: MoviePageProps) {
+  const { slug } = await params
+  const movie = await getMovie(slug)
+
+  if (!movie) {
+    notFound()
   }
 
   const mediaUrl =
@@ -113,123 +179,102 @@ export default function MovieDetailsPage() {
   const trailerEmbedUrl = getTrailerEmbedUrl(movie.trailer_url)
   const heroImage = movie.backdrop_url || movie.poster_url || movie.thumbnail_url
   const posterImage = movie.poster_url || movie.thumbnail_url || movie.backdrop_url
+  const heroSrc = getRenderableImageSrc(heroImage)
+  const posterSrc = getRenderableImageSrc(posterImage)
+  const schemaMarkup = movie.schema_markup?.trim()
+  const mediaButtonClassName = cn(
+    'inline-flex h-10.5 items-center justify-center rounded-xl px-4.5 text-base font-medium transition-all duration-200',
+    'bg-[#e50914] text-white shadow-lg shadow-red-900/20 hover:bg-[#b20710]'
+  )
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
 
-      {/* Hero Backdrop - Account for fixed navbar with pt-16 md:pt-20 */}
+      {schemaMarkup ? (
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: schemaMarkup.startsWith('{') ? schemaMarkup : `{${schemaMarkup}}` }}
+        />
+      ) : null}
+
       <div className="relative h-[60vh] md:h-[70vh] pt-16 md:pt-20 -mt-16 md:-mt-20 overflow-hidden">
-        {heroImage && (
+        {heroSrc ? (
           <>
-            <img
-              src={toAbsoluteUrl(heroImage)}
-              alt={movie.title}
-              className="w-full h-full object-cover"
-              loading="eager"
-              decoding="async"
-            />
+            <HeroImage src={heroSrc} alt={movie.title} />
             <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/90 to-[#0a0a0a]/50" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" />
           </>
-        )}
+        ) : null}
       </div>
 
-      {/* Content */}
       <div className="relative -mt-32 md:-mt-40 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div className="grid md:grid-cols-[300px_1fr] gap-8 lg:gap-12">
-          {/* Poster */}
           <div className="relative animate-slide-up">
-            {posterImage && (
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img
-                  src={toAbsoluteUrl(posterImage)}
-                  alt={movie.title}
-                  className="w-full aspect-[2/3] object-cover"
-                  loading="eager"
-                  decoding="async"
-                />
-                {movie.imdb_rating && (
+            {posterSrc ? (
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-white/5">
+                <PosterImage src={posterSrc} alt={movie.title} />
+                {movie.imdb_rating ? (
                   <div className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg z-10">
                     <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                     <span className="text-white font-semibold">{movie.imdb_rating}</span>
                   </div>
-                )}
+                ) : null}
               </div>
-            )}
+            ) : null}
 
-            {/* Quick Actions Mobile */}
             <div className="md:hidden mt-4">
-              {hasDirectMedia && (
-                <Button onClick={handleStream} className="w-full bg-[#e50914] hover:bg-[#b20710] text-white btn-glow">
+              {hasDirectMedia ? (
+                <a href={mediaUrl} target="_blank" rel="noreferrer" className={cn(mediaButtonClassName, 'w-full btn-glow')}>
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                   </svg>
                   Watch / Download
-                </Button>
-              )}
+                </a>
+              ) : null}
             </div>
           </div>
 
-          {/* Details */}
           <div className="space-y-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            {/* Title Section */}
             <div>
-              {movie.original_title && movie.original_title !== movie.title && (
+              {movie.original_title && movie.original_title !== movie.title ? (
                 <p className="text-[#e50914] font-medium mb-2">{movie.original_title}</p>
-              )}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
-                {movie.title}
-              </h1>
+              ) : null}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">{movie.title}</h1>
 
-              {/* Meta Tags */}
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                {movie.release_year && (
-                  <span className="px-3 py-1 bg-white/10 text-white rounded-full">
-                    {movie.release_year}
-                  </span>
-                )}
-                {movie.duration_minutes && (
+                {movie.release_year ? <span className="px-3 py-1 bg-white/10 text-white rounded-full">{movie.release_year}</span> : null}
+                {movie.duration_minutes ? (
                   <span className="px-3 py-1 bg-white/10 text-white rounded-full">
                     {Math.floor(movie.duration_minutes / 60)}h {movie.duration_minutes % 60}m
                   </span>
-                )}
-                {movie.language && (
-                  <span className="px-3 py-1 bg-white/10 text-white rounded-full">
-                    {movie.language}
-                  </span>
-                )}
-                {movie.quality && (
-                  <span className="px-3 py-1 bg-[#e50914] text-white rounded-full font-semibold">
-                    {movie.quality}
-                  </span>
-                )}
+                ) : null}
+                {movie.language ? <span className="px-3 py-1 bg-white/10 text-white rounded-full">{movie.language}</span> : null}
+                {movie.quality ? <span className="px-3 py-1 bg-[#e50914] text-white rounded-full font-semibold">{movie.quality}</span> : null}
               </div>
             </div>
 
-            {/* Description */}
-            {movie.description && (
+            {movie.description ? (
               <div className="prose prose-invert max-w-none">
                 <p className="text-gray-300 text-lg leading-relaxed">{movie.description}</p>
               </div>
-            )}
+            ) : null}
 
-            {/* Action Buttons Desktop */}
             <div className="hidden md:flex flex-wrap gap-4">
-              {hasDirectMedia && (
-                <Button onClick={handleStream} size="lg" className="bg-[#e50914] hover:bg-[#b20710] text-white btn-glow px-8">
+              {hasDirectMedia ? (
+                <a href={mediaUrl} target="_blank" rel="noreferrer" className={cn(mediaButtonClassName, 'h-12 px-8 btn-glow')}>
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                   </svg>
                   Watch / Download
-                </Button>
-              )}
+                </a>
+              ) : null}
             </div>
 
-            {/* Categories */}
-            {movie.categories && movie.categories.length > 0 && (
+            {movie.categories && movie.categories.length > 0 ? (
               <div>
                 <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Categories</h3>
                 <div className="flex flex-wrap gap-2">
@@ -244,9 +289,9 @@ export default function MovieDetailsPage() {
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {movie.trailer_url && (
+            {movie.trailer_url ? (
               <div className="bg-[#141414] rounded-2xl p-6">
                 <div className="mb-4 flex items-center justify-between gap-4">
                   <h3 className="text-xl font-semibold text-white">Trailer</h3>
@@ -260,6 +305,7 @@ export default function MovieDetailsPage() {
                       src={trailerEmbedUrl}
                       title={`${movie.title} trailer`}
                       className="aspect-video w-full"
+                      loading="lazy"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
@@ -270,19 +316,17 @@ export default function MovieDetailsPage() {
                   </p>
                 )}
               </div>
-            )}
+            ) : null}
 
-            {/* Short Description */}
-            {movie.short_description && (
+            {movie.short_description ? (
               <div className="glass rounded-2xl p-6">
                 <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Quick Info</h3>
                 <p className="text-gray-300">{movie.short_description}</p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {/* Back Button */}
         <div className="mt-12">
           <Link href="/movies">
             <Button variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/5 rounded-full">
