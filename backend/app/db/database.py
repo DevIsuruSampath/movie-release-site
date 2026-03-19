@@ -109,6 +109,20 @@ def _ensure_schema_compatibility() -> None:
         if "updated_at" not in subtitle_columns:
             connection.execute(text("ALTER TABLE subtitles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"))
 
+        audit_columns = _column_names(inspector, "audit_logs")
+        if "actor_id" not in audit_columns:
+            connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS actor_id INTEGER"))
+            if "user_id" in audit_columns:
+                connection.execute(text("UPDATE audit_logs SET actor_id = user_id WHERE actor_id IS NULL"))
+        if "metadata_json" not in audit_columns:
+            connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS metadata_json JSON"))
+        if "ip_address" not in audit_columns:
+            connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45)"))
+        if "user_agent" not in audit_columns:
+            connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS user_agent VARCHAR(500)"))
+        if "description" not in audit_columns:
+            connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS description TEXT"))
+
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)

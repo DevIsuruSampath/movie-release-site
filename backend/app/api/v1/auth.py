@@ -43,6 +43,13 @@ def create_audit_log(
     )
 
 
+def commit_audit_log_safely(db: Session) -> None:
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
 def _build_token_response(user: User) -> TokenResponse:
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
@@ -73,7 +80,7 @@ def login(user_data: UserLogin, request: Request, db: Session = Depends(get_db))
         user.id,
         f"{user.email} logged in",
     )
-    db.commit()
+    commit_audit_log_safely(db)
     return _build_token_response(user)
 
 
@@ -118,7 +125,8 @@ def register(user_data: UserRegister, request: Request, db: Session = Depends(ge
         is_admin=is_first_user,
     )
     db.add(user)
-    db.flush()
+    db.commit()
+    db.refresh(user)
     create_audit_log(
         db,
         request,
@@ -128,8 +136,7 @@ def register(user_data: UserRegister, request: Request, db: Session = Depends(ge
         user.id,
         f"User {user.email} registered",
     )
-    db.commit()
-    db.refresh(user)
+    commit_audit_log_safely(db)
     return user
 
 
@@ -152,7 +159,8 @@ def create_user_admin(
         is_admin=user_data.is_admin or user_data.is_superuser,
     )
     db.add(user)
-    db.flush()
+    db.commit()
+    db.refresh(user)
     create_audit_log(
         db,
         request,
@@ -163,6 +171,5 @@ def create_user_admin(
         f"Created user {user.email}",
         {"email": user.email},
     )
-    db.commit()
-    db.refresh(user)
+    commit_audit_log_safely(db)
     return user
