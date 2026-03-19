@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import api, { toAbsoluteUrl } from '@/lib/api'
-import { DownloadLink, Movie } from '@/types'
+import { Movie } from '@/types'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
@@ -45,12 +45,6 @@ export default function MovieDetailsPage() {
       if (primaryLink && primaryLink.url) {
         window.open(primaryLink.url, '_blank')
       }
-    }
-  }
-
-  const handleDownload = (link: DownloadLink) => {
-    if (link.url) {
-      window.open(link.url, '_blank')
     }
   }
 
@@ -116,23 +110,6 @@ export default function MovieDetailsPage() {
     movie.download_links[0]?.url ||
     ''
   const hasDirectMedia = Boolean(mediaUrl)
-  const downloadOptions =
-    movie.download_links && movie.download_links.length > 0
-      ? movie.download_links
-      : hasDirectMedia
-        ? [
-            {
-              id: 0,
-              provider: 'Direct Download',
-              url: mediaUrl,
-              quality: movie.quality || null,
-              size: null,
-              language: movie.language || null,
-              is_active: true,
-              sort_order: 0,
-            },
-          ]
-        : []
   const trailerEmbedUrl = getTrailerEmbedUrl(movie.trailer_url)
   const heroImage = movie.backdrop_url || movie.poster_url || movie.thumbnail_url
   const posterImage = movie.poster_url || movie.thumbnail_url || movie.backdrop_url
@@ -184,21 +161,13 @@ export default function MovieDetailsPage() {
             )}
 
             {/* Quick Actions Mobile */}
-            <div className="md:hidden mt-4 space-y-3">
+            <div className="md:hidden mt-4">
               {hasDirectMedia && (
                 <Button onClick={handleStream} className="w-full bg-[#e50914] hover:bg-[#b20710] text-white btn-glow">
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                   </svg>
-                  Watch Now
-                </Button>
-              )}
-              {hasDirectMedia && (
-                <Button variant="outline" onClick={() => window.open(mediaUrl, '_blank')} className="w-full border-white/30 text-white">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download
+                  Watch / Download
                 </Button>
               )}
             </div>
@@ -254,15 +223,7 @@ export default function MovieDetailsPage() {
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                   </svg>
-                  Watch Now
-                </Button>
-              )}
-              {hasDirectMedia && (
-                <Button onClick={() => window.open(mediaUrl, '_blank')} size="lg" variant="outline" className="border-white/30 text-white px-8">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download
+                  Watch / Download
                 </Button>
               )}
             </div>
@@ -308,42 +269,6 @@ export default function MovieDetailsPage() {
                     Inline trailer preview is supported for YouTube and Vimeo links. Use the trailer button to open other providers.
                   </p>
                 )}
-              </div>
-            )}
-
-            {/* Download Links */}
-            {downloadOptions.length > 0 && (
-              <div className="bg-[#141414] rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                  <svg className="w-4.5 h-4.5 text-[#e50914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download Options
-                </h3>
-                <div className="grid gap-3">
-                  {downloadOptions.map((link) => (
-                    <button
-                      key={link.id}
-                      onClick={() => handleDownload(link)}
-                      className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#e50914]/20 flex items-center justify-center group-hover:bg-[#e50914] transition-colors">
-                          <svg className="w-4.5 h-4.5 text-[#e50914] group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                        </div>
-                        <div className="text-left">
-                          <div className="text-white font-medium">{link.provider}</div>
-                          <div className="text-sm text-gray-400">{link.quality}</div>
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        {link.size || 'Click to download'}
-                      </div>
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
 
