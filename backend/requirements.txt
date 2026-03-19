@@ -22,3 +22,4 @@ email-validator==2.3.0
 # Utilities
 python-slugify==8.0.4
 aiofiles==25.1.0  # For local file uploads
+httpx==0.28.1

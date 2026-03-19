@@ -66,6 +66,84 @@ export interface Subtitle {
   updated_at?: string | null
 }
 
+export interface TelegramSettings {
+  id?: number | null
+  is_enabled: boolean
+  has_bot_token: boolean
+  bot_token_masked?: string | null
+  bot_username?: string | null
+  channel_id?: string | null
+  channel_username?: string | null
+  channel_title?: string | null
+  channel_invite_link?: string | null
+  auto_post_on_publish: boolean
+  auto_post_on_update: boolean
+  caption_template?: string | null
+  button_text?: string | null
+  default_hashtags?: string | null
+  send_poster_mode: 'photo' | 'document' | 'text_only'
+  parse_mode?: 'HTML' | 'MarkdownV2' | 'None' | null
+  disable_web_page_preview: boolean
+  test_status?: string | null
+  last_tested_at?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface TelegramSettingsPayload {
+  is_enabled: boolean
+  bot_token?: string
+  channel_id: string
+  channel_username?: string
+  channel_title?: string
+  channel_invite_link?: string
+  auto_post_on_publish: boolean
+  auto_post_on_update: boolean
+  caption_template?: string
+  button_text?: string
+  default_hashtags?: string
+  send_poster_mode: 'photo' | 'document' | 'text_only'
+  parse_mode: 'HTML' | 'MarkdownV2' | 'None'
+  disable_web_page_preview: boolean
+}
+
+export interface TelegramTestResponse {
+  ok: boolean
+  message: string
+  bot_username?: string | null
+  channel_title?: string | null
+  channel_id?: string | null
+  details?: Record<string, unknown> | null
+}
+
+export interface TelegramSendResponse {
+  ok: boolean
+  status: 'pending' | 'sent' | 'failed'
+  log_id: number
+  telegram_chat_id?: string | null
+  telegram_message_id?: string | null
+  error_message?: string | null
+  response_payload_json?: Record<string, unknown> | null
+}
+
+export interface TelegramPostLog {
+  id: number
+  movie_id: number
+  movie_title?: string | null
+  status: 'pending' | 'sent' | 'failed'
+  telegram_chat_id?: string | null
+  telegram_message_id?: string | null
+  request_payload_json?: Record<string, unknown> | null
+  response_payload_json?: Record<string, unknown> | null
+  error_message?: string | null
+  retry_count: number
+  sent_at?: string | null
+  created_at: string
+  updated_at?: string | null
+}
+
+export interface TelegramPostLogListResponse extends PaginatedResponse<TelegramPostLog> {}
+
 export interface StreamLink {
   id?: number
   movie_id?: number
@@ -133,6 +211,10 @@ export interface Movie extends SeoMetadata {
   created_at: string
   updated_at?: string | null
   published_at?: string | null
+  telegram_last_post_status?: string | null
+  telegram_last_error_message?: string | null
+  telegram_last_sent_at?: string | null
+  telegram_last_log_id?: number | null
   categories: Category[]
   tags: Tag[]
   subtitles: Subtitle[]
@@ -205,6 +287,27 @@ export interface UploadItem {
   file_url: string
   size: number
   updated_at?: number
+}
+
+export interface UploadReference {
+  entity: string
+  entity_id: number
+  field: string
+  label: string
+}
+
+export interface UploadFileReport {
+  folder: string
+  relative_path: string
+  file_url: string
+  size: number
+  references: UploadReference[]
+}
+
+export interface UploadOrphanReport {
+  total_files: number
+  orphaned_files: UploadFileReport[]
+  files: UploadFileReport[]
 }
 
 export interface UploadResponse {

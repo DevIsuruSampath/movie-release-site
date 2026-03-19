@@ -1,9 +1,11 @@
 """
 Application configuration using Pydantic settings
 """
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Optional, Union
+
 from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     # API Settings
@@ -26,6 +28,12 @@ class Settings(BaseSettings):
     # Local Storage
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 10
+    PUBLIC_SITE_URL: str = "http://localhost:3000"
+
+    # Telegram
+    TELEGRAM_BOT_TOKEN_ENCRYPTION_KEY: str = ""
+    TELEGRAM_REQUEST_TIMEOUT: int = 15
+    TELEGRAM_ENABLED_DEFAULT: bool = False
 
     # S3 Storage (Optional)
     S3_BUCKET: Optional[str] = None
@@ -49,6 +57,11 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(',') if origin.strip()]
         return v
+
+    @field_validator("TELEGRAM_REQUEST_TIMEOUT")
+    @classmethod
+    def validate_telegram_request_timeout(cls, value: int) -> int:
+        return max(1, value)
 
     model_config = SettingsConfigDict(
         env_file=".env",

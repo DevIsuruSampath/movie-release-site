@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin_user
 from app.db.database import get_db
-from app.models.audit import AuditLog
 from app.models.movie import Movie
 from app.models.subtitle import Subtitle
 from app.models.user import User
 from app.schemas.subtitle import SubtitleCreate, SubtitleListResponse, SubtitleResponse, SubtitleUpdate
+from app.services.audit_service import create_audit_log
+from app.services.file_storage import save_upload
 
 router = APIRouter()
 
@@ -32,16 +33,14 @@ def create_subtitle(
     subtitle = Subtitle(movie_id=movie_id, **subtitle_data.model_dump())
     db.add(subtitle)
     db.flush()
-    db.add(
-        AuditLog(
-            actor_id=current_admin.id,
-            action="create",
-            entity_type="subtitle",
-            entity_id=subtitle.id,
-            description=f"Added subtitle to {movie.title}",
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="create",
+        entity_type="subtitle",
+        entity_id=subtitle.id,
+        description=f"Added subtitle to {movie.title}",
     )
     db.commit()
     db.refresh(subtitle)
@@ -61,16 +60,14 @@ def update_subtitle(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtitle not found")
     for field, value in subtitle_data.model_dump(exclude_unset=True).items():
         setattr(subtitle, field, value)
-    db.add(
-        AuditLog(
-            actor_id=current_admin.id,
-            action="update",
-            entity_type="subtitle",
-            entity_id=subtitle.id,
-            description=f"Updated subtitle {subtitle.label}",
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="update",
+        entity_type="subtitle",
+        entity_id=subtitle.id,
+        description=f"Updated subtitle {subtitle.label}",
     )
     db.commit()
     db.refresh(subtitle)
@@ -87,16 +84,40 @@ def delete_subtitle(
     subtitle = db.query(Subtitle).filter(Subtitle.id == subtitle_id).first()
     if not subtitle:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtitle not found")
-    db.add(
-        AuditLog(
-            actor_id=current_admin.id,
-            action="delete",
-            entity_type="subtitle",
-            entity_id=subtitle.id,
-            description=f"Deleted subtitle {subtitle.label}",
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="delete",
+        entity_type="subtitle",
+        entity_id=subtitle.id,
+        description=f"Deleted subtitle {subtitle.label}",
     )
     db.delete(subtitle)
     db.commit()
+
+
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+async def upload_subtitle_file(
+    file: UploadFile = File(...),
+    request: Request | None = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
+):
+    payload = await save_upload(
+        file,
+        folder="subtitles",
+        allowed_extensions={".srt", ".vtt", ".ass"},
+        allowed_mime_types={"application/x-subrip", "text/vtt", "text/plain", "application/octet-stream"},
+    )
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="upload",
+        entity_type="subtitle_file",
+        description=f"Uploaded subtitle file {payload['filename']}",
+        metadata_json={"file_url": payload["file_url"]},
+    )
+    db.commit()
+    return payload

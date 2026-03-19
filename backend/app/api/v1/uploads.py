@@ -1,64 +1,84 @@
-from pathlib import Path
-from uuid import uuid4
+from fastapi import APIRouter, Depends, File, Request, UploadFile, status
 
-import aiofiles
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-
-from app.core.config import settings
 from app.core.security import get_current_admin_user
+from app.db.database import get_db
 from app.models.user import User
+from app.services.audit_service import create_audit_log
+from app.services.file_storage import list_upload_items, save_upload, scan_orphaned_uploads
+from sqlalchemy.orm import Session
 
 router = APIRouter()
-
-UPLOAD_DIR = Path(settings.UPLOAD_DIR)
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-
-
-def _public_url(filename: str) -> str:
-    return f"/uploads/{filename}"
+IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+SUBTITLE_TYPES = {"application/x-subrip", "text/vtt", "text/plain", "application/octet-stream"}
+SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass"}
 
 
 @router.post("/image", status_code=status.HTTP_201_CREATED)
 async def upload_image(
     file: UploadFile = File(...),
-    _: User = Depends(get_current_admin_user),
+    request: Request | None = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
 ):
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
+    payload = await save_upload(
+        file,
+        folder="images",
+        allowed_extensions=IMAGE_EXTENSIONS,
+        allowed_mime_types=IMAGE_TYPES,
+    )
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="upload",
+        entity_type="image",
+        description=f"Uploaded image {payload['filename']}",
+        metadata_json={"file_url": payload["file_url"], "content_type": payload["content_type"]},
+    )
+    db.commit()
+    return payload
 
-    content = await file.read()
-    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-    if len(content) > max_bytes:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds maximum size")
 
-    extension = Path(file.filename or "upload").suffix.lower() or ".bin"
-    filename = f"{uuid4().hex}{extension}"
-    target = UPLOAD_DIR / filename
-
-    async with aiofiles.open(target, "wb") as out_file:
-        await out_file.write(content)
-
-    return {
-        "filename": filename,
-        "file_url": _public_url(filename),
-        "size": len(content),
-        "content_type": file.content_type,
-    }
+@router.post("/subtitle", status_code=status.HTTP_201_CREATED)
+async def upload_subtitle(
+    file: UploadFile = File(...),
+    request: Request | None = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
+):
+    payload = await save_upload(
+        file,
+        folder="subtitles",
+        allowed_extensions=SUBTITLE_EXTENSIONS,
+        allowed_mime_types=SUBTITLE_TYPES,
+    )
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="upload",
+        entity_type="subtitle_file",
+        description=f"Uploaded subtitle {payload['filename']}",
+        metadata_json={"file_url": payload["file_url"], "content_type": payload["content_type"]},
+    )
+    db.commit()
+    return payload
 
 
 @router.get("/images")
 def list_images(_: User = Depends(get_current_admin_user)):
-    items = []
-    for file_path in sorted(UPLOAD_DIR.iterdir(), key=lambda item: item.stat().st_mtime, reverse=True):
-        if file_path.is_file():
-            stat = file_path.stat()
-            items.append(
-                {
-                    "filename": file_path.name,
-                    "file_url": _public_url(file_path.name),
-                    "size": stat.st_size,
-                    "updated_at": stat.st_mtime,
-                }
-            )
-    return items
+    return list_upload_items("images")
+
+
+@router.get("/subtitles")
+def list_subtitles(_: User = Depends(get_current_admin_user)):
+    return list_upload_items("subtitles")
+
+
+@router.get("/orphans")
+def list_orphan_uploads(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    return scan_orphaned_uploads(db)

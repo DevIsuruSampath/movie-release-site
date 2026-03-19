@@ -1,12 +1,12 @@
 from math import ceil
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from slugify import slugify
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import get_current_admin_user
+from app.api.v1.telegram import run_background_movie_post
 from app.db.database import get_db
-from app.models.audit import AuditLog
 from app.models.category import Category
 from app.models.movie import DownloadLink, Movie, StreamLink
 from app.models.subtitle import Subtitle
@@ -21,6 +21,8 @@ from app.schemas.movie import (
     StreamLinkInline,
     SubtitleInline,
 )
+from app.services.audit_service import create_audit_log
+from app.services.telegram_service import telegram_service
 
 router = APIRouter()
 
@@ -33,6 +35,7 @@ def _movie_query(db: Session):
         joinedload(Movie.stream_links),
         joinedload(Movie.download_links),
         joinedload(Movie.gallery),
+        joinedload(Movie.telegram_post_logs),
     )
 
 
@@ -121,17 +124,23 @@ def _set_publish_state(movie: Movie, is_published: bool) -> None:
 
 
 def _log(db: Session, request: Request, actor: User, action: str, movie: Movie) -> None:
-    db.add(
-        AuditLog(
-            actor_id=actor.id,
-            action=action,
-            entity_type="movie",
-            entity_id=movie.id,
-            description=f"{action.title()}d movie {movie.title}",
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
-        )
+    create_audit_log(
+        db,
+        request,
+        actor,
+        action=action,
+        entity_type="movie",
+        entity_id=movie.id,
+        description=f"{action.title()}d movie {movie.title}",
     )
+
+
+def _queue_telegram_post(background_tasks: BackgroundTasks, movie: Movie, db: Session, *, force_resend: bool, reason: str) -> None:
+    config = telegram_service.get_settings(db)
+    if not config.is_enabled or not config.channel_id:
+        return
+    pending_log = telegram_service.create_pending_log(db, movie, config, reason=reason, force_resend=force_resend)
+    background_tasks.add_task(run_background_movie_post, movie.id, pending_log.id, force_resend, reason)
 
 
 @router.get("", response_model=MovieListResponse)
@@ -203,6 +212,7 @@ def get_movie(slug: str, db: Session = Depends(get_db)):
 def create_movie(
     movie_data: MovieCreate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -217,6 +227,10 @@ def create_movie(
     db.flush()
     _apply_movie_relations(db, movie, movie_data)
     _log(db, request, current_admin, "create", movie)
+    if movie.is_published:
+        config = telegram_service.get_settings(db)
+        if config.is_enabled and config.auto_post_on_publish:
+            _queue_telegram_post(background_tasks, movie, db, force_resend=False, reason="auto_publish")
     db.commit()
     return _movie_query(db).filter(Movie.id == movie.id).first()
 
@@ -226,6 +240,7 @@ def update_movie(
     movie_id: int,
     movie_data: MovieUpdate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -246,6 +261,10 @@ def update_movie(
         _set_publish_state(movie, bool(movie_data.is_published))
     _apply_movie_relations(db, movie, movie_data)
     _log(db, request, current_admin, "update", movie)
+    if movie.is_published:
+        config = telegram_service.get_settings(db)
+        if config.is_enabled and config.auto_post_on_update:
+            _queue_telegram_post(background_tasks, movie, db, force_resend=False, reason="auto_update")
     db.commit()
     return _movie_query(db).filter(Movie.id == movie.id).first()
 
@@ -269,6 +288,7 @@ def delete_movie(
 def publish_movie(
     movie_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -277,6 +297,9 @@ def publish_movie(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
     _set_publish_state(movie, True)
     _log(db, request, current_admin, "publish", movie)
+    config = telegram_service.get_settings(db)
+    if config.is_enabled and config.auto_post_on_publish:
+        _queue_telegram_post(background_tasks, movie, db, force_resend=False, reason="auto_publish")
     db.commit()
     return _movie_query(db).filter(Movie.id == movie_id).first()
 

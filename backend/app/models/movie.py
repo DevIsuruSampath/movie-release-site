@@ -70,6 +70,18 @@ class Movie(Base):
         cascade="all, delete-orphan",
         order_by="MovieGallery.sort_order",
     )
+    telegram_post_logs = relationship(
+        "TelegramPostLog",
+        back_populates="movie",
+        cascade="all, delete-orphan",
+        order_by="TelegramPostLog.created_at.desc()",
+    )
+    telegram_media_cache = relationship(
+        "TelegramMediaCache",
+        back_populates="movie",
+        cascade="all, delete-orphan",
+        order_by="TelegramMediaCache.created_at.desc()",
+    )
 
     @property
     def media_url(self) -> str | None:
@@ -83,6 +95,26 @@ class Movie(Base):
             return active_downloads[0].url
 
         return None
+
+    @property
+    def telegram_last_log(self):
+        return self.telegram_post_logs[0] if self.telegram_post_logs else None
+
+    @property
+    def telegram_last_post_status(self) -> str | None:
+        return self.telegram_last_log.status if self.telegram_last_log else None
+
+    @property
+    def telegram_last_error_message(self) -> str | None:
+        return self.telegram_last_log.error_message if self.telegram_last_log else None
+
+    @property
+    def telegram_last_sent_at(self):
+        return self.telegram_last_log.sent_at if self.telegram_last_log else None
+
+    @property
+    def telegram_last_log_id(self) -> int | None:
+        return self.telegram_last_log.id if self.telegram_last_log else None
 
 
 class StreamLink(Base):

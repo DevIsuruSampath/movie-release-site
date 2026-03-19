@@ -11,15 +11,17 @@ from app.api.v1.seo import router as seo_router
 from app.api.v1.stream import router as stream_router
 from app.api.v1.subtitles import router as subtitles_router
 from app.api.v1.tags import router as tags_router
+from app.api.v1.telegram import router as telegram_router
 from app.api.v1.uploads import router as uploads_router
 from app.core.config import settings
 from app.db.database import init_db
+from app.services.file_storage import ensure_upload_directories
 
 app = FastAPI(
     title="Movie Release API",
     description="Backend API for movie release website",
     version="1.0.0",
-    on_startup=[init_db],
+    on_startup=[ensure_upload_directories, init_db],
 )
 
 app.add_middleware(
@@ -42,6 +44,7 @@ app.include_router(stream_router, prefix="/api/v1/stream", tags=["stream"])
 app.include_router(download_router, prefix="/api/v1/download", tags=["download"])
 app.include_router(seo_router, prefix="/api/v1/seo", tags=["seo"])
 app.include_router(uploads_router, prefix="/api/v1/uploads", tags=["uploads"])
+app.include_router(telegram_router, prefix="/api/v1/telegram", tags=["telegram"])
 
 
 @app.get("/")

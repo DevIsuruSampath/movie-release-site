@@ -23,6 +23,8 @@ export default function MoviesPage() {
   const [status, setStatus] = useState('')
   const [category, setCategory] = useState('')
   const [movieToDelete, setMovieToDelete] = useState<Movie | null>(null)
+  const [telegramAction, setTelegramAction] = useState<Record<number, string>>({})
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     void api.listCategories({ page: 1, limit: 200 }).then((response) => setCategories(response.items))
@@ -51,6 +53,7 @@ export default function MoviesPage() {
 
   return (
     <div className="space-y-6">
+      {actionError ? <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{actionError}</div> : null}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-white">Movies</h1>
@@ -103,6 +106,7 @@ export default function MoviesPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Movie</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Telegram</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Categories</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Actions</th>
                 </tr>
@@ -128,11 +132,64 @@ export default function MoviesPage() {
                     <td className="px-4 py-4">
                       <Badge variant={movie.is_published ? 'success' : 'warning'}>{movie.status}</Badge>
                     </td>
+                    <td className="px-4 py-4">
+                      {movie.telegram_last_post_status ? (
+                        <div className="space-y-2">
+                          <Badge
+                            variant={
+                              movie.telegram_last_post_status === 'sent'
+                                ? 'success'
+                                : movie.telegram_last_post_status === 'failed'
+                                  ? 'danger'
+                                  : 'warning'
+                            }
+                          >
+                            {movie.telegram_last_post_status}
+                          </Badge>
+                          {movie.telegram_last_error_message ? (
+                            <p className="max-w-[240px] text-xs text-red-300">{movie.telegram_last_error_message}</p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">No posts</span>
+                      )}
+                    </td>
                     <td className="px-4 py-4 text-sm text-gray-300">
                       {movie.categories.map((item) => item.name).join(', ') || 'None'}
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={async () => {
+                            setActionError('')
+                            setTelegramAction((current) => ({ ...current, [movie.id]: 'send' }))
+                            try {
+                              await api.sendMovieToTelegram(movie.id)
+                              setItems((current) =>
+                                current.map((item) =>
+                                  item.id === movie.id
+                                    ? { ...item, telegram_last_post_status: 'sent', telegram_last_error_message: null }
+                                    : item
+                                )
+                              )
+                            } catch (sendError) {
+                              const message = sendError instanceof Error ? sendError.message : 'Telegram send failed'
+                              setActionError(message)
+                              setItems((current) =>
+                                current.map((item) =>
+                                  item.id === movie.id
+                                    ? { ...item, telegram_last_post_status: 'failed', telegram_last_error_message: message }
+                                    : item
+                                )
+                              )
+                            } finally {
+                              setTelegramAction((current) => ({ ...current, [movie.id]: '' }))
+                            }
+                          }}
+                        >
+                          {telegramAction[movie.id] === 'send' ? 'Sending...' : 'Send Telegram'}
+                        </Button>
                         <Link href={`/movies/${movie.slug}`} target="_blank">
                           <Button variant="ghost">View</Button>
                         </Link>

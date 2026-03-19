@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+
+import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Subtitle } from '@/types'
@@ -11,6 +14,9 @@ export function SubtitleManager({
   items: Subtitle[]
   onChange: (items: Subtitle[]) => void
 }) {
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [error, setError] = useState('')
+
   const updateItem = (index: number, field: keyof Subtitle, value: string | boolean | number) => {
     const next = [...items]
     next[index] = { ...next[index], [field]: value }
@@ -23,7 +29,32 @@ export function SubtitleManager({
         <div key={`${item.label}-${index}`} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2">
           <Input value={item.language} onChange={(event) => updateItem(index, 'language', event.target.value)} placeholder="Language" />
           <Input value={item.label} onChange={(event) => updateItem(index, 'label', event.target.value)} placeholder="Label" />
-          <Input value={item.file_url} onChange={(event) => updateItem(index, 'file_url', event.target.value)} placeholder="/uploads/subtitle.srt" />
+          <div className="space-y-3">
+            <Input value={item.file_url} onChange={(event) => updateItem(index, 'file_url', event.target.value)} placeholder="/uploads/subtitles/file.srt or remote URL" />
+            <label className="inline-flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/10">
+              <input
+                type="file"
+                accept=".srt,.vtt,.ass"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0]
+                  if (!file) return
+                  setUploadingIndex(index)
+                  setError('')
+                  try {
+                    const response = await api.uploadSubtitleFile(file)
+                    updateItem(index, 'file_url', response.file_url)
+                    updateItem(index, 'format', file.name.split('.').pop()?.toLowerCase() || 'srt')
+                  } catch (uploadError) {
+                    setError(uploadError instanceof Error ? uploadError.message : 'Subtitle upload failed')
+                  } finally {
+                    setUploadingIndex(null)
+                  }
+                }}
+              />
+              {uploadingIndex === index ? 'Uploading...' : 'Upload subtitle file'}
+            </label>
+          </div>
           <Input value={item.format} onChange={(event) => updateItem(index, 'format', event.target.value)} placeholder="srt" />
           <label className="flex items-center gap-2 text-sm text-gray-300">
             <input type="checkbox" checked={item.is_default} onChange={(event) => updateItem(index, 'is_default', event.target.checked)} />
@@ -47,6 +78,7 @@ export function SubtitleManager({
       >
         Add Subtitle
       </Button>
+      {error ? <p className="text-sm text-red-400">{error}</p> : null}
     </div>
   )
 }
