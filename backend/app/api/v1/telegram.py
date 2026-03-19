@@ -221,10 +221,10 @@ def get_movie_telegram_logs(
 
 @router.post("/storage/upload-image")
 async def upload_image_to_telegram_storage(
+    request: Request,
     file: UploadFile = File(...),
     media_role: str = Form("other"),
     movie_id: int | None = Form(None),
-    request: Request | None = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -261,10 +261,10 @@ async def upload_image_to_telegram_storage(
 
 @router.post("/storage/upload-file")
 async def upload_file_to_telegram_storage(
+    request: Request,
     file: UploadFile = File(...),
     media_role: str = Form("other"),
     movie_id: int | None = Form(None),
-    request: Request | None = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):

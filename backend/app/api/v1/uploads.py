@@ -20,10 +20,10 @@ SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass"}
 
 @router.post("/image", status_code=status.HTTP_201_CREATED)
 async def upload_image(
+    request: Request,
     file: UploadFile = File(...),
     media_role: str = Form("other"),
     movie_id: int | None = Form(None),
-    request: Request | None = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -61,9 +61,9 @@ async def upload_image(
 
 @router.post("/subtitle", status_code=status.HTTP_201_CREATED)
 async def upload_subtitle(
+    request: Request,
     file: UploadFile = File(...),
     movie_id: int | None = Form(None),
-    request: Request | None = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
