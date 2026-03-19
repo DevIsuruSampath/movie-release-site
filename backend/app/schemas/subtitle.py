@@ -1,43 +1,41 @@
-"""
-Subtitle schemas for API validation
-"""
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
+from pydantic import BaseModel
 
 
 class SubtitleBase(BaseModel):
     language: str
-    language_code: str
-    url: str
+    label: str
+    file_url: str
     format: str = "srt"
     is_default: bool = False
     sort_order: int = 0
 
 
 class SubtitleCreate(SubtitleBase):
-    movie_id: int
+    pass
 
 
 class SubtitleUpdate(BaseModel):
     language: Optional[str] = None
-    language_code: Optional[str] = None
-    url: Optional[str] = None
+    label: Optional[str] = None
+    file_url: Optional[str] = None
     format: Optional[str] = None
     is_default: Optional[bool] = None
     sort_order: Optional[int] = None
 
 
-class SubtitleResponse(BaseModel):
+class SubtitleResponse(SubtitleBase):
     id: int
     movie_id: int
-    language: str
-    language_code: str
-    url: str
-    format: str
-    is_default: bool
-    sort_order: int
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class SubtitleListResponse(BaseModel):
+    items: List[SubtitleResponse]
+    total: int

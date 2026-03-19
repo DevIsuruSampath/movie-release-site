@@ -1,6 +1,10 @@
+'use client'
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { User, TokenResponse } from '@/types'
+
+import api, { ApiError } from '@/lib/api'
+import type { AuthResponse, User } from '@/types'
 
 interface AuthState {
   user: User | null
@@ -8,89 +12,117 @@ interface AuthState {
   refreshToken: string | null
   isAuthenticated: boolean
   isAdmin: boolean
+  hydrated: boolean
+  loading: boolean
+  setHydrated: (value: boolean) => void
+  setSession: (payload: AuthResponse) => void
   login: (email: string, password: string) => Promise<void>
+  refresh: () => Promise<boolean>
+  fetchCurrentUser: () => Promise<User | null>
   logout: () => void
-  setTokens: (tokens: TokenResponse) => void
-  setUser: (user: User) => void
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
       isAdmin: false,
+      hydrated: false,
+      loading: false,
 
-      login: async (email: string, password: string) => {
+      setHydrated: (value) => set({ hydrated: value }),
+
+      setSession: (payload) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('access_token', payload.access_token)
+          localStorage.setItem('refresh_token', payload.refresh_token)
+        }
+        set({
+          user: payload.user,
+          accessToken: payload.access_token,
+          refreshToken: payload.refresh_token,
+          isAuthenticated: true,
+          isAdmin: payload.user.is_admin || payload.user.is_superuser,
+        })
+      },
+
+      login: async (email, password) => {
+        set({ loading: true })
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-          })
-
-          if (!response.ok) {
-            let errorMessage = 'Login failed'
-            try {
-              const errorData = await response.json()
-              errorMessage = errorData.detail || errorMessage
-            } catch {
-              errorMessage = response.statusText || errorMessage
-            }
-            throw new Error(errorMessage)
-          }
-
-          const data = await response.json()
-
-          set({
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token,
-            isAuthenticated: true,
-            isAdmin: data.is_superuser || false,
-          })
-
-          localStorage.setItem('access_token', data.access_token)
-          localStorage.setItem('refresh_token', data.refresh_token)
+          const response = await api.login({ email, password })
+          get().setSession(response)
         } catch (error) {
-          console.error('Login failed:', error)
-          throw error
+          throw error instanceof ApiError ? error : new Error('Login failed')
+        } finally {
+          set({ loading: false })
+        }
+      },
+
+      refresh: async () => {
+        const refreshToken = get().refreshToken || (typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null)
+        if (!refreshToken) return false
+        try {
+          const response = await api.refresh(refreshToken)
+          get().setSession(response)
+          return true
+        } catch {
+          get().logout()
+          return false
+        }
+      },
+
+      fetchCurrentUser: async () => {
+        try {
+          const user = await api.me()
+          set({
+            user,
+            isAuthenticated: true,
+            isAdmin: user.is_admin || user.is_superuser,
+          })
+          return user
+        } catch {
+          const refreshed = await get().refresh()
+          if (!refreshed) return null
+          const user = await api.me()
+          set({
+            user,
+            isAuthenticated: true,
+            isAdmin: user.is_admin || user.is_superuser,
+          })
+          return user
         }
       },
 
       logout: () => {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+        }
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
           isAdmin: false,
-        })
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-      },
-
-      setTokens: (tokens: TokenResponse) => {
-        set({
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          isAuthenticated: true,
-        })
-        localStorage.setItem('access_token', tokens.access_token)
-        localStorage.setItem('refresh_token', tokens.refresh_token)
-      },
-
-      setUser: (user: User) => {
-        set({
-          user,
-          isAdmin: user.is_superuser,
-          isAuthenticated: true,
+          loading: false,
         })
       },
     }),
     {
-      name: 'auth-storage',
+      name: 'admin-auth-storage',
+      onRehydrateStorage: () => (state) => {
+        state?.setHydrated(true)
+      },
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+        isAdmin: state.isAdmin,
+      }),
     }
   )
 )

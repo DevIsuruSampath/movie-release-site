@@ -1,9 +1,59 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+import type {
+  AuditLog,
+  AuthResponse,
+  Category,
+  CategoryListResponse,
+  DashboardStats,
+  DownloadLink,
+  Movie,
+  MovieListResponse,
+  MoviePayload,
+  PaginatedResponse,
+  SeoMetadata,
+  StreamLink,
+  Subtitle,
+  Tag,
+  TagListResponse,
+  UploadItem,
+  UploadResponse,
+  User,
+} from '@/types'
 
-interface RequestOptions {
-  params?: Record<string, any>
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  'http://localhost:8000'
+
+type Primitive = string | number | boolean
+
+interface RequestOptions<TBody = unknown> {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  params?: Record<string, Primitive | null | undefined>
   headers?: HeadersInit
-  body?: any
+  body?: TBody
+  auth?: boolean
+}
+
+function getAccessToken() {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('access_token')
+}
+
+function toAbsoluteUrl(path?: string | null) {
+  if (!path) return ''
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${API_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+class ApiError extends Error {
+  status: number
+  detail: string
+
+  constructor(status: number, detail: string) {
+    super(detail)
+    this.status = status
+    this.detail = detail
+  }
 }
 
 class ApiClient {
@@ -13,89 +63,165 @@ class ApiClient {
     this.baseUrl = baseUrl
   }
 
-  private buildUrl(endpoint: string, params?: Record<string, any>): string {
+  private buildUrl(endpoint: string, params?: Record<string, Primitive | null | undefined>) {
     const url = new URL(endpoint, this.baseUrl)
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value))
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.set(key, String(value))
         }
       })
     }
     return url.toString()
   }
 
-  async get<T>(endpoint: string, options: RequestOptions = {}): Promise<{ data: T }> {
-    const url = this.buildUrl(endpoint, options.params)
-    const response = await fetch(url, {
+  private async request<TResponse, TBody = unknown>(endpoint: string, options: RequestOptions<TBody> = {}) {
+    const token = options.auth === false ? null : getAccessToken()
+    const response = await fetch(this.buildUrl(endpoint, options.params), {
+      method: options.method || 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
+      body:
+        options.body instanceof FormData
+          ? options.body
+          : options.body !== undefined
+            ? JSON.stringify(options.body)
+            : undefined,
       cache: 'no-store',
     })
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`)
+      let detail = response.statusText
+      try {
+        const json = await response.json()
+        detail = json.detail || json.message || detail
+      } catch {}
+      throw new ApiError(response.status, detail)
     }
 
-    const data = await response.json() as T
-    return { data }
+    if (response.status === 204) return { data: undefined as TResponse }
+    return { data: (await response.json()) as TResponse }
   }
 
-  async post<T>(endpoint: string, options: RequestOptions = {}): Promise<{ data: T }> {
-    const response = await fetch(new URL(endpoint, this.baseUrl).toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    })
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return { data }
+  get<TResponse>(endpoint: string, options?: Omit<RequestOptions, 'method' | 'body'>) {
+    return this.request<TResponse>(endpoint, { ...options, method: 'GET' })
   }
 
-  async put<T>(endpoint: string, options: RequestOptions = {}): Promise<{ data: T }> {
-    const response = await fetch(new URL(endpoint, this.baseUrl).toString(), {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    })
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return { data }
+  post<TResponse, TBody = unknown>(endpoint: string, body?: TBody, options?: Omit<RequestOptions<TBody>, 'method' | 'body'>) {
+    return this.request<TResponse, TBody>(endpoint, { ...options, method: 'POST', body })
   }
 
-  async delete<T>(endpoint: string, options: RequestOptions = {}): Promise<{ data: T }> {
-    const response = await fetch(new URL(endpoint, this.baseUrl).toString(), {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    })
+  put<TResponse, TBody = unknown>(endpoint: string, body?: TBody, options?: Omit<RequestOptions<TBody>, 'method' | 'body'>) {
+    return this.request<TResponse, TBody>(endpoint, { ...options, method: 'PUT', body })
+  }
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`)
-    }
+  patch<TResponse, TBody = unknown>(endpoint: string, body?: TBody, options?: Omit<RequestOptions<TBody>, 'method' | 'body'>) {
+    return this.request<TResponse, TBody>(endpoint, { ...options, method: 'PATCH', body })
+  }
 
-    const data = await response.json()
-    return { data }
+  delete<TResponse>(endpoint: string, options?: Omit<RequestOptions, 'method' | 'body'>) {
+    return this.request<TResponse>(endpoint, { ...options, method: 'DELETE' })
+  }
+
+  login(payload: { email: string; password: string }) {
+    return this.post<AuthResponse>('/api/v1/auth/login', payload, { auth: false }).then((response) => response.data)
+  }
+
+  refresh(refresh_token: string) {
+    return this.post<AuthResponse>('/api/v1/auth/refresh', { refresh_token }, { auth: false }).then((response) => response.data)
+  }
+
+  me() {
+    return this.get<User>('/api/v1/auth/me').then((response) => response.data)
+  }
+
+  getDashboard() {
+    return this.get<DashboardStats>('/api/v1/admin/dashboard').then((response) => response.data)
+  }
+
+  getActivity(params?: { page?: number; limit?: number }) {
+    return this.get<PaginatedResponse<AuditLog>>('/api/v1/admin/activity', { params }).then((response) => response.data)
+  }
+
+  listMovies(params?: Record<string, Primitive | null | undefined>) {
+    return this.get<MovieListResponse>('/api/v1/movies', { params }).then((response) => response.data)
+  }
+
+  getMovieById(id: number) {
+    return this.get<Movie>(`/api/v1/movies/id/${id}`).then((response) => response.data)
+  }
+
+  createMovie(payload: MoviePayload) {
+    return this.post<Movie, MoviePayload>('/api/v1/movies', payload).then((response) => response.data)
+  }
+
+  updateMovie(id: number, payload: Partial<MoviePayload>) {
+    return this.put<Movie, Partial<MoviePayload>>(`/api/v1/movies/${id}`, payload).then((response) => response.data)
+  }
+
+  deleteMovie(id: number) {
+    return this.delete<void>(`/api/v1/movies/${id}`).then((response) => response.data)
+  }
+
+  listCategories(params?: Record<string, Primitive | null | undefined>) {
+    return this.get<CategoryListResponse>('/api/v1/categories', { params }).then((response) => response.data)
+  }
+
+  createCategory(payload: Partial<Category>) {
+    return this.post<Category>('/api/v1/categories', payload).then((response) => response.data)
+  }
+
+  updateCategory(id: number, payload: Partial<Category>) {
+    return this.put<Category>(`/api/v1/categories/${id}`, payload).then((response) => response.data)
+  }
+
+  deleteCategory(id: number) {
+    return this.delete<void>(`/api/v1/categories/${id}`).then((response) => response.data)
+  }
+
+  listTags(params?: Record<string, Primitive | null | undefined>) {
+    return this.get<TagListResponse>('/api/v1/tags', { params }).then((response) => response.data)
+  }
+
+  createTag(payload: Partial<Tag>) {
+    return this.post<Tag>('/api/v1/tags', payload).then((response) => response.data)
+  }
+
+  updateTag(id: number, payload: Partial<Tag>) {
+    return this.put<Tag>(`/api/v1/tags/${id}`, payload).then((response) => response.data)
+  }
+
+  deleteTag(id: number) {
+    return this.delete<void>(`/api/v1/tags/${id}`).then((response) => response.data)
+  }
+
+  listMovieSubtitles(movieId: number) {
+    return this.get<{ items: Subtitle[]; total: number }>(`/api/v1/subtitles/movie/${movieId}`).then((response) => response.data)
+  }
+
+  listMovieStreams(movieId: number) {
+    return this.get<StreamLink[]>(`/api/v1/stream/movie/${movieId}`).then((response) => response.data)
+  }
+
+  listMovieDownloads(movieId: number) {
+    return this.get<DownloadLink[]>(`/api/v1/download/movie/${movieId}`).then((response) => response.data)
+  }
+
+  uploadImage(file: File) {
+    const body = new FormData()
+    body.append('file', file)
+    return this.post<UploadResponse, FormData>('/api/v1/uploads/image', body, {}).then((response) => response.data)
+  }
+
+  listImages() {
+    return this.get<UploadItem[]>('/api/v1/uploads/images').then((response) => response.data)
   }
 }
 
 const api = new ApiClient(API_URL)
+
+export { API_URL, ApiError, api, toAbsoluteUrl }
 export default api

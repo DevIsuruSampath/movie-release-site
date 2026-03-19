@@ -1,104 +1,134 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from typing import List, Optional
-from slugify import slugify
+from math import ceil
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from slugify import slugify
+from sqlalchemy.orm import Session
+
+from app.core.security import get_current_admin_user
 from app.db.database import get_db
+from app.models.audit import AuditLog
 from app.models.category import Category
-from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse
+from app.models.user import User
+from app.schemas.category import CategoryCreate, CategoryListResponse, CategoryResponse, CategoryUpdate
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[CategoryResponse])
+def _resolve_slug(db: Session, slug: str, category_id: int | None = None) -> str:
+    base_slug = slugify(slug) or "category"
+    candidate = base_slug
+    index = 1
+    while True:
+        query = db.query(Category).filter(Category.slug == candidate)
+        if category_id:
+            query = query.filter(Category.id != category_id)
+        if not query.first():
+            return candidate
+        index += 1
+        candidate = f"{base_slug}-{index}"
+
+
+def _log(db: Session, request: Request, actor: User, action: str, category: Category) -> None:
+    db.add(
+        AuditLog(
+            actor_id=actor.id,
+            action=action,
+            entity_type="category",
+            entity_id=category.id,
+            description=f"{action.title()}d category {category.name}",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    )
+
+
+@router.get("", response_model=CategoryListResponse)
 def list_categories(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100,
 ):
-    """List all categories."""
-    categories = db.query(Category).offset(skip).limit(limit).all()
-    return [CategoryResponse.from_orm(c) for c in categories]
-
-
-@router.get("/{category_id}", response_model=CategoryResponse)
-def get_category(category_id: int, db: Session = Depends(get_db)):
-    """Get category by ID."""
-    category = db.query(Category).filter(Category.id == category_id).first()
-    if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return CategoryResponse.from_orm(category)
+    query = db.query(Category)
+    if search:
+        query = query.filter(Category.name.ilike(f"%{search}%"))
+    total = query.count()
+    items = query.order_by(Category.name.asc()).offset((page - 1) * limit).limit(limit).all()
+    return CategoryListResponse(
+        items=items,
+        total=total,
+        page=page,
+        pages=ceil(total / limit) if total else 1,
+    )
 
 
 @router.get("/slug/{slug}", response_model=CategoryResponse)
 def get_category_by_slug(slug: str, db: Session = Depends(get_db)):
-    """Get category by slug."""
     category = db.query(Category).filter(Category.slug == slug).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return CategoryResponse.from_orm(category)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    return category
 
 
-@router.post("/", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
+@router.get("/{category_id}", response_model=CategoryResponse)
+def get_category(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    return category
+
+
+@router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 def create_category(
     category_data: CategoryCreate,
+    request: Request,
     db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
 ):
-    """Create a new category."""
-    # Check if slug already exists
-    existing = db.query(Category).filter(Category.slug == category_data.slug).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Slug already exists")
-    
-    category = Category(
-        name=category_data.name,
-        slug=category_data.slug,
-        description=category_data.description,
-    )
+    slug = _resolve_slug(db, category_data.slug or category_data.name)
+    category = Category(**category_data.model_dump(exclude={"slug"}), slug=slug)
     db.add(category)
+    db.flush()
+    _log(db, request, current_admin, "create", category)
     db.commit()
     db.refresh(category)
-    return CategoryResponse.from_orm(category)
+    return category
 
 
 @router.put("/{category_id}", response_model=CategoryResponse)
 def update_category(
     category_id: int,
     category_data: CategoryUpdate,
+    request: Request,
     db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
 ):
-    """Update category."""
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    
-    update_data = category_data.model_dump(exclude_unset=True)
-    
-    # Check slug uniqueness if updating
-    if "slug" in update_data:
-        existing = db.query(Category).filter(
-            Category.slug == update_data["slug"],
-            Category.id != category_id
-        ).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Slug already exists")
-    
-    for field, value in update_data.items():
-        setattr(category, field, value)
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+
+    updates = category_data.model_dump(exclude_unset=True)
+    if "slug" in updates or "name" in updates:
+        category.slug = _resolve_slug(db, updates.get("slug") or updates.get("name") or category.slug, category.id)
+    for field, value in updates.items():
+        if field != "slug":
+            setattr(category, field, value)
+    _log(db, request, current_admin, "update", category)
     db.commit()
     db.refresh(category)
-    return CategoryResponse.from_orm(category)
+    return category
 
 
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_category(category_id: int, db: Session = Depends(get_db)):
-    """Delete category."""
+def delete_category(
+    category_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
+):
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    _log(db, request, current_admin, "delete", category)
     db.delete(category)
     db.commit()
-    return None

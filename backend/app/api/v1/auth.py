@@ -1,68 +1,60 @@
-"""
-Authentication API routes
-"""
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-from typing import Optional
 
-from app.db.database import get_db
-from app.core.security import verify_password, create_access_token, create_refresh_token, decode_token, get_password_hash
 from app.core.config import settings
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_and_validate_token,
+    get_current_admin_user,
+    get_current_user,
+    get_password_hash,
+    verify_password,
+)
+from app.db.database import get_db
+from app.models.audit import AuditLog
 from app.models.user import User
-from app.schemas.user import UserCreate, UserRegister, AdminUserCreate, UserLogin, UserResponse, TokenResponse
+from app.schemas.user import AdminUserCreate, TokenResponse, UserLogin, UserRegister, UserResponse
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-) -> User:
-    """Get the current authenticated user."""
-    from jose import JWTError
-    
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    try:
-        payload = decode_token(token)
-        if payload is None:
-            raise credentials_exception
-        user_id: int = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise credentials_exception
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return user
-
-
-async def get_current_admin_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """Check if current user is admin."""
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+def create_audit_log(
+    db: Session,
+    request: Request | None,
+    actor_id: int | None,
+    action: str,
+    entity_type: str,
+    entity_id: int | None,
+    description: str,
+    metadata_json: dict | None = None,
+) -> None:
+    db.add(
+        AuditLog(
+            actor_id=actor_id,
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            description=description,
+            metadata_json=metadata_json,
+            ip_address=request.client.host if request and request.client else None,
+            user_agent=request.headers.get("user-agent") if request else None,
         )
-    return current_user
+    )
+
+
+def _build_token_response(user: User) -> TokenResponse:
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse.model_validate(user),
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    """Login endpoint with email and password."""
+def login(user_data: UserLogin, request: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_data.email).first()
     if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
@@ -70,119 +62,107 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             detail="Incorrect email or password",
         )
     if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+
+    create_audit_log(
+        db,
+        request,
+        user.id,
+        "login",
+        "user",
+        user.id,
+        f"{user.email} logged in",
     )
-
-
-@router.post("/login/form", response_model=TokenResponse)
-def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """OAuth2 compatible login endpoint."""
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-    if not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-    )
-
-
-@router.post("/register", response_model=UserResponse, status_code=201)
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
-    """Register new user. Requires registration code unless public registration is enabled."""
-    # Check if public registration is allowed
-    if not settings.ALLOW_PUBLIC_REGISTRATION:
-        # Require registration code
-        if not user_data.registration_code:
-            raise HTTPException(status_code=400, detail="Registration code is required")
-        if user_data.registration_code != settings.ADMIN_REGISTRATION_CODE:
-            raise HTTPException(status_code=403, detail="Invalid registration code")
-
-    existing = db.query(User).filter(User.email == user_data.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    hashed_password = get_password_hash(user_data.password)
-    user = User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-        full_name=user_data.full_name,
-    )
-    db.add(user)
     db.commit()
-    db.refresh(user)
-    return user
-
-
-@router.post("/admin/users", response_model=UserResponse, status_code=201)
-def create_user_admin(
-    user_data: AdminUserCreate,
-    db: Session = Depends(get_db),
-    current_admin: User = Depends(get_current_admin_user)
-):
-    """Create a new user (admin only)."""
-    existing = db.query(User).filter(User.email == user_data.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    hashed_password = get_password_hash(user_data.password)
-    user = User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-        full_name=user_data.full_name,
-        is_superuser=user_data.is_superuser,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+    return _build_token_response(user)
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Refresh access token."""
-    user = get_current_user_sync(token, db)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
-    
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-    )
+def refresh_token(payload: dict, db: Session = Depends(get_db)):
+    refresh_token_value = payload.get("refresh_token")
+    if not refresh_token_value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token required")
 
+    decoded = decode_and_validate_token(refresh_token_value, expected_type="refresh")
+    user_id = decoded.get("sub")
+    user = db.query(User).filter(User.id == int(user_id)).first() if user_id else None
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-def get_current_user_sync(token: str, db: Session) -> Optional[User]:
-    """Synchronous version of get_current_user for refresh token."""
-    payload = decode_token(token)
-    if payload is None:
-        return None
-    user_id = payload.get("sub")
-    if user_id is None:
-        return None
-    return db.query(User).filter(User.id == user_id).first()
+    return _build_token_response(user)
 
 
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user)):
-    """Get current user info."""
     return current_user
+
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register(user_data: UserRegister, request: Request, db: Session = Depends(get_db)):
+    if not settings.ALLOW_PUBLIC_REGISTRATION:
+        if not user_data.registration_code:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Registration code is required")
+        if user_data.registration_code != settings.ADMIN_REGISTRATION_CODE:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid registration code")
+
+    existing = db.query(User).filter(User.email == user_data.email).first()
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    is_first_user = db.query(User).count() == 0
+    user = User(
+        email=user_data.email,
+        hashed_password=get_password_hash(user_data.password),
+        full_name=user_data.full_name,
+        is_superuser=is_first_user,
+        is_admin=is_first_user,
+    )
+    db.add(user)
+    db.flush()
+    create_audit_log(
+        db,
+        request,
+        user.id,
+        "register",
+        "user",
+        user.id,
+        f"User {user.email} registered",
+    )
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/admin/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user_admin(
+    user_data: AdminUserCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
+):
+    existing = db.query(User).filter(User.email == user_data.email).first()
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    user = User(
+        email=user_data.email,
+        hashed_password=get_password_hash(user_data.password),
+        full_name=user_data.full_name,
+        is_superuser=user_data.is_superuser,
+        is_admin=user_data.is_admin or user_data.is_superuser,
+    )
+    db.add(user)
+    db.flush()
+    create_audit_log(
+        db,
+        request,
+        current_admin.id,
+        "create",
+        "user",
+        user.id,
+        f"Created user {user.email}",
+        {"email": user.email},
+    )
+    db.commit()
+    db.refresh(user)
+    return user

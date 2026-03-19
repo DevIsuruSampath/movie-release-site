@@ -1,77 +1,100 @@
-"""Stream links API routes"""
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
+
+from app.core.security import get_current_admin_user
 from app.db.database import get_db
-from app.models.movie import StreamLink, Movie
-from app.schemas.movie import StreamLinkCreate, StreamLinkUpdate, StreamLinkResponse
-from app.core.security import get_current_admin
+from app.models.audit import AuditLog
+from app.models.movie import Movie, StreamLink
+from app.models.user import User
+from app.schemas.movie import StreamLinkCreate, StreamLinkResponse, StreamLinkUpdate
 
 router = APIRouter()
 
 
-@router.get("/movie/{movie_id}", response_model=List[StreamLinkResponse])
-async def get_movie_stream_links(
+@router.get("/movie/{movie_id}", response_model=list[StreamLinkResponse])
+def get_movie_stream_links(movie_id: int, db: Session = Depends(get_db)):
+    return db.query(StreamLink).filter(StreamLink.movie_id == movie_id).order_by(StreamLink.sort_order.asc()).all()
+
+
+@router.post("/movie/{movie_id}", response_model=StreamLinkResponse, status_code=status.HTTP_201_CREATED)
+def create_stream_link(
     movie_id: int,
-    db: AsyncSession = Depends(get_db)
-):
-    """Get all stream links for a movie"""
-    result = await db.execute(
-        select(StreamLink).where(StreamLink.movie_id == movie_id)
-    )
-    return result.scalars().all()
-
-
-@router.post("/", response_model=StreamLinkResponse, status_code=status.HTTP_201_CREATED)
-async def create_stream_link(
     link_data: StreamLinkCreate,
-    db: AsyncSession = Depends(get_db),
-    admin = Depends(get_current_admin)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
 ):
-    """Create a new stream link (admin only)"""
-    # Verify movie exists
-    movie = await db.get(Movie, link_data.movie_id)
+    movie = db.query(Movie).filter(Movie.id == movie_id).first()
     if not movie:
-        raise HTTPException(status_code=404, detail="Movie not found")
-    
-    stream_link = StreamLink(**link_data.model_dump())
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+    stream_link = StreamLink(movie_id=movie_id, **link_data.model_dump())
     db.add(stream_link)
-    await db.commit()
-    await db.refresh(stream_link)
+    db.flush()
+    db.add(
+        AuditLog(
+            actor_id=current_admin.id,
+            action="create",
+            entity_type="stream_link",
+            entity_id=stream_link.id,
+            description=f"Added stream link to {movie.title}",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    )
+    db.commit()
+    db.refresh(stream_link)
     return stream_link
 
 
 @router.put("/{link_id}", response_model=StreamLinkResponse)
-async def update_stream_link(
+def update_stream_link(
     link_id: int,
     link_data: StreamLinkUpdate,
-    db: AsyncSession = Depends(get_db),
-    admin = Depends(get_current_admin)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
 ):
-    """Update a stream link (admin only)"""
-    stream_link = await db.get(StreamLink, link_id)
+    stream_link = db.query(StreamLink).filter(StreamLink.id == link_id).first()
     if not stream_link:
-        raise HTTPException(status_code=404, detail="Stream link not found")
-    
-    for key, value in link_data.model_dump(exclude_unset=True).items():
-        setattr(stream_link, key, value)
-    
-    await db.commit()
-    await db.refresh(stream_link)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream link not found")
+    for field, value in link_data.model_dump(exclude_unset=True).items():
+        setattr(stream_link, field, value)
+    db.add(
+        AuditLog(
+            actor_id=current_admin.id,
+            action="update",
+            entity_type="stream_link",
+            entity_id=stream_link.id,
+            description=f"Updated stream link {stream_link.server_name}",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    )
+    db.commit()
+    db.refresh(stream_link)
     return stream_link
 
 
 @router.delete("/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_stream_link(
+def delete_stream_link(
     link_id: int,
-    db: AsyncSession = Depends(get_db),
-    admin = Depends(get_current_admin)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
 ):
-    """Delete a stream link (admin only)"""
-    stream_link = await db.get(StreamLink, link_id)
+    stream_link = db.query(StreamLink).filter(StreamLink.id == link_id).first()
     if not stream_link:
-        raise HTTPException(status_code=404, detail="Stream link not found")
-    
-    await db.delete(stream_link)
-    await db.commit()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream link not found")
+    db.add(
+        AuditLog(
+            actor_id=current_admin.id,
+            action="delete",
+            entity_type="stream_link",
+            entity_id=stream_link.id,
+            description=f"Deleted stream link {stream_link.server_name}",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    )
+    db.delete(stream_link)
+    db.commit()

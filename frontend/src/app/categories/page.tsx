@@ -7,8 +7,8 @@ import Footer from '@/components/footer'
 
 async function getAllCategories() {
   try {
-    const response = await api.get<Category[]>('/api/v1/categories')
-    return response.data || []
+    const response = await api.get<{ items: Category[] }>('/api/v1/categories')
+    return response.data.items || []
   } catch (error) {
     console.error('Failed to fetch categories:', error)
     return []

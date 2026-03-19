@@ -19,9 +19,8 @@ async function getCategoryMovies(slug: string) {
 
 async function getCategoryDetails(slug: string): Promise<Category | null> {
   try {
-    const response = await api.get<Category[]>('/api/v1/categories')
-    const category = response.data?.find((c) => c.slug === slug)
-    return category || null
+    const response = await api.get<Category>(`/api/v1/categories/slug/${slug}`)
+    return response.data || null
   } catch (error) {
     console.error('Failed to fetch category:', error)
     return null
