@@ -103,7 +103,7 @@ export default async function HomePage() {
             <div className="relative animate-scale-in hidden lg:block">
               <div className="relative">
                 {/* Main featured card */}
-                {featuredMovies[0] && (
+                {featuredMovies[0] && featuredMovies[0].poster_url && (
                   <div className="relative rounded-2xl overflow-hidden shadow-2xl animate-float">
                     <img
                       src={featuredMovies[0].poster_url}
@@ -134,12 +134,12 @@ export default async function HomePage() {
                 )}
 
                 {/* Floating secondary cards */}
-                {featuredMovies[1] && (
+                {featuredMovies[1] && featuredMovies[1].poster_url && (
                   <div className="absolute -top-6 sm:-top-8 -right-6 sm:-right-8 w-32 sm:w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '1s' }}>
                     <img src={featuredMovies[1].poster_url} alt={featuredMovies[1].title} className="w-full h-48 sm:h-56 object-cover" loading="lazy" decoding="async" />
                   </div>
                 )}
-                {featuredMovies[2] && (
+                {featuredMovies[2] && featuredMovies[2].poster_url && (
                   <div className="absolute -bottom-6 sm:-bottom-8 -left-6 sm:-left-8 w-32 sm:w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '2s' }}>
                     <img src={featuredMovies[2].poster_url} alt={featuredMovies[2].title} className="w-full h-48 sm:h-56 object-cover" loading="lazy" decoding="async" />
                   </div>
@@ -184,13 +184,19 @@ export default async function HomePage() {
               >
                 <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
                   <div className="movie-poster relative">
-                    <img
-                      src={movie.poster_url}
-                      alt={movie.title}
-                      className="card-image w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    {movie.poster_url ? (
+                      <img
+                        src={movie.poster_url}
+                        alt={movie.title}
+                        className="card-image w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-white/5 text-sm text-gray-500">
+                        No poster
+                      </div>
+                    )}
 
                     {/* Quality Badge */}
                     {movie.quality && (
@@ -278,11 +284,17 @@ export default async function HomePage() {
                 >
                   <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
                     <div className="movie-poster relative">
-                      <img
-                        src={movie.poster_url}
-                        alt={movie.title}
-                        className="card-image w-full h-full object-cover"
-                      />
+                      {movie.poster_url ? (
+                        <img
+                          src={movie.poster_url}
+                          alt={movie.title}
+                          className="card-image w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-white/5 text-sm text-gray-500">
+                          No poster
+                        </div>
+                      )}
                       {movie.imdb_rating && (
                         <div className="rating-badge text-yellow-400 text-xs">
                           <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">

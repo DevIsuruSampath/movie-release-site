@@ -183,13 +183,19 @@ function SearchPageContent() {
                   >
                     <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
                       <div className="movie-poster relative">
-                        <img
-                          src={movie.poster_url}
-                          alt={movie.title}
-                          className="card-image w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
+                        {movie.poster_url ? (
+                          <img
+                            src={movie.poster_url}
+                            alt={movie.title}
+                            className="card-image w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-white/5 text-sm text-gray-500">
+                            No poster
+                          </div>
+                        )}
 
                         {movie.imdb_rating && (
                           <div className="rating-badge text-yellow-400 text-xs">
