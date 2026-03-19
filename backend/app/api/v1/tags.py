@@ -31,7 +31,7 @@ def _resolve_slug(db: Session, value: str, tag_id: int | None = None) -> str:
 @router.get("", response_model=TagListResponse)
 def list_tags(
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=200),
     search: str | None = Query(None),
     db: Session = Depends(get_db),
 ):

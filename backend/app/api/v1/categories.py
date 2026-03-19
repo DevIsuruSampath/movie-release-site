@@ -45,7 +45,7 @@ def _log(db: Session, request: Request, actor: User, action: str, category: Cate
 @router.get("", response_model=CategoryListResponse)
 def list_categories(
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=200),
     search: str | None = Query(None),
     db: Session = Depends(get_db),
 ):

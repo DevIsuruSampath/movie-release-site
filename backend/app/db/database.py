@@ -53,6 +53,7 @@ def _ensure_schema_compatibility() -> None:
             ("og_image", "ALTER TABLE categories ADD COLUMN IF NOT EXISTS og_image VARCHAR(500)"),
             ("robots", "ALTER TABLE categories ADD COLUMN IF NOT EXISTS robots VARCHAR(100) DEFAULT 'index,follow'"),
             ("schema_markup", "ALTER TABLE categories ADD COLUMN IF NOT EXISTS schema_markup TEXT"),
+            ("created_at", "ALTER TABLE categories ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()"),
             ("updated_at", "ALTER TABLE categories ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"),
         ):
             if ddl[0] not in category_columns:
