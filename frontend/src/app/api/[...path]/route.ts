@@ -12,6 +12,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   return proxyToBackend(request, buildPath(path))
 }
 
+export async function HEAD(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params
+  return proxyToBackend(request, buildPath(path))
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params
   return proxyToBackend(request, buildPath(path))
