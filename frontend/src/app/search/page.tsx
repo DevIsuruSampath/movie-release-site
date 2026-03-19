@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import api from '@/lib/api'
+import api, { toAbsoluteUrl } from '@/lib/api'
 import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -185,7 +185,7 @@ function SearchPageContent() {
                       <div className="movie-poster relative">
                         {movie.poster_url ? (
                           <img
-                            src={movie.poster_url}
+                            src={toAbsoluteUrl(movie.poster_url)}
                             alt={movie.title}
                             className="card-image w-full h-full object-cover"
                             loading="lazy"

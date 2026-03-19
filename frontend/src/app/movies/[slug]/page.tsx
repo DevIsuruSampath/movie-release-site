@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import api from '@/lib/api'
+import api, { toAbsoluteUrl } from '@/lib/api'
 import { DownloadLink, Movie } from '@/types'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/navbar'
@@ -94,7 +94,7 @@ export default function MovieDetailsPage() {
         {movie.backdrop_url && (
           <>
             <img
-              src={movie.backdrop_url}
+              src={toAbsoluteUrl(movie.backdrop_url)}
               alt={movie.title}
               className="w-full h-full object-cover"
               loading="eager"
@@ -114,7 +114,7 @@ export default function MovieDetailsPage() {
             {movie.poster_url && (
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
-                  src={movie.poster_url}
+                  src={toAbsoluteUrl(movie.poster_url)}
                   alt={movie.title}
                   className="w-full aspect-[2/3] object-cover"
                   loading="eager"

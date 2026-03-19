@@ -1,4 +1,4 @@
-import api from '@/lib/api'
+import api, { toAbsoluteUrl } from '@/lib/api'
 import { Movie, MovieListResponse, Category } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -127,7 +127,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
                   <div className="movie-poster relative">
                     {movie.poster_url ? (
                       <img
-                        src={movie.poster_url}
+                        src={toAbsoluteUrl(movie.poster_url)}
                         alt={movie.title}
                         className="card-image w-full h-full object-cover"
                         loading="lazy"
