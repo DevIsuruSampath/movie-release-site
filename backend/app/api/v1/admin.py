@@ -7,7 +7,7 @@ from app.core.security import get_current_admin_user
 from app.db.database import get_db
 from app.models.audit import AuditLog
 from app.models.category import Category
-from app.models.movie import DownloadLink, Movie, StreamLink
+from app.models.movie import Movie
 from app.models.subtitle import Subtitle
 from app.models.tag import Tag
 from app.models.user import User
@@ -35,11 +35,13 @@ def get_dashboard(
     )
     return {
         "total_movies": db.query(Movie).count(),
+        "total_published_movies": db.query(Movie).filter(Movie.is_published.is_(True)).count(),
+        "total_featured_movies": db.query(Movie).filter(Movie.featured.is_(True)).count(),
+        "total_media_ready_movies": db.query(Movie).filter(Movie.stream_enabled.is_(True)).count(),
+        "total_trailer_movies": db.query(Movie).filter(Movie.trailer_url.isnot(None), Movie.trailer_url != "").count(),
         "total_categories": db.query(Category).count(),
         "total_tags": db.query(Tag).count(),
         "total_subtitles": db.query(Subtitle).count(),
-        "total_stream_links": db.query(StreamLink).count(),
-        "total_download_links": db.query(DownloadLink).count(),
         "recent_movies": [MovieDashboardItem.model_validate(movie).model_dump() for movie in recent_movies],
         "recent_activity": [
             {

@@ -189,11 +189,13 @@ export interface AuditLog {
 
 export interface DashboardStats {
   total_movies: number
+  total_published_movies: number
+  total_featured_movies: number
+  total_media_ready_movies: number
+  total_trailer_movies: number
   total_categories: number
   total_tags: number
   total_subtitles: number
-  total_stream_links: number
-  total_download_links: number
   recent_movies: Array<Pick<Movie, 'id' | 'title' | 'slug' | 'poster_url' | 'status' | 'is_published' | 'created_at'>>
   recent_activity: AuditLog[]
 }

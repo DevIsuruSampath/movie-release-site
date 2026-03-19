@@ -34,7 +34,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-white">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-400">Operational overview for the admin system.</p>
+          <p className="mt-1 text-sm text-gray-400">Operational overview for your movie catalog and publishing workflow.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Link href="/admin/movies/new">
@@ -48,11 +48,13 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <StatCard label="Movies" value={data.total_movies} />
+        <StatCard label="Published" value={data.total_published_movies} />
+        <StatCard label="Featured" value={data.total_featured_movies} />
+        <StatCard label="Media Ready" value={data.total_media_ready_movies} />
+        <StatCard label="Trailers" value={data.total_trailer_movies} />
         <StatCard label="Categories" value={data.total_categories} />
         <StatCard label="Tags" value={data.total_tags} />
         <StatCard label="Subtitles" value={data.total_subtitles} />
-        <StatCard label="Stream Links" value={data.total_stream_links} />
-        <StatCard label="Download Links" value={data.total_download_links} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
