@@ -299,6 +299,12 @@ class TelegramService:
             return None
         return json.dumps({"inline_keyboard": [[{"text": config.button_text, "url": button_url}]]})
 
+    def _is_supported_remote_media_reference(self, reference: str | None) -> bool:
+        if not reference:
+            return False
+        parsed = urlparse(reference.strip())
+        return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
     def send_message(self, config: TelegramSettings, chat_id: str, text: str, *, reply_markup: str | None = None) -> tuple[dict[str, Any], str]:
         token = self._get_bot_token(config)
         data: dict[str, Any] = {"chat_id": chat_id, "text": text, "disable_web_page_preview": str(config.disable_web_page_preview).lower()}
@@ -468,7 +474,16 @@ class TelegramService:
             )
             return cache.telegram_file_id, True
 
-        return movie.poster_url, False
+        if self._is_supported_remote_media_reference(movie.poster_url):
+            return movie.poster_url, False
+
+        if movie.poster_url:
+            logger.warning(
+                "Skipping Telegram poster because the local upload is unavailable and the stored reference is not a usable remote URL",
+                extra={"movie_id": movie.id, "poster_url": movie.poster_url},
+            )
+
+        return None, False
 
     def send_movie_post(
         self,
