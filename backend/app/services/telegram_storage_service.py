@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import logging
-import os
-from contextlib import asynccontextmanager
 from math import ceil
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 import requests
 from fastapi import HTTPException, status
@@ -32,59 +29,114 @@ class TelegramStorageService:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unable to decrypt Telegram credentials") from exc
         return api_id, api_hash, bot_token
 
-    @asynccontextmanager
-    async def client(self, config: TelegramSettings) -> AsyncIterator[Any]:
-        api_id, api_hash, bot_token = self._require_telegram_credentials(config)
+    def _bot_api_request(
+        self,
+        config: TelegramSettings,
+        method: str,
+        *,
+        data: dict[str, Any] | None = None,
+        files: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        _, _, bot_token = self._require_telegram_credentials(config)
+        url = f"https://api.telegram.org/bot{bot_token}/{method}"
         try:
-            from pyrogram import Client
-        except ImportError as exc:  # pragma: no cover - depends on environment
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Pyrofork is not installed") from exc
+            response = requests.post(url, data=data, files=files, timeout=settings.TELEGRAM_REQUEST_TIMEOUT)
+        except requests.Timeout as exc:
+            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Telegram API request timed out") from exc
+        except requests.RequestException as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Telegram API request failed") from exc
 
-        session_name = f"movie-release-storage-{os.getpid()}"
-        client = Client(
-            name=session_name,
-            api_id=api_id,
-            api_hash=api_hash,
-            bot_token=bot_token,
-            in_memory=True,
-            workdir="/tmp",
-        )
-        await client.start()
         try:
-            yield client
-        finally:
-            await client.stop()
+            payload = response.json()
+        except ValueError:
+            payload = {"ok": False, "description": response.text}
 
-    async def test_client(self, config: TelegramSettings) -> dict[str, Any]:
-        async with self.client(config) as client:
-            me = await client.get_me()
-        return {"id": me.id, "username": me.username, "first_name": me.first_name}
+        if not response.ok or not payload.get("ok"):
+            description = str(payload.get("description") or "Unknown Telegram API error")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=self._translate_bot_api_error(description, method))
 
-    async def validate_private_channel(self, config: TelegramSettings) -> dict[str, Any]:
+        result = payload.get("result")
+        if not isinstance(result, dict):
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Telegram API returned an unexpected response")
+        return result
+
+    def test_client(self, config: TelegramSettings) -> dict[str, Any]:
+        me = self._bot_api_request(config, "getMe")
+        return {"id": me.get("id"), "username": me.get("username"), "first_name": me.get("first_name")}
+
+    def validate_private_channel(self, config: TelegramSettings) -> dict[str, Any]:
         if not config.private_channel_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Private channel ID is not configured")
-        async with self.client(config) as client:
-            me = await client.get_me()
-            chat = await client.get_chat(config.private_channel_id)
-            member = await client.get_chat_member(config.private_channel_id, me.id)
+        me = self._bot_api_request(config, "getMe")
+        chat = self._bot_api_request(config, "getChat", data={"chat_id": config.private_channel_id})
+        member = self._bot_api_request(config, "getChatMember", data={"chat_id": config.private_channel_id, "user_id": me.get("id")})
         return {
-            "bot": {"id": me.id, "username": me.username},
+            "bot": {"id": me.get("id"), "username": me.get("username")},
             "chat": {
-                "id": getattr(chat, "id", None),
-                "title": getattr(chat, "title", None),
-                "username": getattr(chat, "username", None),
-                "invite_link": getattr(chat, "invite_link", None),
-                "type": str(getattr(chat, "type", "")),
+                "id": chat.get("id"),
+                "title": chat.get("title"),
+                "username": chat.get("username"),
+                "invite_link": chat.get("invite_link"),
+                "type": str(chat.get("type", "")),
             },
             "membership": {
-                "status": str(getattr(member, "status", "")),
+                "status": str(member.get("status", "")),
             },
         }
+
+    def _translate_validation_error(self, exc: Exception, channel_id: str) -> str | None:
+        module_name = exc.__class__.__module__
+        error_name = exc.__class__.__name__
+
+        if module_name.startswith("pyrogram.") and error_name == "PeerIdInvalid":
+            return (
+                f"Telegram could not resolve private channel ID {channel_id}. "
+                "Make sure the ID is correct and the bot has already been added to that channel."
+            )
+
+        if module_name.startswith("pyrogram.") and error_name == "UsernameNotOccupied":
+            return "Telegram could not find that private channel username."
+
+        if module_name.startswith("pyrogram.") and error_name in {"ChannelInvalid", "ChannelPrivate", "ChatAdminRequired"}:
+            return (
+                f"Telegram denied access to private channel {channel_id}. "
+                "Make sure the bot is a member of the channel and has permission to read and post messages."
+            )
+
+        return None
+
+    def _translate_bot_api_error(self, description: str, method: str) -> str:
+        lowered = description.lower()
+        if "chat not found" in lowered:
+            return "Telegram could not find the configured private channel"
+        if "bot is not a member" in lowered or "member list is inaccessible" in lowered:
+            return "Bot cannot access the configured private channel"
+        if "have no rights" in lowered or "not enough rights" in lowered:
+            return "Bot is missing permission to access or post in the private channel"
+        if "chat_admin_required" in lowered:
+            return "Bot must be an admin in the private channel for this operation"
+        if "unauthorized" in lowered or "token" in lowered:
+            return "Telegram bot token is invalid"
+        if "peer_id_invalid" in lowered or "chat_id is empty" in lowered:
+            return "Private channel ID is invalid"
+        if method in {"getChat", "getChatMember"}:
+            return f"Telegram could not validate private channel access: {description}"
+        if method in {"sendPhoto", "sendDocument"}:
+            return f"Telegram storage upload failed: {description}"
+        return description
 
     def _proxy_url(self, media_cache_id: int) -> str:
         return f"/api/v1/telegram/storage/media/{media_cache_id}/content"
 
     def _message_file(self, message: Any) -> tuple[str | None, str | None, str | None, int | None]:
+        if isinstance(message, dict):
+            photos = message.get("photo")
+            if isinstance(photos, list) and photos:
+                photo = photos[-1]
+                return photo.get("file_id"), photo.get("file_unique_id"), "photo", photo.get("file_size")
+            document = message.get("document")
+            if isinstance(document, dict):
+                return document.get("file_id"), document.get("file_unique_id"), "document", document.get("file_size")
         if getattr(message, "photo", None):
             photo = message.photo
             return photo.file_id, photo.file_unique_id, "photo", getattr(photo, "file_size", None)
@@ -112,11 +164,21 @@ class TelegramStorageService:
         if not config.private_channel_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Private channel ID is not configured")
 
-        async with self.client(config) as client:
+        with file_path.open("rb") as file_handle:
             if (mime_type or "").startswith("image/"):
-                message = await client.send_photo(config.private_channel_id, str(file_path), caption=f"media:{media_role}")
+                message = self._bot_api_request(
+                    config,
+                    "sendPhoto",
+                    data={"chat_id": config.private_channel_id, "caption": f"media:{media_role}"},
+                    files={"photo": (file_path.name, file_handle)},
+                )
             else:
-                message = await client.send_document(config.private_channel_id, str(file_path), caption=f"media:{media_role}")
+                message = self._bot_api_request(
+                    config,
+                    "sendDocument",
+                    data={"chat_id": config.private_channel_id, "caption": f"media:{media_role}"},
+                    files={"document": (file_path.name, file_handle)},
+                )
 
         file_id, file_unique_id, media_type, detected_size = self._message_file(message)
         cache = TelegramMediaCache(
@@ -124,8 +186,8 @@ class TelegramStorageService:
             media_role=media_role,
             storage_source=storage_source,
             local_file_path=local_file_path,
-            telegram_chat_id=str(getattr(getattr(message, "chat", None), "id", config.private_channel_id)),
-            telegram_message_id=str(getattr(message, "id", None) or getattr(message, "message_id", None)),
+            telegram_chat_id=str(message.get("chat", {}).get("id") or config.private_channel_id),
+            telegram_message_id=str(message.get("message_id")) if message.get("message_id") is not None else None,
             telegram_file_id=file_id,
             telegram_file_unique_id=file_unique_id,
             telegram_media_type=media_type,
@@ -314,10 +376,10 @@ class TelegramStorageService:
         return file_response.content, media.mime_type
 
     def validate_private_channel_sync(self, config: TelegramSettings) -> dict[str, Any]:
-        return asyncio.run(self.validate_private_channel(config))
+        return self.validate_private_channel(config)
 
     def test_client_sync(self, config: TelegramSettings) -> dict[str, Any]:
-        return asyncio.run(self.test_client(config))
+        return self.test_client(config)
 
 
 telegram_storage_service = TelegramStorageService()

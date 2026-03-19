@@ -3,11 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import ipaddress
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from math import ceil
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import jinja2
 import psutil
@@ -225,6 +227,8 @@ class TelegramService:
             return "Unknown Telegram API error"
         description = str(payload.get("description") or "Unknown Telegram API error")
         lowered = description.lower()
+        if "inline keyboard button url" in lowered and "wrong http url" in lowered:
+            return "Telegram button URL is invalid. Set PUBLIC_SITE_URL to a public URL or configure a valid private channel invite link."
         if "chat not found" in lowered or "bot is not a member" in lowered:
             return "Bot cannot access the configured private channel"
         if "unauthorized" in lowered or "token" in lowered:
@@ -264,10 +268,35 @@ class TelegramService:
         template = config.caption_template or DEFAULT_CAPTION_TEMPLATE
         return self.render_caption_template(template, context)
 
+    def _is_public_button_url(self, url: str | None) -> bool:
+        if not url:
+            return False
+
+        parsed = urlparse(url.strip())
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return False
+
+        hostname = (parsed.hostname or "").strip().lower()
+        if not hostname or hostname in {"localhost", "0.0.0.0"}:
+            return False
+
+        try:
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            return True
+
+        return not (ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_unspecified or ip.is_reserved)
+
     def _build_reply_markup(self, movie: Movie, config: TelegramSettings) -> str | None:
         if not config.button_text:
             return None
         button_url = config.private_channel_invite_link or f"{settings.PUBLIC_SITE_URL.rstrip('/')}/movies/{movie.slug}"
+        if not self._is_public_button_url(button_url):
+            logger.warning(
+                "Skipping Telegram inline button because URL is not publicly reachable",
+                extra={"movie_id": movie.id, "button_url": button_url},
+            )
+            return None
         return json.dumps({"inline_keyboard": [[{"text": config.button_text, "url": button_url}]]})
 
     def send_message(self, config: TelegramSettings, chat_id: str, text: str, *, reply_markup: str | None = None) -> tuple[dict[str, Any], str]:
@@ -352,8 +381,16 @@ class TelegramService:
         if not config.private_channel_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Private channel ID is not configured")
 
-        client_info = telegram_storage_service.test_client_sync(config)
-        validation = telegram_storage_service.validate_private_channel_sync(config)
+        try:
+            client_info = telegram_storage_service.test_client_sync(config)
+            validation = telegram_storage_service.validate_private_channel_sync(config)
+        except HTTPException:
+            config.test_status = "failed"
+            config.last_tested_at = datetime.now(timezone.utc)
+            db.add(config)
+            db.flush()
+            raise
+
         config.bot_username = client_info.get("username") or config.bot_username
         config.private_channel_title = validation["chat"].get("title") or config.private_channel_title
         config.private_channel_username = validation["chat"].get("username") or config.private_channel_username
