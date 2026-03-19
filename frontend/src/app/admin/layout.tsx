@@ -14,12 +14,10 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { hydrated, isAuthenticated, isAdmin, fetchCurrentUser } = useAuthStore((state) => ({
-    hydrated: state.hydrated,
-    isAuthenticated: state.isAuthenticated,
-    isAdmin: state.isAdmin,
-    fetchCurrentUser: state.fetchCurrentUser,
-  }))
+  const hydrated = useAuthStore((state) => state.hydrated)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isAdmin = useAuthStore((state) => state.isAdmin)
+  const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser)
 
   const isLoginPage = pathname === '/admin/login'
 

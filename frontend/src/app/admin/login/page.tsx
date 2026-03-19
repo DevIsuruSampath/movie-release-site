@@ -9,13 +9,11 @@ import { useAuthStore } from '@/stores/auth'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, isAuthenticated, isAdmin, hydrated, loading } = useAuthStore((state) => ({
-    login: state.login,
-    isAuthenticated: state.isAuthenticated,
-    isAdmin: state.isAdmin,
-    hydrated: state.hydrated,
-    loading: state.loading,
-  }))
+  const login = useAuthStore((state) => state.login)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const isAdmin = useAuthStore((state) => state.isAdmin)
+  const hydrated = useAuthStore((state) => state.hydrated)
+  const loading = useAuthStore((state) => state.loading)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
