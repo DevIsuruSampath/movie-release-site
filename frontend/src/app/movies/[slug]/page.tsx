@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import api from '@/lib/api'
-import { Movie } from '@/types'
+import { DownloadLink, Movie } from '@/types'
 import { Button } from '@/components/ui/button'
 import Navbar from '@/components/navbar'
 import Footer from '@/components/footer'
@@ -44,7 +44,7 @@ export default function MovieDetailsPage() {
     }
   }
 
-  const handleDownload = (link: { id: number; title: string; url: string; quality: string; file_size?: string }) => {
+  const handleDownload = (link: DownloadLink) => {
     if (link.url) {
       window.open(link.url, '_blank')
     }
@@ -256,12 +256,12 @@ export default function MovieDetailsPage() {
                           </svg>
                         </div>
                         <div className="text-left">
-                          <div className="text-white font-medium">{link.title}</div>
+                          <div className="text-white font-medium">{link.provider}</div>
                           <div className="text-sm text-gray-400">{link.quality}</div>
                         </div>
                       </div>
                       <div className="text-sm text-gray-400">
-                        {link.file_size || 'Click to download'}
+                        {link.size || 'Click to download'}
                       </div>
                     </button>
                   ))}
