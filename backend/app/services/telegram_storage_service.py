@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 from math import ceil
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,7 @@ from app.models.telegram import TelegramMediaCache, TelegramSettings
 from app.services.file_storage import resolve_local_upload_path
 
 logger = logging.getLogger(__name__)
+TELEGRAM_CACHE_DIR = Path(settings.UPLOAD_DIR) / "telegram-cache"
 
 
 class TelegramStorageService:
@@ -346,10 +348,32 @@ class TelegramStorageService:
             "stats": stats,
         }
 
-    def stream_media_content(self, config: TelegramSettings, media: TelegramMediaCache) -> tuple[bytes, str | None]:
+    def _cache_extension(self, media: TelegramMediaCache) -> str:
+        original_suffix = Path(media.original_filename or "").suffix.strip().lower()
+        if original_suffix:
+            return original_suffix
+
+        guessed = mimetypes.guess_extension(media.mime_type or "")
+        if guessed:
+            return guessed
+
+        if media.telegram_media_type == "photo":
+            return ".jpg"
+
+        return ".bin"
+
+    def _cache_path(self, media: TelegramMediaCache) -> Path:
+        TELEGRAM_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        return TELEGRAM_CACHE_DIR / f"{media.id}{self._cache_extension(media)}"
+
+    def resolve_media_content_path(self, config: TelegramSettings, media: TelegramMediaCache) -> tuple[Path, str | None]:
         if media.local_file_path and Path(media.local_file_path).exists():
             file_path = Path(media.local_file_path)
-            return file_path.read_bytes(), media.mime_type
+            return file_path, media.mime_type
+
+        cache_path = self._cache_path(media)
+        if cache_path.exists():
+            return cache_path, media.mime_type
 
         if not media.telegram_file_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Telegram media file is not available")
@@ -373,7 +397,8 @@ class TelegramStorageService:
         except requests.RequestException as exc:
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Unable to download Telegram media") from exc
 
-        return file_response.content, media.mime_type
+        cache_path.write_bytes(file_response.content)
+        return cache_path, media.mime_type
 
     def validate_private_channel_sync(self, config: TelegramSettings) -> dict[str, Any]:
         return self.validate_private_channel(config)

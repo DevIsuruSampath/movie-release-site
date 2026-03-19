@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import Response
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin_user
@@ -319,5 +319,10 @@ def get_telegram_storage_media_content(
     if not media:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Telegram media not found")
     config = telegram_service.get_settings(db)
-    content, media_type = telegram_storage_service.stream_media_content(config, media)
-    return Response(content=content, media_type=media_type or "application/octet-stream")
+    file_path, media_type = telegram_storage_service.resolve_media_content_path(config, media)
+    return FileResponse(
+        path=file_path,
+        media_type=media_type or "application/octet-stream",
+        filename=media.original_filename or file_path.name,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
