@@ -16,13 +16,19 @@ const links = [
   { href: '/admin/activity', label: 'Activity' },
 ]
 
-export default function AdminNavbar() {
+export default function AdminNavbar({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean
+  onNavigate?: () => void
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const logout = useAuthStore((state) => state.logout)
 
   return (
-    <div className="flex h-full flex-col border-r border-white/10 bg-[#111111]">
+    <div className={cn('flex h-full flex-col bg-[#111111]', mobile ? '' : 'border-r border-white/10')}>
       <div className="border-b border-white/10 px-5 py-5">
         <Link href="/admin" className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e50914] text-white">
@@ -42,6 +48,7 @@ export default function AdminNavbar() {
             <Link
               key={link.href}
               href={link.href}
+              onClick={onNavigate}
               className={cn(
                 'block rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                 active
@@ -56,7 +63,7 @@ export default function AdminNavbar() {
       </nav>
 
       <div className="space-y-3 border-t border-white/10 p-4">
-        <Link href="/" className="block rounded-xl px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
+        <Link href="/" onClick={onNavigate} className="block rounded-xl px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
           View Site
         </Link>
         <Button
@@ -64,6 +71,7 @@ export default function AdminNavbar() {
           className="w-full justify-start"
           onClick={() => {
             logout()
+            onNavigate?.()
             router.replace('/admin/login')
           }}
         >
