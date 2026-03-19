@@ -36,6 +36,10 @@ export default function MovieDetailsPage() {
   }
 
   const handleStream = () => {
+    if (movie?.media_url) {
+      window.open(movie.media_url, '_blank')
+      return
+    }
     if (movie?.stream_links && movie.stream_links.length > 0) {
       const primaryLink = movie.stream_links.find((link) => link.is_primary) || movie.stream_links[0]
       if (primaryLink && primaryLink.url) {
@@ -48,6 +52,26 @@ export default function MovieDetailsPage() {
     if (link.url) {
       window.open(link.url, '_blank')
     }
+  }
+
+  const getTrailerEmbedUrl = (url?: string | null) => {
+    if (!url) return null
+    try {
+      const parsed = new URL(url)
+      if (parsed.hostname.includes('youtube.com')) {
+        const videoId = parsed.searchParams.get('v')
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : null
+      }
+      if (parsed.hostname.includes('youtu.be')) {
+        const videoId = parsed.pathname.replace('/', '')
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : null
+      }
+      if (parsed.hostname.includes('vimeo.com')) {
+        const videoId = parsed.pathname.split('/').filter(Boolean).pop()
+        return videoId ? `https://player.vimeo.com/video/${videoId}` : null
+      }
+    } catch {}
+    return null
   }
 
   if (loading) {
@@ -85,16 +109,26 @@ export default function MovieDetailsPage() {
     )
   }
 
+  const mediaUrl =
+    movie.media_url ||
+    movie.stream_links.find((link) => link.is_primary)?.url ||
+    movie.stream_links[0]?.url ||
+    movie.download_links[0]?.url ||
+    ''
+  const trailerEmbedUrl = getTrailerEmbedUrl(movie.trailer_url)
+  const heroImage = movie.backdrop_url || movie.poster_url || movie.thumbnail_url
+  const posterImage = movie.poster_url || movie.thumbnail_url || movie.backdrop_url
+
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
 
       {/* Hero Backdrop - Account for fixed navbar with pt-16 md:pt-20 */}
       <div className="relative h-[60vh] md:h-[70vh] pt-16 md:pt-20 -mt-16 md:-mt-20 overflow-hidden">
-        {movie.backdrop_url && (
+        {heroImage && (
           <>
             <img
-              src={toAbsoluteUrl(movie.backdrop_url)}
+              src={toAbsoluteUrl(heroImage)}
               alt={movie.title}
               className="w-full h-full object-cover"
               loading="eager"
@@ -111,10 +145,10 @@ export default function MovieDetailsPage() {
         <div className="grid md:grid-cols-[300px_1fr] gap-8 lg:gap-12">
           {/* Poster */}
           <div className="relative animate-slide-up">
-            {movie.poster_url && (
+            {posterImage && (
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img
-                  src={toAbsoluteUrl(movie.poster_url)}
+                  src={toAbsoluteUrl(posterImage)}
                   alt={movie.title}
                   className="w-full aspect-[2/3] object-cover"
                   loading="eager"
@@ -133,7 +167,7 @@ export default function MovieDetailsPage() {
 
             {/* Quick Actions Mobile */}
             <div className="md:hidden mt-4 space-y-3">
-              {movie.stream_enabled && (
+              {movie.stream_enabled && mediaUrl && (
                 <Button onClick={handleStream} className="w-full bg-[#e50914] hover:bg-[#b20710] text-white btn-glow">
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
@@ -141,8 +175,8 @@ export default function MovieDetailsPage() {
                   Watch Now
                 </Button>
               )}
-              {movie.download_enabled && (movie.download_links || []).length > 0 && (
-                <Button variant="outline" onClick={() => handleDownload((movie.download_links || [])[0])} className="w-full border-white/30 text-white">
+              {movie.download_enabled && mediaUrl && (
+                <Button variant="outline" onClick={() => window.open(mediaUrl, '_blank')} className="w-full border-white/30 text-white">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
@@ -197,7 +231,7 @@ export default function MovieDetailsPage() {
 
             {/* Action Buttons Desktop */}
             <div className="hidden md:flex flex-wrap gap-4">
-              {movie.stream_enabled && (
+              {movie.stream_enabled && mediaUrl && (
                 <Button onClick={handleStream} size="lg" className="bg-[#e50914] hover:bg-[#b20710] text-white btn-glow px-8">
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
@@ -205,8 +239,8 @@ export default function MovieDetailsPage() {
                   Watch Now
                 </Button>
               )}
-              {movie.download_enabled && (movie.download_links || []).length > 0 && (
-                <Button onClick={() => handleDownload((movie.download_links || [])[0])} size="lg" variant="outline" className="border-white/30 text-white px-8">
+              {movie.download_enabled && mediaUrl && (
+                <Button onClick={() => window.open(mediaUrl, '_blank')} size="lg" variant="outline" className="border-white/30 text-white px-8">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
@@ -230,6 +264,32 @@ export default function MovieDetailsPage() {
                     </Link>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {movie.trailer_url && (
+              <div className="bg-[#141414] rounded-2xl p-6">
+                <div className="mb-4 flex items-center justify-between gap-4">
+                  <h3 className="text-xl font-semibold text-white">Trailer</h3>
+                  <a href={movie.trailer_url} target="_blank" rel="noreferrer" className="text-sm font-medium text-[#e50914] hover:text-white">
+                    Open trailer
+                  </a>
+                </div>
+                {trailerEmbedUrl ? (
+                  <div className="overflow-hidden rounded-xl border border-white/10">
+                    <iframe
+                      src={trailerEmbedUrl}
+                      title={`${movie.title} trailer`}
+                      className="aspect-video w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">
+                    Inline trailer preview is supported for YouTube and Vimeo links. Use the trailer button to open other providers.
+                  </p>
+                )}
               </div>
             )}
 

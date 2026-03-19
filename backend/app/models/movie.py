@@ -71,6 +71,19 @@ class Movie(Base):
         order_by="MovieGallery.sort_order",
     )
 
+    @property
+    def media_url(self) -> str | None:
+        active_streams = [link for link in self.stream_links if link.is_active]
+        if active_streams:
+            primary_stream = next((link for link in active_streams if link.is_primary), active_streams[0])
+            return primary_stream.url
+
+        active_downloads = [link for link in self.download_links if link.is_active]
+        if active_downloads:
+            return active_downloads[0].url
+
+        return None
+
 
 class StreamLink(Base):
     __tablename__ = "stream_links"

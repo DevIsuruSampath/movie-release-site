@@ -116,6 +116,7 @@ export interface Movie extends SeoMetadata {
   country?: string | null
   imdb_rating?: number | null
   quality?: string | null
+  media_url?: string | null
   trailer_url?: string | null
   poster_url?: string | null
   backdrop_url?: string | null
@@ -153,6 +154,7 @@ export interface MoviePayload extends SeoMetadata {
   country?: string
   imdb_rating?: number
   quality?: string
+  media_url?: string
   trailer_url?: string
   poster_url?: string
   backdrop_url?: string

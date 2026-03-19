@@ -103,10 +103,10 @@ export default async function HomePage() {
             <div className="relative animate-scale-in hidden lg:block">
               <div className="relative">
                 {/* Main featured card */}
-                {featuredMovies[0] && featuredMovies[0].poster_url && (
+                {featuredMovies[0] && (featuredMovies[0].poster_url || featuredMovies[0].thumbnail_url || featuredMovies[0].backdrop_url) && (
                   <div className="relative rounded-2xl overflow-hidden shadow-2xl animate-float">
                     <img
-                      src={toAbsoluteUrl(featuredMovies[0].poster_url)}
+                      src={toAbsoluteUrl(featuredMovies[0].poster_url || featuredMovies[0].thumbnail_url || featuredMovies[0].backdrop_url)}
                       alt={featuredMovies[0].title}
                       className="w-full h-[400px] md:h-[500px] object-cover"
                       loading="eager"
@@ -134,14 +134,14 @@ export default async function HomePage() {
                 )}
 
                 {/* Floating secondary cards */}
-                {featuredMovies[1] && featuredMovies[1].poster_url && (
+                {featuredMovies[1] && (featuredMovies[1].poster_url || featuredMovies[1].thumbnail_url || featuredMovies[1].backdrop_url) && (
                   <div className="absolute -top-6 sm:-top-8 -right-6 sm:-right-8 w-32 sm:w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '1s' }}>
-                    <img src={toAbsoluteUrl(featuredMovies[1].poster_url)} alt={featuredMovies[1].title} className="w-full h-48 sm:h-56 object-cover" loading="lazy" decoding="async" />
+                    <img src={toAbsoluteUrl(featuredMovies[1].poster_url || featuredMovies[1].thumbnail_url || featuredMovies[1].backdrop_url)} alt={featuredMovies[1].title} className="w-full h-48 sm:h-56 object-cover" loading="lazy" decoding="async" />
                   </div>
                 )}
-                {featuredMovies[2] && featuredMovies[2].poster_url && (
+                {featuredMovies[2] && (featuredMovies[2].poster_url || featuredMovies[2].thumbnail_url || featuredMovies[2].backdrop_url) && (
                   <div className="absolute -bottom-6 sm:-bottom-8 -left-6 sm:-left-8 w-32 sm:w-40 rounded-xl overflow-hidden shadow-xl animate-float" style={{ animationDelay: '2s' }}>
-                    <img src={toAbsoluteUrl(featuredMovies[2].poster_url)} alt={featuredMovies[2].title} className="w-full h-48 sm:h-56 object-cover" loading="lazy" decoding="async" />
+                    <img src={toAbsoluteUrl(featuredMovies[2].poster_url || featuredMovies[2].thumbnail_url || featuredMovies[2].backdrop_url)} alt={featuredMovies[2].title} className="w-full h-48 sm:h-56 object-cover" loading="lazy" decoding="async" />
                   </div>
                 )}
               </div>
@@ -184,9 +184,9 @@ export default async function HomePage() {
               >
                 <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
                   <div className="movie-poster relative">
-                    {movie.poster_url ? (
+                    {movie.poster_url || movie.thumbnail_url || movie.backdrop_url ? (
                       <img
-                        src={toAbsoluteUrl(movie.poster_url)}
+                        src={toAbsoluteUrl(movie.poster_url || movie.thumbnail_url || movie.backdrop_url)}
                         alt={movie.title}
                         className="card-image w-full h-full object-cover"
                         loading="lazy"
@@ -284,9 +284,9 @@ export default async function HomePage() {
                 >
                   <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
                     <div className="movie-poster relative">
-                      {movie.poster_url ? (
+                      {movie.poster_url || movie.thumbnail_url || movie.backdrop_url ? (
                         <img
-                          src={toAbsoluteUrl(movie.poster_url)}
+                          src={toAbsoluteUrl(movie.poster_url || movie.thumbnail_url || movie.backdrop_url)}
                           alt={movie.title}
                           className="card-image w-full h-full object-cover"
                         />

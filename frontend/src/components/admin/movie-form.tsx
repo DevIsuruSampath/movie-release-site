@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { DownloadLinkManager } from '@/components/admin/download-link-manager'
 import { SeoFields } from '@/components/admin/seo-fields'
-import { StreamLinkManager } from '@/components/admin/stream-link-manager'
 import { SubtitleManager } from '@/components/admin/subtitle-manager'
 import { UploadField } from '@/components/admin/upload-field'
 import { Button } from '@/components/ui/button'
@@ -27,6 +25,7 @@ const initialPayload: MoviePayload = {
   country: '',
   imdb_rating: undefined,
   quality: '',
+  media_url: '',
   trailer_url: '',
   poster_url: '',
   backdrop_url: '',
@@ -67,6 +66,7 @@ function toPayload(movie?: Movie | null): MoviePayload {
     country: movie.country || '',
     imdb_rating: movie.imdb_rating || undefined,
     quality: movie.quality || '',
+    media_url: movie.media_url || '',
     trailer_url: movie.trailer_url || '',
     poster_url: movie.poster_url || '',
     backdrop_url: movie.backdrop_url || '',
@@ -88,8 +88,8 @@ function toPayload(movie?: Movie | null): MoviePayload {
     category_ids: movie.categories.map((category) => category.id),
     tag_ids: movie.tags.map((tag) => tag.id),
     subtitles: movie.subtitles.map(({ created_at, updated_at, movie_id, ...subtitle }) => subtitle),
-    stream_links: movie.stream_links.map(({ created_at, updated_at, movie_id, ...streamLink }) => streamLink),
-    download_links: movie.download_links.map(({ created_at, updated_at, movie_id, ...downloadLink }) => downloadLink),
+    stream_links: [],
+    download_links: [],
   }
 }
 
@@ -160,6 +160,7 @@ export function MovieForm({
               <Input label="Language" value={form.language || ''} onChange={(event) => setForm({ ...form, language: event.target.value })} />
               <Input label="IMDb rating" type="number" step="0.1" value={form.imdb_rating ?? ''} onChange={(event) => setForm({ ...form, imdb_rating: Number(event.target.value) || undefined })} />
               <Input label="Quality" value={form.quality || ''} onChange={(event) => setForm({ ...form, quality: event.target.value })} />
+              <Input label="Media URL" value={form.media_url || ''} onChange={(event) => setForm({ ...form, media_url: event.target.value })} className="md:col-span-2" />
               <Input label="Trailer URL" value={form.trailer_url || ''} onChange={(event) => setForm({ ...form, trailer_url: event.target.value })} className="md:col-span-2" />
               <div className="md:col-span-2">
                 <Textarea label="Short description" value={form.short_description || ''} onChange={(event) => setForm({ ...form, short_description: event.target.value })} />
@@ -231,15 +232,6 @@ export function MovieForm({
             <SubtitleManager items={form.subtitles} onChange={(subtitles) => setForm({ ...form, subtitles })} />
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">Stream Links</h2>
-            <StreamLinkManager items={form.stream_links} onChange={(stream_links) => setForm({ ...form, stream_links })} />
-          </section>
-
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">Download Links</h2>
-            <DownloadLinkManager items={form.download_links} onChange={(download_links) => setForm({ ...form, download_links })} />
-          </section>
         </div>
 
         <div className="space-y-6">

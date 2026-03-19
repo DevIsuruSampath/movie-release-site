@@ -64,6 +64,36 @@ def _sync_nested_relations(movie: Movie, payload: MovieCreate | MovieUpdate) -> 
         movie.download_links = [DownloadLink(**item.model_dump(exclude={"id"})) for item in download_links]
 
 
+def _sync_single_media_url(movie: Movie, payload: MovieCreate | MovieUpdate) -> None:
+    media_url = getattr(payload, "media_url", None)
+    if media_url is None:
+        return
+
+    normalized_url = media_url.strip()
+    if not normalized_url:
+        movie.stream_links = []
+        movie.download_links = []
+        return
+
+    movie.stream_links = [
+        StreamLink(
+            server_name="Primary",
+            url=normalized_url,
+            is_active=True,
+            is_primary=True,
+            sort_order=0,
+        )
+    ]
+    movie.download_links = [
+        DownloadLink(
+            provider="Direct",
+            url=normalized_url,
+            is_active=True,
+            sort_order=0,
+        )
+    ]
+
+
 def _apply_movie_relations(db: Session, movie: Movie, payload: MovieCreate | MovieUpdate) -> None:
     category_ids = getattr(payload, "category_ids", None)
     tag_ids = getattr(payload, "tag_ids", None)
@@ -72,6 +102,7 @@ def _apply_movie_relations(db: Session, movie: Movie, payload: MovieCreate | Mov
     if tag_ids is not None:
         movie.tags = db.query(Tag).filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
     _sync_nested_relations(movie, payload)
+    _sync_single_media_url(movie, payload)
 
 
 def _set_publish_state(movie: Movie, is_published: bool) -> None:
@@ -171,7 +202,11 @@ def create_movie(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
-    movie = Movie(**movie_data.model_dump(exclude={"slug", "category_ids", "tag_ids", "subtitles", "stream_links", "download_links"}))
+    movie = Movie(
+        **movie_data.model_dump(
+            exclude={"slug", "media_url", "category_ids", "tag_ids", "subtitles", "stream_links", "download_links"}
+        )
+    )
     movie.slug = _resolve_slug(db, movie_data.slug or movie_data.title)
     _set_publish_state(movie, movie_data.is_published)
     db.add(movie)
@@ -194,7 +229,10 @@ def update_movie(
     if not movie:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
 
-    updates = movie_data.model_dump(exclude_unset=True, exclude={"category_ids", "tag_ids", "subtitles", "stream_links", "download_links"})
+    updates = movie_data.model_dump(
+        exclude_unset=True,
+        exclude={"media_url", "category_ids", "tag_ids", "subtitles", "stream_links", "download_links"},
+    )
     if "slug" in updates or "title" in updates:
         movie.slug = _resolve_slug(db, updates.get("slug") or updates.get("title") or movie.slug, movie.id)
     for field, value in updates.items():

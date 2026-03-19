@@ -112,7 +112,13 @@ export default function MoviesPage() {
                   <tr key={movie.id} className="align-top">
                     <td className="px-4 py-4">
                       <div className="flex items-start gap-3">
-                        {movie.poster_url ? <img src={toAbsoluteUrl(movie.poster_url)} alt={movie.title} className="h-16 w-12 rounded-lg object-cover" /> : null}
+                        {movie.poster_url || movie.thumbnail_url || movie.backdrop_url ? (
+                          <img
+                            src={toAbsoluteUrl(movie.poster_url || movie.thumbnail_url || movie.backdrop_url)}
+                            alt={movie.title}
+                            className="h-16 w-12 rounded-lg object-cover"
+                          />
+                        ) : null}
                         <div>
                           <div className="font-medium text-white">{movie.title}</div>
                           <div className="text-sm text-gray-500">{movie.release_year || 'No year'} • {movie.slug}</div>

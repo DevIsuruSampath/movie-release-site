@@ -183,9 +183,9 @@ function SearchPageContent() {
                   >
                     <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
                       <div className="movie-poster relative">
-                        {movie.poster_url ? (
+                        {movie.poster_url || movie.thumbnail_url || movie.backdrop_url ? (
                           <img
-                            src={toAbsoluteUrl(movie.poster_url)}
+                            src={toAbsoluteUrl(movie.poster_url || movie.thumbnail_url || movie.backdrop_url)}
                             alt={movie.title}
                             className="card-image w-full h-full object-cover"
                             loading="lazy"

@@ -124,6 +124,7 @@ class MovieBase(BaseModel):
     country: Optional[str] = None
     imdb_rating: Optional[float] = None
     quality: Optional[str] = None
+    media_url: Optional[str] = None
     trailer_url: Optional[str] = None
     poster_url: Optional[str] = None
     backdrop_url: Optional[str] = None
