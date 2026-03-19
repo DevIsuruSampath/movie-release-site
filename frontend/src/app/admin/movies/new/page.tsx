@@ -5,7 +5,7 @@ export default function NewMoviePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold text-white">New Movie</h1>
-        <p className="mt-1 text-sm text-gray-400">Create a movie with metadata, assets, SEO, and playback links.</p>
+        <p className="mt-1 text-sm text-gray-400">Create a movie with metadata, images, SEO, one media URL, and an optional trailer link.</p>
       </div>
       <MovieForm submitLabel="Create Movie" />
     </div>

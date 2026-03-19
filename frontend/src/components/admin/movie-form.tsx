@@ -159,9 +159,22 @@ export function MovieForm({
               <Input label="Country" value={form.country || ''} onChange={(event) => setForm({ ...form, country: event.target.value })} />
               <Input label="Language" value={form.language || ''} onChange={(event) => setForm({ ...form, language: event.target.value })} />
               <Input label="IMDb rating" type="number" step="0.1" value={form.imdb_rating ?? ''} onChange={(event) => setForm({ ...form, imdb_rating: Number(event.target.value) || undefined })} />
-              <Input label="Quality" value={form.quality || ''} onChange={(event) => setForm({ ...form, quality: event.target.value })} />
-              <Input label="Media URL" value={form.media_url || ''} onChange={(event) => setForm({ ...form, media_url: event.target.value })} className="md:col-span-2" />
-              <Input label="Trailer URL" value={form.trailer_url || ''} onChange={(event) => setForm({ ...form, trailer_url: event.target.value })} className="md:col-span-2" />
+              <div className="md:col-span-2">
+                <Input
+                  label="Media URL"
+                  value={form.media_url || ''}
+                  onChange={(event) => setForm({ ...form, media_url: event.target.value })}
+                />
+                <p className="mt-2 text-xs text-gray-500">Use one direct URL here. The frontend will use it for both watch and download.</p>
+              </div>
+              <div className="md:col-span-2">
+                <Input
+                  label="Trailer URL"
+                  value={form.trailer_url || ''}
+                  onChange={(event) => setForm({ ...form, trailer_url: event.target.value })}
+                />
+                <p className="mt-2 text-xs text-gray-500">Paste a YouTube or Vimeo trailer link to show the trailer on the movie page.</p>
+              </div>
               <div className="md:col-span-2">
                 <Textarea label="Short description" value={form.short_description || ''} onChange={(event) => setForm({ ...form, short_description: event.target.value })} />
               </div>
@@ -246,15 +259,8 @@ export function MovieForm({
                 <input type="checkbox" checked={form.featured || false} onChange={(event) => setForm({ ...form, featured: event.target.checked })} />
                 Featured
               </label>
-              <label className="flex items-center gap-3 text-sm text-gray-300">
-                <input type="checkbox" checked={form.stream_enabled || false} onChange={(event) => setForm({ ...form, stream_enabled: event.target.checked })} />
-                Streaming enabled
-              </label>
-              <label className="flex items-center gap-3 text-sm text-gray-300">
-                <input type="checkbox" checked={form.download_enabled || false} onChange={(event) => setForm({ ...form, download_enabled: event.target.checked })} />
-                Downloads enabled
-              </label>
             </div>
+            <p className="mt-4 text-xs text-gray-500">Streaming and download availability are set automatically from the Media URL.</p>
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

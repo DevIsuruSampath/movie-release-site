@@ -73,6 +73,8 @@ def _sync_single_media_url(movie: Movie, payload: MovieCreate | MovieUpdate) -> 
     if not normalized_url:
         movie.stream_links = []
         movie.download_links = []
+        movie.stream_enabled = False
+        movie.download_enabled = False
         return
 
     movie.stream_links = [
@@ -84,6 +86,8 @@ def _sync_single_media_url(movie: Movie, payload: MovieCreate | MovieUpdate) -> 
             sort_order=0,
         )
     ]
+    movie.stream_enabled = True
+    movie.download_enabled = True
     movie.download_links = [
         DownloadLink(
             provider="Direct",
