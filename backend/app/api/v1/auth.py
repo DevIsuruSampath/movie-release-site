@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -50,6 +51,32 @@ def commit_audit_log_safely(db: Session) -> None:
         db.rollback()
 
 
+def ensure_admin_login_access(db: Session, user: User) -> User:
+    if user.is_admin or user.is_superuser:
+        return user
+
+    first_user = db.query(User).order_by(User.id.asc()).first()
+    existing_admin = (
+        db.query(User.id)
+        .filter(
+            User.id != user.id,
+            or_(User.is_admin.is_(True), User.is_superuser.is_(True)),
+        )
+        .first()
+    )
+    if first_user and first_user.id == user.id and not existing_admin:
+        user.is_admin = True
+        user.is_superuser = True
+        db.commit()
+        db.refresh(user)
+        return user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Admin access required",
+    )
+
+
 def _build_token_response(user: User) -> TokenResponse:
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
@@ -70,6 +97,7 @@ def login(user_data: UserLogin, request: Request, db: Session = Depends(get_db))
         )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+    user = ensure_admin_login_access(db, user)
 
     create_audit_log(
         db,
