@@ -238,5 +238,8 @@ class MovieDashboardItem(BaseModel):
     is_published: bool
     created_at: datetime
 
+    class Config:
+        from_attributes = True
+
 
 MovieResponse.model_rebuild()
