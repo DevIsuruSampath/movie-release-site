@@ -126,6 +126,13 @@ export default function MoviesPage() {
                         <div>
                           <div className="font-medium text-white">{movie.title}</div>
                           <div className="text-sm text-gray-500">{movie.release_year || 'No year'} • {movie.slug}</div>
+                          {movie.media_storage_summary?.poster?.storage_source ? (
+                            <div className="mt-2">
+                              <Badge variant={movie.media_storage_summary.poster.storage_source === 'telegram' ? 'warning' : movie.media_storage_summary.poster.storage_source === 'hybrid' ? 'success' : 'default'}>
+                                {movie.media_storage_summary.poster.storage_source}
+                              </Badge>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </td>
@@ -190,6 +197,24 @@ export default function MoviesPage() {
                         >
                           {telegramAction[movie.id] === 'send' ? 'Sending...' : 'Send Telegram'}
                         </Button>
+                        {movie.telegram_last_post_status === 'failed' ? (
+                          <Button
+                            variant="outline"
+                            onClick={async () => {
+                              setActionError('')
+                              setTelegramAction((current) => ({ ...current, [movie.id]: 'force' }))
+                              try {
+                                await api.sendMovieToTelegram(movie.id, true)
+                              } catch (sendError) {
+                                setActionError(sendError instanceof Error ? sendError.message : 'Telegram resend failed')
+                              } finally {
+                                setTelegramAction((current) => ({ ...current, [movie.id]: '' }))
+                              }
+                            }}
+                          >
+                            {telegramAction[movie.id] === 'force' ? 'Re-sending...' : 'Force Re-send'}
+                          </Button>
+                        ) : null}
                         <Link href={`/movies/${movie.slug}`} target="_blank">
                           <Button variant="ghost">View</Button>
                         </Link>

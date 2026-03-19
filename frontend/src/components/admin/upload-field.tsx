@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 
+import { Badge } from '@/components/admin/badge'
 import api, { toAbsoluteUrl } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,17 +11,31 @@ export function UploadField({
   label,
   value,
   onChange,
+  mediaRole,
+  movieId,
+  storageSource,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
+  mediaRole?: string
+  movieId?: number
+  storageSource?: string | null
 }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [currentStorageSource, setCurrentStorageSource] = useState(storageSource || '')
 
   return (
     <div className="space-y-3">
       <Input label={label} value={value} onChange={(event) => onChange(event.target.value)} placeholder="/uploads/file.webp" />
+      {currentStorageSource ? (
+        <div>
+          <Badge variant={currentStorageSource === 'telegram' ? 'warning' : currentStorageSource === 'hybrid' ? 'success' : 'default'}>
+            {currentStorageSource.replace('_', ' ')}
+          </Badge>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <label className="inline-flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/10">
           <input
@@ -33,8 +48,12 @@ export function UploadField({
               setUploading(true)
               setError('')
               try {
-                const response = await api.uploadImage(file)
+                const response = await api.uploadImage(file, { media_role: mediaRole, movie_id: movieId })
                 onChange(response.file_url)
+                setCurrentStorageSource(response.storage_source || '')
+                if (response.storage_error) {
+                  setError(response.storage_error)
+                }
               } catch (uploadError) {
                 setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
               } finally {

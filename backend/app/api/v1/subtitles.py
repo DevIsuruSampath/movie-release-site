@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin_user
@@ -9,6 +11,8 @@ from app.models.user import User
 from app.schemas.subtitle import SubtitleCreate, SubtitleListResponse, SubtitleResponse, SubtitleUpdate
 from app.services.audit_service import create_audit_log
 from app.services.file_storage import save_upload
+from app.services.telegram_service import telegram_service
+from app.services.telegram_storage_service import telegram_storage_service
 
 router = APIRouter()
 
@@ -100,6 +104,7 @@ def delete_subtitle(
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 async def upload_subtitle_file(
     file: UploadFile = File(...),
+    movie_id: int | None = Form(None),
     request: Request | None = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
@@ -109,6 +114,20 @@ async def upload_subtitle_file(
         folder="subtitles",
         allowed_extensions={".srt", ".vtt", ".ass"},
         allowed_mime_types={"application/x-subrip", "text/vtt", "text/plain", "application/octet-stream"},
+    )
+    config = telegram_service.get_settings(db)
+    payload.update(
+        await telegram_storage_service.register_uploaded_media(
+            db,
+            config,
+            file_path=Path(payload["local_file_path"]),
+            file_url=payload["file_url"],
+            media_role="subtitle",
+            movie_id=movie_id,
+            original_filename=file.filename or payload["filename"],
+            mime_type=payload["content_type"],
+            file_size=payload["size"],
+        )
     )
     create_audit_log(
         db,

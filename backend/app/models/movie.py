@@ -116,6 +116,22 @@ class Movie(Base):
     def telegram_last_log_id(self) -> int | None:
         return self.telegram_last_log.id if self.telegram_last_log else None
 
+    @property
+    def media_storage_summary(self) -> dict[str, dict[str, str | int | None]]:
+        summary: dict[str, dict[str, str | int | None]] = {}
+        for item in self.telegram_media_cache:
+            if item.media_role in summary:
+                continue
+            summary[item.media_role] = {
+                "storage_source": item.storage_source,
+                "public_url": item.public_url,
+                "telegram_message_id": item.telegram_message_id,
+                "telegram_file_id": item.telegram_file_id,
+                "local_file_path": item.local_file_path,
+                "media_cache_id": item.id,
+            }
+        return summary
+
 
 class StreamLink(Base):
     __tablename__ = "stream_links"

@@ -14,11 +14,13 @@ import type {
   Subtitle,
   Tag,
   TagListResponse,
+  TelegramMediaCacheListResponse,
   TelegramPostLogListResponse,
   TelegramSendResponse,
   TelegramSettings,
   TelegramSettingsPayload,
   TelegramTestResponse,
+  TelegramValidateChannelResponse,
   UploadItem,
   UploadOrphanReport,
   UploadResponse,
@@ -219,15 +221,18 @@ class ApiClient {
     return this.get<DownloadLink[]>(`/api/v1/download/movie/${movieId}`).then((response) => response.data)
   }
 
-  uploadImage(file: File) {
+  uploadImage(file: File, options?: { media_role?: string; movie_id?: number }) {
     const body = new FormData()
     body.append('file', file)
+    if (options?.media_role) body.append('media_role', options.media_role)
+    if (options?.movie_id) body.append('movie_id', String(options.movie_id))
     return this.post<UploadResponse, FormData>('/api/v1/uploads/image', body, {}).then((response) => response.data)
   }
 
-  uploadSubtitleFile(file: File) {
+  uploadSubtitleFile(file: File, options?: { movie_id?: number }) {
     const body = new FormData()
     body.append('file', file)
+    if (options?.movie_id) body.append('movie_id', String(options.movie_id))
     return this.post<UploadResponse, FormData>('/api/v1/uploads/subtitle', body, {}).then((response) => response.data)
   }
 
@@ -255,6 +260,10 @@ class ApiClient {
     return this.post<TelegramTestResponse>('/api/v1/telegram/test').then((response) => response.data)
   }
 
+  validateTelegramChannel() {
+    return this.post<TelegramValidateChannelResponse>('/api/v1/telegram/validate-channel').then((response) => response.data)
+  }
+
   sendMovieToTelegram(movieId: number, force_resend = false) {
     return this.post<TelegramSendResponse, { force_resend: boolean }>(`/api/v1/telegram/movies/${movieId}/send`, { force_resend }).then((response) => response.data)
   }
@@ -269,6 +278,10 @@ class ApiClient {
 
   getMovieTelegramLogs(movieId: number, params?: Record<string, Primitive | null | undefined>) {
     return this.get<TelegramPostLogListResponse>(`/api/v1/telegram/logs/${movieId}`, { params }).then((response) => response.data)
+  }
+
+  getTelegramStorageMedia(params?: Record<string, Primitive | null | undefined>) {
+    return this.get<TelegramMediaCacheListResponse>('/api/v1/telegram/storage/media', { params }).then((response) => response.data)
   }
 }
 

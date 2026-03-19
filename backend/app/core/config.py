@@ -31,9 +31,15 @@ class Settings(BaseSettings):
     PUBLIC_SITE_URL: str = "http://localhost:3000"
 
     # Telegram
+    TELEGRAM_API_ID: str = ""
+    TELEGRAM_API_HASH: str = ""
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_PRIVATE_CHANNEL_ID: str = ""
     TELEGRAM_BOT_TOKEN_ENCRYPTION_KEY: str = ""
     TELEGRAM_REQUEST_TIMEOUT: int = 15
     TELEGRAM_ENABLED_DEFAULT: bool = False
+    TELEGRAM_STORAGE_ENABLED_DEFAULT: bool = False
+    TELEGRAM_STORAGE_MODE_DEFAULT: str = "local_only"
 
     # S3 Storage (Optional)
     S3_BUCKET: Optional[str] = None
@@ -62,6 +68,14 @@ class Settings(BaseSettings):
     @classmethod
     def validate_telegram_request_timeout(cls, value: int) -> int:
         return max(1, value)
+
+    @field_validator("TELEGRAM_STORAGE_MODE_DEFAULT")
+    @classmethod
+    def validate_telegram_storage_mode_default(cls, value: str) -> str:
+        normalized = (value or "local_only").strip().lower()
+        if normalized not in {"local_only", "telegram_only", "hybrid"}:
+            return "local_only"
+        return normalized
 
     model_config = SettingsConfigDict(
         env_file=".env",

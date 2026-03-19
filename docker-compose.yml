@@ -36,9 +36,15 @@ services:
       UPLOAD_DIR: /app/uploads
       MAX_FILE_SIZE_MB: 10
       PUBLIC_SITE_URL: http://localhost:3000
+      TELEGRAM_API_ID: ""
+      TELEGRAM_API_HASH: ""
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_PRIVATE_CHANNEL_ID: ""
       TELEGRAM_BOT_TOKEN_ENCRYPTION_KEY: change-me-with-fernet-key
       TELEGRAM_REQUEST_TIMEOUT: 15
       TELEGRAM_ENABLED_DEFAULT: "false"
+      TELEGRAM_STORAGE_ENABLED_DEFAULT: "false"
+      TELEGRAM_STORAGE_MODE_DEFAULT: local_only
       ALLOW_PUBLIC_REGISTRATION: false
       ADMIN_REGISTRATION_CODE: change-this-to-secure-code
     depends_on:

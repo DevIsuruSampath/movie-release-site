@@ -10,9 +10,11 @@ import type { Subtitle } from '@/types'
 export function SubtitleManager({
   items,
   onChange,
+  movieId,
 }: {
   items: Subtitle[]
   onChange: (items: Subtitle[]) => void
+  movieId?: number
 }) {
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
@@ -42,9 +44,12 @@ export function SubtitleManager({
                   setUploadingIndex(index)
                   setError('')
                   try {
-                    const response = await api.uploadSubtitleFile(file)
+                    const response = await api.uploadSubtitleFile(file, { movie_id: movieId })
                     updateItem(index, 'file_url', response.file_url)
                     updateItem(index, 'format', file.name.split('.').pop()?.toLowerCase() || 'srt')
+                    if (response.storage_error) {
+                      setError(response.storage_error)
+                    }
                   } catch (uploadError) {
                     setError(uploadError instanceof Error ? uploadError.message : 'Subtitle upload failed')
                   } finally {

@@ -48,7 +48,7 @@ export default function EditMoviePage() {
 
       {movie ? (
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
             <div className="space-y-2">
               <h2 className="text-lg font-semibold text-white">Telegram Delivery</h2>
               <div className="flex flex-wrap items-center gap-3">
@@ -61,47 +61,63 @@ export default function EditMoviePage() {
               {telegramMessage ? <p className="text-sm text-emerald-300">{telegramMessage}</p> : null}
               {telegramError ? <p className="text-sm text-red-300">{telegramError}</p> : null}
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="secondary"
-                disabled={telegramLoading !== ''}
-                onClick={async () => {
-                  setTelegramLoading('send')
-                  setTelegramMessage('')
-                  setTelegramError('')
-                  try {
-                    await api.sendMovieToTelegram(movie.id)
-                    setTelegramMessage('Movie sent to Telegram.')
-                    await loadMovie()
-                  } catch (error) {
-                    setTelegramError(error instanceof Error ? error.message : 'Telegram send failed')
-                  } finally {
-                    setTelegramLoading('')
-                  }
-                }}
-              >
-                {telegramLoading === 'send' ? 'Sending...' : 'Send To Telegram'}
-              </Button>
-              <Button
-                variant="outline"
-                disabled={telegramLoading !== ''}
-                onClick={async () => {
-                  setTelegramLoading('force')
-                  setTelegramMessage('')
-                  setTelegramError('')
-                  try {
-                    await api.sendMovieToTelegram(movie.id, true)
-                    setTelegramMessage('Movie force re-sent to Telegram.')
-                    await loadMovie()
-                  } catch (error) {
-                    setTelegramError(error instanceof Error ? error.message : 'Telegram resend failed')
-                  } finally {
-                    setTelegramLoading('')
-                  }
-                }}
-              >
-                {telegramLoading === 'force' ? 'Re-sending...' : 'Force Re-send'}
-              </Button>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-wide text-gray-500">Media Storage</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {Object.entries(movie.media_storage_summary || {}).length === 0 ? (
+                    <span className="text-sm text-gray-400">No tracked Telegram media</span>
+                  ) : (
+                    Object.entries(movie.media_storage_summary || {}).map(([role, item]) => (
+                      <Badge key={role} variant={item.storage_source === 'telegram' ? 'warning' : item.storage_source === 'hybrid' ? 'success' : 'default'}>
+                        {role}: {item.storage_source}
+                      </Badge>
+                    ))
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="secondary"
+                  disabled={telegramLoading !== ''}
+                  onClick={async () => {
+                    setTelegramLoading('send')
+                    setTelegramMessage('')
+                    setTelegramError('')
+                    try {
+                      await api.sendMovieToTelegram(movie.id)
+                      setTelegramMessage('Movie sent to Telegram.')
+                      await loadMovie()
+                    } catch (error) {
+                      setTelegramError(error instanceof Error ? error.message : 'Telegram send failed')
+                    } finally {
+                      setTelegramLoading('')
+                    }
+                  }}
+                >
+                  {telegramLoading === 'send' ? 'Sending...' : 'Send To Telegram'}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={telegramLoading !== ''}
+                  onClick={async () => {
+                    setTelegramLoading('force')
+                    setTelegramMessage('')
+                    setTelegramError('')
+                    try {
+                      await api.sendMovieToTelegram(movie.id, true)
+                      setTelegramMessage('Movie force re-sent to Telegram.')
+                      await loadMovie()
+                    } catch (error) {
+                      setTelegramError(error instanceof Error ? error.message : 'Telegram resend failed')
+                    } finally {
+                      setTelegramLoading('')
+                    }
+                  }}
+                >
+                  {telegramLoading === 'force' ? 'Re-sending...' : 'Force Re-send'}
+                </Button>
+              </div>
             </div>
           </div>
         </section>

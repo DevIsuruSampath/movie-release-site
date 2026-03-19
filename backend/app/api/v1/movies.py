@@ -23,6 +23,7 @@ from app.schemas.movie import (
 )
 from app.services.audit_service import create_audit_log
 from app.services.telegram_service import telegram_service
+from app.services.telegram_storage_service import telegram_storage_service
 
 router = APIRouter()
 
@@ -36,6 +37,7 @@ def _movie_query(db: Session):
         joinedload(Movie.download_links),
         joinedload(Movie.gallery),
         joinedload(Movie.telegram_post_logs),
+        joinedload(Movie.telegram_media_cache),
     )
 
 
@@ -226,6 +228,7 @@ def create_movie(
     db.add(movie)
     db.flush()
     _apply_movie_relations(db, movie, movie_data)
+    telegram_storage_service.attach_movie_media(db, movie)
     _log(db, request, current_admin, "create", movie)
     if movie.is_published:
         config = telegram_service.get_settings(db)
@@ -260,6 +263,7 @@ def update_movie(
     if "is_published" in movie_data.model_dump(exclude_unset=True):
         _set_publish_state(movie, bool(movie_data.is_published))
     _apply_movie_relations(db, movie, movie_data)
+    telegram_storage_service.attach_movie_media(db, movie)
     _log(db, request, current_admin, "update", movie)
     if movie.is_published:
         config = telegram_service.get_settings(db)

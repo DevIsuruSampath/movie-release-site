@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/admin/empty-state'
 import { LoadingSpinner } from '@/components/admin/loading-spinner'
 import { Button } from '@/components/ui/button'
 import api from '@/lib/api'
-import type { UploadItem, UploadOrphanReport } from '@/types'
+import type { TelegramMediaCache, UploadItem, UploadOrphanReport } from '@/types'
 
 function formatSize(size: number) {
   if (size < 1024) return `${size} B`
@@ -18,6 +18,7 @@ export default function UploadsPage() {
   const [images, setImages] = useState<UploadItem[]>([])
   const [subtitles, setSubtitles] = useState<UploadItem[]>([])
   const [orphanReport, setOrphanReport] = useState<UploadOrphanReport | null>(null)
+  const [telegramMedia, setTelegramMedia] = useState<TelegramMediaCache[]>([])
   const [loading, setLoading] = useState(true)
   const [scanLoading, setScanLoading] = useState(false)
   const [error, setError] = useState('')
@@ -28,6 +29,8 @@ export default function UploadsPage() {
         const [imageItems, subtitleItems] = await Promise.all([api.listImages(), api.listSubtitleUploads()])
         setImages(imageItems)
         setSubtitles(subtitleItems)
+        const mediaResponse = await api.getTelegramStorageMedia({ page: 1, limit: 10 })
+        setTelegramMedia(mediaResponse.items)
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : 'Failed to load uploads')
       } finally {
@@ -100,6 +103,22 @@ export default function UploadsPage() {
                     <div className="text-gray-500">{item.file_url}</div>
                   </div>
                   <div className="text-gray-400">{formatSize(item.size)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <h2 className="mb-4 text-lg font-semibold text-white">Telegram Vault</h2>
+          {telegramMedia.length === 0 ? (
+            <EmptyState title="No Telegram media" description="Telegram-stored media assets will appear here when storage mode is hybrid or telegram-only." />
+          ) : (
+            <div className="space-y-3">
+              {telegramMedia.map((item) => (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
+                  <div className="text-white">{item.original_filename || `Media #${item.id}`}</div>
+                  <div className="text-gray-500">{item.media_role} • {item.storage_source}</div>
                 </div>
               ))}
             </div>

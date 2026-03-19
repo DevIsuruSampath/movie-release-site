@@ -52,6 +52,11 @@ def resolve_local_upload_path(file_url: str) -> Path | None:
     return candidate
 
 
+def sanitize_extension(filename: str | None, default_extension: str = ".bin") -> str:
+    extension = Path(filename or "upload").suffix.lower().strip()
+    return extension or default_extension
+
+
 async def save_upload(
     file: UploadFile,
     *,
@@ -63,7 +68,7 @@ async def save_upload(
     if folder not in UPLOAD_DIRECTORIES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
 
-    extension = Path(file.filename or "upload").suffix.lower()
+    extension = sanitize_extension(file.filename)
     if extension not in allowed_extensions:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file extension")
 
@@ -84,6 +89,8 @@ async def save_upload(
     return {
         "filename": filename,
         "file_url": build_public_upload_url(folder, filename),
+        "local_file_path": str(target),
+        "relative_path": f"{folder}/{filename}",
         "size": len(content),
         "content_type": file.content_type,
     }
