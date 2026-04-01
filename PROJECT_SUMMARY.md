@@ -140,7 +140,7 @@ chmod +x quick-start.sh
 ```
 
 This will:
-1. Start PostgreSQL database
+1. Start the app stack using Supabase Postgres configuration
 2. Start Backend API on port 8000
 3. Start Frontend on port 3000
 4. Wait for all services to be healthy
@@ -155,7 +155,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your settings. For Supabase, set DATABASE_URL and STORAGE_BACKEND=supabase.
+# Edit .env with your settings. For Supabase, set SUPABASE_DB_URL and STORAGE_BACKEND=supabase.
 uvicorn app.main:app --reload
 ```
 

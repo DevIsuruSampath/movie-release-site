@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Python 3.12+ installed
-- PostgreSQL 14+ (or use managed PostgreSQL service)
+- Supabase project with Postgres enabled
 - Node.js 20+ for frontend setup
 
 ## Installation
@@ -29,7 +29,7 @@ cp .env.example .env
 
 ```env
 # Database Connection
-DATABASE_URL=postgresql://user:password@localhost:5432/movie_db
+SUPABASE_DB_URL=postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres?sslmode=require
 
 # Security
 SECRET_KEY=your-super-secret-jwt-key-change-this-in-production
@@ -54,22 +54,15 @@ SUPABASE_SUBTITLES_BUCKET=movie-subtitles
 
 ### Database Setup Options
 
-#### Option 1: Local PostgreSQL
+#### Option 1: Supabase Postgres
 
 ```bash
-# Install PostgreSQL
-sudo apt-get install postgresql postgresql-contrib
-
-# Start PostgreSQL
-sudo service postgresql start
-
-# Create database
-sudo -u postgres psql -c "CREATE DATABASE movie_db;"
-sudo -u postgres psql -c "CREATE USER movie_user WITH PASSWORD 'movie_pass';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE movie_db TO movie_user;"
+# Create a Supabase project at https://supabase.com
+# Open Project Settings -> Database
+# Copy the connection string and use it as SUPABASE_DB_URL
 ```
 
-#### Option 2: Managed PostgreSQL
+#### Option 2: Other managed PostgreSQL
 
 ```bash
 # Railway
@@ -129,11 +122,8 @@ The backend supports two storage modes:
 ### Database Connection Issues
 
 ```bash
-# Check if PostgreSQL is running
-sudo service postgresql status
-
 # Test connection
-psql -U movie_user -d movie_db -h localhost -c "SELECT 1;"
+psql "postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres?sslmode=require" -c "SELECT 1;"
 ```
 
 ### Port Conflicts
@@ -184,7 +174,6 @@ docker-compose up -d
 
 # View logs
 docker-compose logs -f backend
-docker-compose logs -f postgres
 
 # Stop services
 docker-compose down
@@ -261,14 +250,14 @@ When deploying to Dokploy + VPS:
    - Auto-deploy on push: ✅ (recommended)
 5. Click "Deploy"
 6. Environment variables: Set these in Dokploy:
-   - `DATABASE_URL`: Your PostgreSQL connection string
+   - `SUPABASE_DB_URL`: Your Supabase Postgres connection string
    - `SECRET_KEY`: Your JWT secret
    - `ALLOWED_ORIGINS`: Your frontend URL
 
 ### Environment Variables for Dokploy
 
 ```env
-DATABASE_URL=postgresql://movie_user:password@postgres:5432/movie_db
+SUPABASE_DB_URL=postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres?sslmode=require
 SECRET_KEY=your-super-secret-key
 ALLOWED_ORIGINS=https://your-domain.com,https://your-domain.com
 ```
@@ -276,7 +265,7 @@ ALLOWED_ORIGINS=https://your-domain.com,https://your-domain.com
 ## Next Steps
 
 1. ✅ Configure environment variables
-2. ✅ Start PostgreSQL database
+2. ✅ Configure Supabase Postgres
 3. ✅ Run migrations: `alembic upgrade head`
 4. ✅ Start backend: `uvicorn app.main:app --reload`
 5. ✅ Set up frontend (see ../FRONTEND_SETUP.md)
@@ -285,4 +274,4 @@ ALLOWED_ORIGINS=https://your-domain.com,https://your-domain.com
 
 ---
 
-**Ready to deploy!** Your backend is configured for Dokploy + VPS hosting with local file storage.
+**Ready to deploy!** Your backend is configured for Dokploy + VPS hosting with Supabase Postgres and optional Supabase Storage.

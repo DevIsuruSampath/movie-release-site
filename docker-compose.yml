@@ -1,24 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: movie_db
-    environment:
-      POSTGRES_USER: movie_user
-      POSTGRES_PASSWORD: movie_pass
-      POSTGRES_DB: movie_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U movie_user -d movie_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Backend API
   backend:
     build: ./backend
@@ -30,7 +12,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://movie_user:movie_pass@postgres:5432/movie_db
+      SUPABASE_DB_URL: ${SUPABASE_DB_URL}
       DATABASE_POOL_SIZE: 10
       DATABASE_MAX_OVERFLOW: 20
       DATABASE_POOL_RECYCLE_SECONDS: 1800
@@ -43,14 +25,10 @@ services:
       PUBLIC_SITE_URL: http://localhost:3000
       SUPABASE_URL: ""
       SUPABASE_SERVICE_ROLE_KEY: ""
-      SUPABASE_DB_URL: ""
       SUPABASE_IMAGES_BUCKET: movie-images
       SUPABASE_SUBTITLES_BUCKET: movie-subtitles
       ALLOW_PUBLIC_REGISTRATION: false
       ADMIN_REGISTRATION_CODE: change-this-to-secure-code
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -73,8 +51,6 @@ services:
       - backend
 
 volumes:
-  postgres_data:
-    driver: local
   movie_uploads:
     driver: local
 

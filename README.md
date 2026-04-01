@@ -31,7 +31,7 @@ A full-featured movie release website with public streaming/download pages and c
 ### Backend
 - **FastAPI** 0.115.6 - Modern Python web framework
 - **SQLAlchemy** 2.0.36 - ORM
-- **PostgreSQL** - Production database, including Supabase Postgres
+- **Supabase Postgres** - Primary production database
 - **JWT Authentication** - Secure token-based auth
 - **Alembic** - Database migrations
 - **Supabase Storage or Local File Storage** - Media asset handling
@@ -50,7 +50,7 @@ A full-featured movie release website with public streaming/download pages and c
 ### Deployment
 - **Docker Compose** - Complete orchestration
 - **Dokploy** - VPS hosting platform
-- **Supabase Postgres or self-hosted PostgreSQL**
+- **Supabase Postgres**
 - **Supabase Storage or Local File Storage**
 
 ## 🚀 Quick Start
@@ -58,7 +58,7 @@ A full-featured movie release website with public streaming/download pages and c
 ### Prerequisites
 - Python 3.12+
 - Node.js 20+
-- PostgreSQL 14+
+- Supabase project with Postgres enabled
 - Docker and Docker Compose
 - GitHub account (for deployment)
 
@@ -75,7 +75,7 @@ cd movie-release-site
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your database credentials, storage backend, and registration settings
+# Edit .env with your Supabase database credentials, storage backend, and registration settings
 alembic upgrade head
 ```
 
@@ -90,9 +90,6 @@ ALLOW_PUBLIC_REGISTRATION=false
 **Option A: Local Development**
 
 ```bash
-# Start PostgreSQL (if local, or use Supabase DATABASE_URL)
-sudo service postgresql start
-
 # Start backend
 cd backend
 uvicorn app.main:app --reload
@@ -152,16 +149,12 @@ POST /api/v1/auth/admin/users (requires admin token)
 
 ```env
 # Database
-DATABASE_URL=postgresql://movie_user:password@postgres:5432/movie_db
-STORAGE_BACKEND=local
-
-# Supabase example
-# DATABASE_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres?sslmode=require
-# STORAGE_BACKEND=supabase
-# SUPABASE_URL=https://[project-ref].supabase.co
-# SUPABASE_SERVICE_ROLE_KEY=...
-# SUPABASE_IMAGES_BUCKET=movie-images
-# SUPABASE_SUBTITLES_BUCKET=movie-subtitles
+SUPABASE_DB_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres?sslmode=require
+STORAGE_BACKEND=supabase
+SUPABASE_URL=https://[project-ref].supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_IMAGES_BUCKET=movie-images
+SUPABASE_SUBTITLES_BUCKET=movie-subtitles
 
 # Security
 SECRET_KEY=your-super-secret-key-change-this-in-production
@@ -312,7 +305,7 @@ movie-release-site/
 - Free or very affordable VPS hosting
 - Easy GitHub integration
 - Automatic deployments on push
-- Built-in PostgreSQL hosting
+- Works well with Supabase-managed Postgres
 - Persistent storage (uploads volume)
 - SSL certificates included
 
@@ -327,7 +320,7 @@ movie-release-site/
 
 2. **Set environment variables:**
    ```env
-   DATABASE_URL=postgresql://movie_user:password@postgres.dokploy.internal:5432/movie_db
+   SUPABASE_DB_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres?sslmode=require
    SECRET_KEY=your-super-secret-key
    ALLOW_PUBLIC_REGISTRATION=false
    ADMIN_REGISTRATION_CODE=your-secure-admin-code
@@ -364,7 +357,7 @@ docker-compose restart backend
 
 ### Development Workflow
 
-1. Start PostgreSQL database
+1. Configure `SUPABASE_DB_URL` in `backend/.env`
 2. Start backend API (`uvicorn app.main:app --reload`)
 3. Start frontend (`npm run dev`)
 4. Open http://localhost:3000
@@ -376,7 +369,7 @@ docker-compose restart backend
 
 **Backend won't start:**
 - Check database URL in `.env`
-- Ensure PostgreSQL is running
+- Ensure `SUPABASE_DB_URL` is valid and reachable
 - Check port 8000 isn't in use: `lsof -i :8000`
 
 **Can't upload images:**

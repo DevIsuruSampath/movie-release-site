@@ -4,7 +4,7 @@ Application configuration using Pydantic settings
 import json
 from typing import List, Optional, Union
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
 
     # Database
-    DATABASE_URL: str = "postgresql://movie_user:movie_pass@postgres:5432/movie_db"
+    DATABASE_URL: str = ""
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
     DATABASE_POOL_RECYCLE_SECONDS: int = 1800
@@ -86,6 +86,26 @@ class Settings(BaseSettings):
     @classmethod
     def validate_positive_int(cls, value: int) -> int:
         return max(1, value)
+
+    @staticmethod
+    def _normalize_database_url(database_url: str | None) -> str:
+        normalized = (database_url or "").strip()
+        if normalized.startswith("postgres://"):
+            normalized = normalized.replace("postgres://", "postgresql://", 1)
+        if normalized and "supabase.co" in normalized and "sslmode=" not in normalized:
+            separator = "&" if "?" in normalized else "?"
+            normalized = f"{normalized}{separator}sslmode=require"
+        return normalized
+
+    @model_validator(mode="after")
+    def apply_database_defaults(self) -> "Settings":
+        preferred_database_url = self.SUPABASE_DB_URL or self.DATABASE_URL
+        normalized_database_url = self._normalize_database_url(preferred_database_url)
+        if not normalized_database_url:
+            normalized_database_url = "postgresql://movie_user:movie_pass@postgres:5432/movie_db"
+        self.DATABASE_URL = normalized_database_url
+        self.SUPABASE_DB_URL = self._normalize_database_url(self.SUPABASE_DB_URL)
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

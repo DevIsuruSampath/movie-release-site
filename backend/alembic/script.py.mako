@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 
 class Config(BaseConfig):
     """Configuration for Alembic."""
-    sqlalchemy.url = os.getenv("DATABASE_URL")
+    sqlalchemy.url = os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL")
 
 # Interpret the config file for Python logging.
 fileConfig(Config.config_file_name)

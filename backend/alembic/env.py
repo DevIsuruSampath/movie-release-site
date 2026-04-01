@@ -13,7 +13,7 @@ from alembic.config import Config as BaseConfig
 
 class Config(BaseConfig):
     # Override the sqlalchemy.url from alembic.ini with environment variable
-    sqlalchemy_url = os.getenv("DATABASE_URL")
+    sqlalchemy_url = os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL")
 
 # Interpret the config file for Python logging.
 if os.path.exists('alembic.ini'):
