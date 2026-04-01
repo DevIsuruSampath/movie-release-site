@@ -1,6 +1,7 @@
 """
 Application configuration using Pydantic settings
 """
+import json
 from typing import List, Optional, Union
 
 from pydantic import field_validator
@@ -15,6 +16,10 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "postgresql://movie_user:movie_pass@postgres:5432/movie_db"
+    DATABASE_POOL_SIZE: int = 10
+    DATABASE_MAX_OVERFLOW: int = 20
+    DATABASE_POOL_RECYCLE_SECONDS: int = 1800
+    DATABASE_POOL_TIMEOUT_SECONDS: int = 30
 
     # Security
     SECRET_KEY: str = "your-super-secret-jwt-key-change-this-in-production"
@@ -29,17 +34,14 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 10
     PUBLIC_SITE_URL: str = "http://localhost:3000"
+    STORAGE_BACKEND: str = "local"
 
-    # Telegram
-    TELEGRAM_API_ID: str = ""
-    TELEGRAM_API_HASH: str = ""
-    TELEGRAM_BOT_TOKEN: str = ""
-    TELEGRAM_PRIVATE_CHANNEL_ID: str = ""
-    TELEGRAM_BOT_TOKEN_ENCRYPTION_KEY: str = ""
-    TELEGRAM_REQUEST_TIMEOUT: int = 15
-    TELEGRAM_ENABLED_DEFAULT: bool = False
-    TELEGRAM_STORAGE_ENABLED_DEFAULT: bool = False
-    TELEGRAM_STORAGE_MODE_DEFAULT: str = "local_only"
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_DB_URL: str = ""
+    SUPABASE_IMAGES_BUCKET: str = "movie-images"
+    SUPABASE_SUBTITLES_BUCKET: str = "movie-subtitles"
 
     # S3 Storage (Optional)
     S3_BUCKET: Optional[str] = None
@@ -61,21 +63,29 @@ class Settings(BaseSettings):
     @classmethod
     def parse_allowed_origins(cls, v):
         if isinstance(v, str):
+            stripped = v.strip()
+            if stripped.startswith("["):
+                try:
+                    parsed = json.loads(stripped)
+                    if isinstance(parsed, list):
+                        return [str(origin).strip() for origin in parsed if str(origin).strip()]
+                except json.JSONDecodeError:
+                    pass
             return [origin.strip() for origin in v.split(',') if origin.strip()]
         return v
 
-    @field_validator("TELEGRAM_REQUEST_TIMEOUT")
+    @field_validator("STORAGE_BACKEND")
     @classmethod
-    def validate_telegram_request_timeout(cls, value: int) -> int:
-        return max(1, value)
-
-    @field_validator("TELEGRAM_STORAGE_MODE_DEFAULT")
-    @classmethod
-    def validate_telegram_storage_mode_default(cls, value: str) -> str:
-        normalized = (value or "local_only").strip().lower()
-        if normalized not in {"local_only", "telegram_only", "hybrid"}:
-            return "local_only"
+    def validate_storage_backend(cls, value: str) -> str:
+        normalized = (value or "local").strip().lower()
+        if normalized not in {"local", "supabase"}:
+            return "local"
         return normalized
+
+    @field_validator("DATABASE_POOL_SIZE", "DATABASE_MAX_OVERFLOW", "DATABASE_POOL_RECYCLE_SECONDS", "DATABASE_POOL_TIMEOUT_SECONDS")
+    @classmethod
+    def validate_positive_int(cls, value: int) -> int:
+        return max(1, value)
 
     model_config = SettingsConfigDict(
         env_file=".env",

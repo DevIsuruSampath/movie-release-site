@@ -31,20 +31,21 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://movie_user:movie_pass@postgres:5432/movie_db
+      DATABASE_POOL_SIZE: 10
+      DATABASE_MAX_OVERFLOW: 20
+      DATABASE_POOL_RECYCLE_SECONDS: 1800
+      DATABASE_POOL_TIMEOUT_SECONDS: 30
       SECRET_KEY: your-super-secret-jwt-key-change-this-in-production
       ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
+      STORAGE_BACKEND: local
       UPLOAD_DIR: /app/uploads
       MAX_FILE_SIZE_MB: 10
       PUBLIC_SITE_URL: http://localhost:3000
-      TELEGRAM_API_ID: ""
-      TELEGRAM_API_HASH: ""
-      TELEGRAM_BOT_TOKEN: ""
-      TELEGRAM_PRIVATE_CHANNEL_ID: ""
-      TELEGRAM_BOT_TOKEN_ENCRYPTION_KEY: change-me-with-fernet-key
-      TELEGRAM_REQUEST_TIMEOUT: 15
-      TELEGRAM_ENABLED_DEFAULT: "false"
-      TELEGRAM_STORAGE_ENABLED_DEFAULT: "false"
-      TELEGRAM_STORAGE_MODE_DEFAULT: local_only
+      SUPABASE_URL: ""
+      SUPABASE_SERVICE_ROLE_KEY: ""
+      SUPABASE_DB_URL: ""
+      SUPABASE_IMAGES_BUCKET: movie-images
+      SUPABASE_SUBTITLES_BUCKET: movie-subtitles
       ALLOW_PUBLIC_REGISTRATION: false
       ADMIN_REGISTRATION_CODE: change-this-to-secure-code
     depends_on:

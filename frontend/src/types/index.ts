@@ -69,136 +69,6 @@ export interface Subtitle {
 export interface MediaStorageSummaryItem {
   storage_source?: string | null
   public_url?: string | null
-  telegram_message_id?: string | null
-  telegram_file_id?: string | null
-  local_file_path?: string | null
-  media_cache_id?: number | null
-}
-
-export interface TelegramSettings {
-  id?: number | null
-  is_enabled: boolean
-  has_api_id: boolean
-  has_api_hash: boolean
-  has_bot_token: boolean
-  api_id_masked?: string | null
-  api_hash_masked?: string | null
-  bot_token_masked?: string | null
-  bot_username?: string | null
-  private_channel_id?: string | null
-  private_channel_username?: string | null
-  private_channel_title?: string | null
-  private_channel_invite_link?: string | null
-  auto_post_on_publish: boolean
-  auto_post_on_update: boolean
-  enable_telegram_storage: boolean
-  telegram_storage_mode: 'local_only' | 'telegram_only' | 'hybrid'
-  caption_template?: string | null
-  button_text?: string | null
-  default_hashtags?: string | null
-  send_poster_mode: 'photo' | 'document' | 'text_only'
-  parse_mode?: 'HTML' | 'MarkdownV2' | 'None' | null
-  disable_web_page_preview: boolean
-  test_status?: string | null
-  last_tested_at?: string | null
-  created_at?: string | null
-  updated_at?: string | null
-  storage_stats?: Record<string, number> | null
-}
-
-export interface TelegramSettingsPayload {
-  is_enabled: boolean
-  api_id?: string
-  api_hash?: string
-  bot_token?: string
-  private_channel_id?: string
-  private_channel_username?: string
-  private_channel_title?: string
-  private_channel_invite_link?: string
-  auto_post_on_publish: boolean
-  auto_post_on_update: boolean
-  enable_telegram_storage: boolean
-  telegram_storage_mode: 'local_only' | 'telegram_only' | 'hybrid'
-  caption_template?: string
-  button_text?: string
-  default_hashtags?: string
-  send_poster_mode: 'photo' | 'document' | 'text_only'
-  parse_mode: 'HTML' | 'MarkdownV2' | 'None'
-  disable_web_page_preview: boolean
-}
-
-export interface TelegramTestResponse {
-  ok: boolean
-  message: string
-  bot_username?: string | null
-  private_channel_title?: string | null
-  private_channel_id?: string | null
-  details?: Record<string, unknown> | null
-}
-
-export interface TelegramValidateChannelResponse {
-  ok: boolean
-  message: string
-  private_channel_title?: string | null
-  private_channel_username?: string | null
-  private_channel_id?: string | null
-  bot_username?: string | null
-  details?: Record<string, unknown> | null
-}
-
-export interface TelegramSendResponse {
-  ok: boolean
-  status: 'pending' | 'sent' | 'failed'
-  log_id: number
-  telegram_chat_id?: string | null
-  telegram_message_id?: string | null
-  error_message?: string | null
-  response_payload_json?: Record<string, unknown> | null
-  send_mode?: 'bot_api' | 'pyrofork' | null
-  used_cached_media: boolean
-}
-
-export interface TelegramPostLog {
-  id: number
-  movie_id: number
-  movie_title?: string | null
-  status: 'pending' | 'sent' | 'failed'
-  telegram_chat_id?: string | null
-  telegram_message_id?: string | null
-  request_payload_json?: Record<string, unknown> | null
-  response_payload_json?: Record<string, unknown> | null
-  error_message?: string | null
-  retry_count: number
-  send_mode: 'bot_api' | 'pyrofork'
-  used_cached_media: boolean
-  sent_at?: string | null
-  created_at: string
-  updated_at?: string | null
-}
-
-export interface TelegramPostLogListResponse extends PaginatedResponse<TelegramPostLog> {}
-
-export interface TelegramMediaCache {
-  id: number
-  movie_id?: number | null
-  media_role: string
-  storage_source: string
-  local_file_path?: string | null
-  telegram_chat_id?: string | null
-  telegram_message_id?: string | null
-  telegram_file_id?: string | null
-  telegram_file_unique_id?: string | null
-  telegram_media_type?: string | null
-  original_filename?: string | null
-  mime_type?: string | null
-  file_size?: number | null
-  public_url?: string | null
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-export interface TelegramMediaCacheListResponse extends PaginatedResponse<TelegramMediaCache> {
-  stats: Record<string, number>
 }
 
 export interface StreamLink {
@@ -268,10 +138,6 @@ export interface Movie extends SeoMetadata {
   created_at: string
   updated_at?: string | null
   published_at?: string | null
-  telegram_last_post_status?: string | null
-  telegram_last_error_message?: string | null
-  telegram_last_sent_at?: string | null
-  telegram_last_log_id?: number | null
   media_storage_summary?: Record<string, MediaStorageSummaryItem>
   categories: Category[]
   tags: Tag[]
@@ -375,12 +241,7 @@ export interface UploadResponse {
   content_type: string
   local_file_path?: string
   relative_path?: string
-  media_cache_id?: number
-  public_url?: string | null
   storage_source?: string
-  telegram_message_id?: string | null
-  telegram_file_id?: string | null
-  storage_error?: string | null
 }
 
 export interface LoginRequest {

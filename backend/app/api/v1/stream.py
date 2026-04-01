@@ -11,6 +11,14 @@ from app.schemas.movie import StreamLinkCreate, StreamLinkResponse, StreamLinkUp
 router = APIRouter()
 
 
+def _ensure_single_primary_stream(db: Session, movie_id: int, primary_link_id: int) -> None:
+    db.query(StreamLink).filter(
+        StreamLink.movie_id == movie_id,
+        StreamLink.id != primary_link_id,
+        StreamLink.is_primary.is_(True),
+    ).update({"is_primary": False}, synchronize_session=False)
+
+
 @router.get("/movie/{movie_id}", response_model=list[StreamLinkResponse])
 def get_movie_stream_links(movie_id: int, db: Session = Depends(get_db)):
     return db.query(StreamLink).filter(StreamLink.movie_id == movie_id).order_by(StreamLink.sort_order.asc()).all()
@@ -30,6 +38,8 @@ def create_stream_link(
     stream_link = StreamLink(movie_id=movie_id, **link_data.model_dump())
     db.add(stream_link)
     db.flush()
+    if stream_link.is_primary:
+        _ensure_single_primary_stream(db, movie_id, stream_link.id)
     db.add(
         AuditLog(
             actor_id=current_admin.id,
@@ -59,6 +69,8 @@ def update_stream_link(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stream link not found")
     for field, value in link_data.model_dump(exclude_unset=True).items():
         setattr(stream_link, field, value)
+    if stream_link.is_primary:
+        _ensure_single_primary_stream(db, stream_link.movie_id, stream_link.id)
     db.add(
         AuditLog(
             actor_id=current_admin.id,

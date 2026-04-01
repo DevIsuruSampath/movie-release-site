@@ -2,6 +2,7 @@ from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integ
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
+from app.core.config import settings
 from app.models import Base
 
 
@@ -70,19 +71,6 @@ class Movie(Base):
         cascade="all, delete-orphan",
         order_by="MovieGallery.sort_order",
     )
-    telegram_post_logs = relationship(
-        "TelegramPostLog",
-        back_populates="movie",
-        cascade="all, delete-orphan",
-        order_by="TelegramPostLog.created_at.desc()",
-    )
-    telegram_media_cache = relationship(
-        "TelegramMediaCache",
-        back_populates="movie",
-        cascade="all, delete-orphan",
-        order_by="TelegramMediaCache.created_at.desc()",
-    )
-
     @property
     def media_url(self) -> str | None:
         active_streams = [link for link in self.stream_links if link.is_active]
@@ -96,39 +84,33 @@ class Movie(Base):
 
         return None
 
-    @property
-    def telegram_last_log(self):
-        return self.telegram_post_logs[0] if self.telegram_post_logs else None
-
-    @property
-    def telegram_last_post_status(self) -> str | None:
-        return self.telegram_last_log.status if self.telegram_last_log else None
-
-    @property
-    def telegram_last_error_message(self) -> str | None:
-        return self.telegram_last_log.error_message if self.telegram_last_log else None
-
-    @property
-    def telegram_last_sent_at(self):
-        return self.telegram_last_log.sent_at if self.telegram_last_log else None
-
-    @property
-    def telegram_last_log_id(self) -> int | None:
-        return self.telegram_last_log.id if self.telegram_last_log else None
+    @staticmethod
+    def _storage_source_for_url(url: str | None) -> str | None:
+        if not url:
+            return None
+        if url.startswith("/uploads/"):
+            return "local"
+        if settings.SUPABASE_URL:
+            prefix = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/public/"
+            if url.startswith(prefix):
+                return "supabase"
+        return None
 
     @property
     def media_storage_summary(self) -> dict[str, dict[str, str | int | None]]:
         summary: dict[str, dict[str, str | int | None]] = {}
-        for item in self.telegram_media_cache:
-            if item.media_role in summary:
+        for role, url in (
+            ("poster", self.poster_url),
+            ("backdrop", self.backdrop_url),
+            ("thumbnail", self.thumbnail_url),
+            ("other", self.open_graph_image),
+        ):
+            storage_source = self._storage_source_for_url(url)
+            if not storage_source:
                 continue
-            summary[item.media_role] = {
-                "storage_source": item.storage_source,
-                "public_url": item.public_url,
-                "telegram_message_id": item.telegram_message_id,
-                "telegram_file_id": item.telegram_file_id,
-                "local_file_path": item.local_file_path,
-                "media_cache_id": item.id,
+            summary[role] = {
+                "storage_source": storage_source,
+                "public_url": url,
             }
         return summary
 

@@ -40,9 +40,16 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 # CORS - Add your frontend URLs
 ALLOWED_ORIGINS=["http://localhost:3000", "https://yourdomain.com"]
 
-# Local File Storage (No S3 needed!)
+# Storage
+STORAGE_BACKEND=local
 UPLOAD_DIR=uploads
 MAX_FILE_SIZE_MB=10
+
+# Supabase Storage (optional)
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_IMAGES_BUCKET=movie-images
+SUPABASE_SUBTITLES_BUCKET=movie-subtitles
 ```
 
 ### Database Setup Options
@@ -104,19 +111,18 @@ After starting, visit:
 
 ## File Storage
 
-The backend uses **local file storage** (no S3 required!):
+The backend supports two storage modes:
 
-- Images are saved to `/backend/uploads/` directory
-- Served at `http://localhost:8000/uploads/{filename}`
-- Files persist in Docker volume `movie_uploads`
+- `local`: files are written to `/backend/uploads/`
+- `supabase`: files are uploaded to Supabase Storage buckets
 
 ### Uploads API
 
 - **POST /api/v1/uploads/image** - Upload image (admin only)
-- **GET /api/v1/uploads/image/{filename}** - Get uploaded image
-- **DELETE /api/v1/uploads/image/{filename}** - Delete image (admin only)
-- **GET /api/v1/uploads/list** - List all uploads (admin only)
-- **POST /api/v1/uploads/cleanup** - Remove unused images
+- **POST /api/v1/uploads/subtitle** - Upload subtitle file (admin only)
+- **GET /api/v1/uploads/images** - List images (admin only)
+- **GET /api/v1/uploads/subtitles** - List subtitle files (admin only)
+- **GET /api/v1/uploads/orphans** - Compare stored files against DB references
 
 ## Troubleshooting
 
@@ -210,8 +216,7 @@ curl http://localhost:8000/health
 
 # Expected response:
 {
-  "status": "healthy",
-  "storage": "local"
+  "status": "healthy"
 }
 ```
 

@@ -1,7 +1,8 @@
 from math import ceil
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from sqlalchemy import case, func
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import get_current_admin_user
 from app.db.database import get_db
@@ -21,6 +22,13 @@ def get_dashboard(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_admin_user),
 ):
+    movie_totals = db.query(
+        func.count(Movie.id).label("total_movies"),
+        func.sum(case((Movie.is_published.is_(True), 1), else_=0)).label("total_published_movies"),
+        func.sum(case((Movie.featured.is_(True), 1), else_=0)).label("total_featured_movies"),
+        func.sum(case((Movie.stream_enabled.is_(True), 1), else_=0)).label("total_media_ready_movies"),
+        func.sum(case(((Movie.trailer_url.isnot(None)) & (Movie.trailer_url != ""), 1), else_=0)).label("total_trailer_movies"),
+    ).one()
     recent_movies = (
         db.query(Movie)
         .order_by(Movie.created_at.desc())
@@ -29,16 +37,17 @@ def get_dashboard(
     )
     recent_activity = (
         db.query(AuditLog)
+        .options(joinedload(AuditLog.actor))
         .order_by(AuditLog.created_at.desc())
         .limit(10)
         .all()
     )
     return {
-        "total_movies": db.query(Movie).count(),
-        "total_published_movies": db.query(Movie).filter(Movie.is_published.is_(True)).count(),
-        "total_featured_movies": db.query(Movie).filter(Movie.featured.is_(True)).count(),
-        "total_media_ready_movies": db.query(Movie).filter(Movie.stream_enabled.is_(True)).count(),
-        "total_trailer_movies": db.query(Movie).filter(Movie.trailer_url.isnot(None), Movie.trailer_url != "").count(),
+        "total_movies": movie_totals.total_movies or 0,
+        "total_published_movies": movie_totals.total_published_movies or 0,
+        "total_featured_movies": movie_totals.total_featured_movies or 0,
+        "total_media_ready_movies": movie_totals.total_media_ready_movies or 0,
+        "total_trailer_movies": movie_totals.total_trailer_movies or 0,
         "total_categories": db.query(Category).count(),
         "total_tags": db.query(Tag).count(),
         "total_subtitles": db.query(Subtitle).count(),
@@ -67,7 +76,7 @@ def get_activity(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_admin_user),
 ):
-    query = db.query(AuditLog).order_by(AuditLog.created_at.desc())
+    query = db.query(AuditLog).options(joinedload(AuditLog.actor)).order_by(AuditLog.created_at.desc())
     total = query.count()
     items = query.offset((page - 1) * limit).limit(limit).all()
     return {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Badge } from '@/components/admin/badge'
 import api, { toAbsoluteUrl } from '@/lib/api'
@@ -26,12 +26,16 @@ export function UploadField({
   const [error, setError] = useState('')
   const [currentStorageSource, setCurrentStorageSource] = useState(storageSource || '')
 
+  useEffect(() => {
+    setCurrentStorageSource(storageSource || '')
+  }, [storageSource])
+
   return (
     <div className="space-y-3">
       <Input label={label} value={value} onChange={(event) => onChange(event.target.value)} placeholder="/uploads/file.webp" />
       {currentStorageSource ? (
         <div>
-          <Badge variant={currentStorageSource === 'telegram' ? 'warning' : currentStorageSource === 'hybrid' ? 'success' : 'default'}>
+          <Badge variant={currentStorageSource === 'supabase' ? 'success' : 'default'}>
             {currentStorageSource.replace('_', ' ')}
           </Badge>
         </div>
@@ -51,9 +55,6 @@ export function UploadField({
                 const response = await api.uploadImage(file, { media_role: mediaRole, movie_id: movieId })
                 onChange(response.file_url)
                 setCurrentStorageSource(response.storage_source || '')
-                if (response.storage_error) {
-                  setError(response.storage_error)
-                }
               } catch (uploadError) {
                 setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
               } finally {

@@ -30,7 +30,7 @@ A fully-featured movie release website with public streaming/download capabiliti
   - Slug validation and generation
 
 - ✅ **Image Upload API**
-  - S3-compatible upload endpoint
+  - Local and Supabase-backed upload support
   - File type validation (JPEG, PNG, GIF, WebP)
   - File size limits (10MB max)
   - Admin-only access
@@ -155,7 +155,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your settings. For Supabase, set DATABASE_URL and STORAGE_BACKEND=supabase.
 uvicorn app.main:app --reload
 ```
 

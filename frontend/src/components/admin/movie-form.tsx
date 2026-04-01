@@ -51,8 +51,23 @@ const initialPayload: MoviePayload = {
   download_links: [],
 }
 
+function isSimpleMediaUrlMovie(movie: Movie): boolean {
+  if (movie.stream_links.length === 0 && movie.download_links.length === 0) {
+    return true
+  }
+
+  if (movie.stream_links.length !== 1 || movie.download_links.length !== 1) {
+    return false
+  }
+
+  const [streamLink] = movie.stream_links
+  const [downloadLink] = movie.download_links
+  return streamLink.url === downloadLink.url
+}
+
 function toPayload(movie?: Movie | null): MoviePayload {
   if (!movie) return initialPayload
+  const useSimpleMediaUrl = isSimpleMediaUrlMovie(movie)
   return {
     title: movie.title,
     slug: movie.slug,
@@ -66,7 +81,7 @@ function toPayload(movie?: Movie | null): MoviePayload {
     country: movie.country || '',
     imdb_rating: movie.imdb_rating || undefined,
     quality: movie.quality || '',
-    media_url: movie.media_url || '',
+    media_url: useSimpleMediaUrl ? movie.media_url || '' : undefined,
     trailer_url: movie.trailer_url || '',
     poster_url: movie.poster_url || '',
     backdrop_url: movie.backdrop_url || '',
@@ -88,8 +103,8 @@ function toPayload(movie?: Movie | null): MoviePayload {
     category_ids: movie.categories.map((category) => category.id),
     tag_ids: movie.tags.map((tag) => tag.id),
     subtitles: movie.subtitles.map(({ created_at, updated_at, movie_id, ...subtitle }) => subtitle),
-    stream_links: [],
-    download_links: [],
+    stream_links: movie.stream_links.map(({ created_at, updated_at, movie_id, ...streamLink }) => streamLink),
+    download_links: movie.download_links.map(({ created_at, updated_at, movie_id, ...downloadLink }) => downloadLink),
   }
 }
 
@@ -116,12 +131,16 @@ export function MovieForm({
 
   useEffect(() => {
     async function loadOptions() {
-      const [categoryResponse, tagResponse] = await Promise.all([
-        api.listCategories({ page: 1, limit: 200 }),
-        api.listTags({ page: 1, limit: 200 }),
-      ])
-      setCategories(categoryResponse.items)
-      setTags(tagResponse.items)
+      try {
+        const [categoryResponse, tagResponse] = await Promise.all([
+          api.listCategories({ page: 1, limit: 200 }),
+          api.listTags({ page: 1, limit: 200 }),
+        ])
+        setCategories(categoryResponse.items)
+        setTags(tagResponse.items)
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load category and tag options')
+      }
     }
     void loadOptions()
   }, [])

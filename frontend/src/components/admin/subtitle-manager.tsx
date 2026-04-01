@@ -47,9 +47,6 @@ export function SubtitleManager({
                     const response = await api.uploadSubtitleFile(file, { movie_id: movieId })
                     updateItem(index, 'file_url', response.file_url)
                     updateItem(index, 'format', file.name.split('.').pop()?.toLowerCase() || 'srt')
-                    if (response.storage_error) {
-                      setError(response.storage_error)
-                    }
                   } catch (uploadError) {
                     setError(uploadError instanceof Error ? uploadError.message : 'Subtitle upload failed')
                   } finally {

@@ -27,10 +27,11 @@ async function getCategoryDetails(slug: string): Promise<Category | null> {
   }
 }
 
-export default async function CategoryPage({ params }: { params: { slug: string } }) {
-  const movies = await getCategoryMovies(params.slug)
-  const category = await getCategoryDetails(params.slug)
-  const categoryName = category?.name || params.slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const movies = await getCategoryMovies(slug)
+  const category = await getCategoryDetails(slug)
+  const categoryName = category?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 
   const categoryGradients: Record<string, string> = {
     'action': 'from-red-500 to-orange-600',
@@ -45,7 +46,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
     'fantasy': 'from-violet-500 to-purple-600',
   }
 
-  const gradientClass = categoryGradients[params.slug.toLowerCase()] || 'from-[#e50914] to-[#b20710]'
+  const gradientClass = categoryGradients[slug.toLowerCase()] || 'from-[#e50914] to-[#b20710]'
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">

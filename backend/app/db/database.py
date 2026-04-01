@@ -10,6 +10,10 @@ engine = create_engine(
     settings.DATABASE_URL,
     future=True,
     pool_pre_ping=True,
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    pool_recycle=settings.DATABASE_POOL_RECYCLE_SECONDS,
+    pool_timeout=settings.DATABASE_POOL_TIMEOUT_SECONDS,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -123,60 +127,6 @@ def _ensure_schema_compatibility() -> None:
             connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS user_agent VARCHAR(500)"))
         if "description" not in audit_columns:
             connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS description TEXT"))
-
-        telegram_settings_columns = _column_names(inspector, "telegram_settings")
-        if telegram_settings_columns:
-            for ddl in (
-                ("api_id_encrypted", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS api_id_encrypted TEXT"),
-                ("api_hash_encrypted", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS api_hash_encrypted TEXT"),
-                ("private_channel_id", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS private_channel_id VARCHAR(255)"),
-                ("private_channel_username", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS private_channel_username VARCHAR(255)"),
-                ("private_channel_title", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS private_channel_title VARCHAR(255)"),
-                ("private_channel_invite_link", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS private_channel_invite_link VARCHAR(500)"),
-                ("enable_telegram_storage", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS enable_telegram_storage BOOLEAN DEFAULT FALSE NOT NULL"),
-                ("telegram_storage_mode", "ALTER TABLE telegram_settings ADD COLUMN IF NOT EXISTS telegram_storage_mode VARCHAR(20) DEFAULT 'local_only' NOT NULL"),
-            ):
-                if ddl[0] not in telegram_settings_columns:
-                    connection.execute(text(ddl[1]))
-            if "private_channel_id" in telegram_settings_columns and "channel_id" in telegram_settings_columns:
-                connection.execute(text("UPDATE telegram_settings SET private_channel_id = COALESCE(private_channel_id, channel_id)"))
-            if "private_channel_username" in telegram_settings_columns and "channel_username" in telegram_settings_columns:
-                connection.execute(text("UPDATE telegram_settings SET private_channel_username = COALESCE(private_channel_username, channel_username)"))
-            if "private_channel_title" in telegram_settings_columns and "channel_title" in telegram_settings_columns:
-                connection.execute(text("UPDATE telegram_settings SET private_channel_title = COALESCE(private_channel_title, channel_title)"))
-            if "private_channel_invite_link" in telegram_settings_columns and "channel_invite_link" in telegram_settings_columns:
-                connection.execute(text("UPDATE telegram_settings SET private_channel_invite_link = COALESCE(private_channel_invite_link, channel_invite_link)"))
-
-        telegram_log_columns = _column_names(inspector, "telegram_post_logs")
-        if telegram_log_columns:
-            for ddl in (
-                ("send_mode", "ALTER TABLE telegram_post_logs ADD COLUMN IF NOT EXISTS send_mode VARCHAR(20) DEFAULT 'bot_api' NOT NULL"),
-                ("used_cached_media", "ALTER TABLE telegram_post_logs ADD COLUMN IF NOT EXISTS used_cached_media BOOLEAN DEFAULT FALSE NOT NULL"),
-            ):
-                if ddl[0] not in telegram_log_columns:
-                    connection.execute(text(ddl[1]))
-
-        telegram_media_columns = _column_names(inspector, "telegram_media_cache")
-        if telegram_media_columns:
-            for ddl in (
-                ("media_role", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS media_role VARCHAR(50) DEFAULT 'other' NOT NULL"),
-                ("storage_source", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS storage_source VARCHAR(20) DEFAULT 'local' NOT NULL"),
-                ("local_file_path", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS local_file_path VARCHAR(1000)"),
-                ("telegram_chat_id", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(255)"),
-                ("telegram_message_id", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS telegram_message_id VARCHAR(255)"),
-                ("telegram_file_unique_id", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS telegram_file_unique_id VARCHAR(255)"),
-                ("telegram_media_type", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS telegram_media_type VARCHAR(50)"),
-                ("original_filename", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS original_filename VARCHAR(255)"),
-                ("mime_type", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS mime_type VARCHAR(255)"),
-                ("file_size", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS file_size INTEGER"),
-                ("public_url", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS public_url VARCHAR(1000)"),
-                ("updated_at", "ALTER TABLE telegram_media_cache ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"),
-            ):
-                if ddl[0] not in telegram_media_columns:
-                    connection.execute(text(ddl[1]))
-            if "media_type" in telegram_media_columns and "telegram_media_type" in telegram_media_columns:
-                connection.execute(text("UPDATE telegram_media_cache SET telegram_media_type = COALESCE(telegram_media_type, media_type)"))
-
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)

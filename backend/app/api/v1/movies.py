@@ -1,11 +1,12 @@
+from collections.abc import Sequence
 from math import ceil
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from slugify import slugify
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import get_current_admin_user
-from app.api.v1.telegram import run_background_movie_post
 from app.db.database import get_db
 from app.models.category import Category
 from app.models.movie import DownloadLink, Movie, StreamLink
@@ -22,22 +23,18 @@ from app.schemas.movie import (
     SubtitleInline,
 )
 from app.services.audit_service import create_audit_log
-from app.services.telegram_service import telegram_service
-from app.services.telegram_storage_service import telegram_storage_service
 
 router = APIRouter()
 
 
 def _movie_query(db: Session):
     return db.query(Movie).options(
-        joinedload(Movie.categories),
-        joinedload(Movie.tags),
-        joinedload(Movie.subtitles),
-        joinedload(Movie.stream_links),
-        joinedload(Movie.download_links),
-        joinedload(Movie.gallery),
-        joinedload(Movie.telegram_post_logs),
-        joinedload(Movie.telegram_media_cache),
+        selectinload(Movie.categories),
+        selectinload(Movie.tags),
+        selectinload(Movie.subtitles),
+        selectinload(Movie.stream_links),
+        selectinload(Movie.download_links),
+        selectinload(Movie.gallery),
     )
 
 
@@ -55,14 +52,61 @@ def _resolve_slug(db: Session, raw_slug: str, movie_id: int | None = None) -> st
         candidate = f"{base_slug}-{index}"
 
 
+def _normalize_search_term(value: str | None) -> str | None:
+    normalized = value.strip() if value else ""
+    return normalized or None
+
+
+def _validate_relation_ids(
+    db: Session,
+    *,
+    model: type[Category] | type[Tag],
+    ids: Sequence[int],
+    entity_name: str,
+) -> list[Category] | list[Tag]:
+    unique_ids = list(dict.fromkeys(ids))
+    if not unique_ids:
+        return []
+
+    records = db.query(model).filter(model.id.in_(unique_ids)).all()
+    records_by_id = {record.id: record for record in records}
+    missing_ids = [value for value in unique_ids if value not in records_by_id]
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid {entity_name} ids: {', '.join(str(value) for value in missing_ids)}",
+        )
+    return [records_by_id[value] for value in unique_ids]
+
+
 def _sync_nested_relations(movie: Movie, payload: MovieCreate | MovieUpdate) -> None:
     subtitles = getattr(payload, "subtitles", None)
     if subtitles is not None:
-        movie.subtitles = [Subtitle(**item.model_dump(exclude={"id"})) for item in subtitles]
+        normalized_subtitles: list[Subtitle] = []
+        default_subtitle_assigned = False
+        for item in subtitles:
+            subtitle = Subtitle(**item.model_dump(exclude={"id"}))
+            if subtitle.is_default:
+                if default_subtitle_assigned:
+                    subtitle.is_default = False
+                else:
+                    default_subtitle_assigned = True
+            normalized_subtitles.append(subtitle)
+        movie.subtitles = normalized_subtitles
 
     stream_links = getattr(payload, "stream_links", None)
     if stream_links is not None:
-        movie.stream_links = [StreamLink(**item.model_dump(exclude={"id"})) for item in stream_links]
+        normalized_stream_links: list[StreamLink] = []
+        primary_stream_assigned = False
+        for item in stream_links:
+            stream_link = StreamLink(**item.model_dump(exclude={"id"}))
+            if stream_link.is_primary:
+                if primary_stream_assigned:
+                    stream_link.is_primary = False
+                else:
+                    primary_stream_assigned = True
+            normalized_stream_links.append(stream_link)
+        movie.stream_links = normalized_stream_links
 
     download_links = getattr(payload, "download_links", None)
     if download_links is not None:
@@ -107,9 +151,9 @@ def _apply_movie_relations(db: Session, movie: Movie, payload: MovieCreate | Mov
     category_ids = getattr(payload, "category_ids", None)
     tag_ids = getattr(payload, "tag_ids", None)
     if category_ids is not None:
-        movie.categories = db.query(Category).filter(Category.id.in_(category_ids)).all() if category_ids else []
+        movie.categories = _validate_relation_ids(db, model=Category, ids=category_ids, entity_name="category")
     if tag_ids is not None:
-        movie.tags = db.query(Tag).filter(Tag.id.in_(tag_ids)).all() if tag_ids else []
+        movie.tags = _validate_relation_ids(db, model=Tag, ids=tag_ids, entity_name="tag")
     _sync_nested_relations(movie, payload)
     _sync_single_media_url(movie, payload)
 
@@ -137,14 +181,6 @@ def _log(db: Session, request: Request, actor: User, action: str, movie: Movie) 
     )
 
 
-def _queue_telegram_post(background_tasks: BackgroundTasks, movie: Movie, db: Session, *, force_resend: bool, reason: str) -> None:
-    config = telegram_service.get_settings(db)
-    if not config.is_enabled or not config.channel_id:
-        return
-    pending_log = telegram_service.create_pending_log(db, movie, config, reason=reason, force_resend=force_resend)
-    background_tasks.add_task(run_background_movie_post, movie.id, pending_log.id, force_resend, reason)
-
-
 @router.get("", response_model=MovieListResponse)
 def list_movies(
     page: int = Query(1, ge=1),
@@ -161,13 +197,14 @@ def list_movies(
 ):
     query = _movie_query(db)
     if category:
-        query = query.join(Movie.categories).filter(Category.slug == category)
+        query = query.filter(Movie.categories.any(Category.slug == category))
     if year:
         query = query.filter(Movie.release_year == year)
     if language:
         query = query.filter(Movie.language == language)
-    if search:
-        query = query.filter(Movie.title.ilike(f"%{search}%"))
+    normalized_search = _normalize_search_term(search)
+    if normalized_search:
+        query = query.filter(Movie.title.ilike(f"%{normalized_search}%"))
     if status_filter:
         query = query.filter(Movie.status == status_filter)
     if is_published is not None:
@@ -177,7 +214,7 @@ def list_movies(
     if featured is not None:
         query = query.filter(Movie.featured == featured)
 
-    total = query.distinct().count()
+    total = query.with_entities(func.count(Movie.id)).scalar() or 0
     items = (
         query.order_by(Movie.created_at.desc())
         .offset((page - 1) * limit)
@@ -214,7 +251,6 @@ def get_movie(slug: str, db: Session = Depends(get_db)):
 def create_movie(
     movie_data: MovieCreate,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -228,12 +264,7 @@ def create_movie(
     db.add(movie)
     db.flush()
     _apply_movie_relations(db, movie, movie_data)
-    telegram_storage_service.attach_movie_media(db, movie)
     _log(db, request, current_admin, "create", movie)
-    if movie.is_published:
-        config = telegram_service.get_settings(db)
-        if config.is_enabled and config.auto_post_on_publish:
-            _queue_telegram_post(background_tasks, movie, db, force_resend=False, reason="auto_publish")
     db.commit()
     return _movie_query(db).filter(Movie.id == movie.id).first()
 
@@ -243,7 +274,6 @@ def update_movie(
     movie_id: int,
     movie_data: MovieUpdate,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -263,12 +293,7 @@ def update_movie(
     if "is_published" in movie_data.model_dump(exclude_unset=True):
         _set_publish_state(movie, bool(movie_data.is_published))
     _apply_movie_relations(db, movie, movie_data)
-    telegram_storage_service.attach_movie_media(db, movie)
     _log(db, request, current_admin, "update", movie)
-    if movie.is_published:
-        config = telegram_service.get_settings(db)
-        if config.is_enabled and config.auto_post_on_update:
-            _queue_telegram_post(background_tasks, movie, db, force_resend=False, reason="auto_update")
     db.commit()
     return _movie_query(db).filter(Movie.id == movie.id).first()
 
@@ -286,13 +311,13 @@ def delete_movie(
     _log(db, request, current_admin, "delete", movie)
     db.delete(movie)
     db.commit()
+    return None
 
 
 @router.patch("/{movie_id}/publish", response_model=MovieResponse)
 def publish_movie(
     movie_id: int,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
@@ -301,9 +326,6 @@ def publish_movie(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
     _set_publish_state(movie, True)
     _log(db, request, current_admin, "publish", movie)
-    config = telegram_service.get_settings(db)
-    if config.is_enabled and config.auto_post_on_publish:
-        _queue_telegram_post(background_tasks, movie, db, force_resend=False, reason="auto_publish")
     db.commit()
     return _movie_query(db).filter(Movie.id == movie_id).first()
 

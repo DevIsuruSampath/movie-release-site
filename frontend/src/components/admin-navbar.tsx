@@ -12,7 +12,6 @@ const links = [
   { href: '/admin/movies', label: 'Movies' },
   { href: '/admin/categories', label: 'Categories' },
   { href: '/admin/tags', label: 'Tags' },
-  { href: '/admin/telegram', label: 'Telegram' },
   { href: '/admin/uploads', label: 'Uploads' },
   { href: '/admin/activity', label: 'Activity' },
 ]

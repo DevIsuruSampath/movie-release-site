@@ -18,7 +18,7 @@ A full-featured movie release website with public streaming/download pages and c
 - 🔐 Secure admin login with JWT authentication
 - 📊 Dashboard with real-time statistics
 - ➕ Add/edit/delete movies with full form
-- 📂 Upload images with **local file storage** (no S3 needed!)
+- 📂 Upload images to local storage or **Supabase Storage**
 - 🏷️ Manage categories (CRUD operations)
 - 🔗 Manage streaming links (multiple servers)
 - 📥 Manage download links (quality options)
@@ -31,10 +31,10 @@ A full-featured movie release website with public streaming/download pages and c
 ### Backend
 - **FastAPI** 0.115.6 - Modern Python web framework
 - **SQLAlchemy** 2.0.36 - ORM
-- **PostgreSQL** - Production database
+- **PostgreSQL** - Production database, including Supabase Postgres
 - **JWT Authentication** - Secure token-based auth
 - **Alembic** - Database migrations
-- **Local File Storage** - Built-in file handling (no external services!)
+- **Supabase Storage or Local File Storage** - Media asset handling
 - **Python-jose** - JWT token management
 - **Passlib** - Bcrypt password hashing
 
@@ -50,8 +50,8 @@ A full-featured movie release website with public streaming/download pages and c
 ### Deployment
 - **Docker Compose** - Complete orchestration
 - **Dokploy** - VPS hosting platform
-- **PostgreSQL** - Managed or self-hosted
-- **Local File Storage** - No S3/CloudFlare needed!
+- **Supabase Postgres or self-hosted PostgreSQL**
+- **Supabase Storage or Local File Storage**
 
 ## 🚀 Quick Start
 
@@ -75,7 +75,7 @@ cd movie-release-site
 cd backend
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your database credentials and registration settings
+# Edit .env with your database credentials, storage backend, and registration settings
 alembic upgrade head
 ```
 
@@ -90,7 +90,7 @@ ALLOW_PUBLIC_REGISTRATION=false
 **Option A: Local Development**
 
 ```bash
-# Start PostgreSQL (if local)
+# Start PostgreSQL (if local, or use Supabase DATABASE_URL)
 sudo service postgresql start
 
 # Start backend
@@ -153,6 +153,15 @@ POST /api/v1/auth/admin/users (requires admin token)
 ```env
 # Database
 DATABASE_URL=postgresql://movie_user:password@postgres:5432/movie_db
+STORAGE_BACKEND=local
+
+# Supabase example
+# DATABASE_URL=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres?sslmode=require
+# STORAGE_BACKEND=supabase
+# SUPABASE_URL=https://[project-ref].supabase.co
+# SUPABASE_SERVICE_ROLE_KEY=...
+# SUPABASE_IMAGES_BUCKET=movie-images
+# SUPABASE_SUBTITLES_BUCKET=movie-subtitles
 
 # Security
 SECRET_KEY=your-super-secret-key-change-this-in-production
@@ -188,7 +197,7 @@ movie-release-site/
 │   │   │   ├── auth.py       # Authentication
 │   │   │   ├── movies.py     # Movie CRUD
 │   │   │   ├── categories.py # Category CRUD
-│   │   │   └── uploads.py    # Local file uploads
+│   │   │   └── uploads.py    # Uploads (local or Supabase)
 │   │   ├── core/            # Config, security
 │   │   ├── db/              # Database
 │   │   ├── models/          # SQLAlchemy models
@@ -218,6 +227,7 @@ movie-release-site/
 - ✅ Admin role checking on protected routes
 - ✅ CORS configuration
 - ✅ File upload validation (type, size)
+- ✅ Configurable local or Supabase-backed media storage
 - ✅ SQL injection protection via SQLAlchemy
 - ✅ XSS protection via FastAPI
 - ✅ Registration code required (disabled public registration by default)

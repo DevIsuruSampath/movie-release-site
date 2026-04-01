@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -11,10 +9,16 @@ from app.models.user import User
 from app.schemas.subtitle import SubtitleCreate, SubtitleListResponse, SubtitleResponse, SubtitleUpdate
 from app.services.audit_service import create_audit_log
 from app.services.file_storage import save_upload
-from app.services.telegram_service import telegram_service
-from app.services.telegram_storage_service import telegram_storage_service
 
 router = APIRouter()
+
+
+def _ensure_single_default_subtitle(db: Session, movie_id: int, default_subtitle_id: int) -> None:
+    db.query(Subtitle).filter(
+        Subtitle.movie_id == movie_id,
+        Subtitle.id != default_subtitle_id,
+        Subtitle.is_default.is_(True),
+    ).update({"is_default": False}, synchronize_session=False)
 
 
 @router.get("/movie/{movie_id}", response_model=SubtitleListResponse)
@@ -37,6 +41,8 @@ def create_subtitle(
     subtitle = Subtitle(movie_id=movie_id, **subtitle_data.model_dump())
     db.add(subtitle)
     db.flush()
+    if subtitle.is_default:
+        _ensure_single_default_subtitle(db, movie_id, subtitle.id)
     create_audit_log(
         db,
         request,
@@ -64,6 +70,8 @@ def update_subtitle(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtitle not found")
     for field, value in subtitle_data.model_dump(exclude_unset=True).items():
         setattr(subtitle, field, value)
+    if subtitle.is_default:
+        _ensure_single_default_subtitle(db, subtitle.movie_id, subtitle.id)
     create_audit_log(
         db,
         request,
@@ -114,20 +122,6 @@ async def upload_subtitle_file(
         folder="subtitles",
         allowed_extensions={".srt", ".vtt", ".ass"},
         allowed_mime_types={"application/x-subrip", "text/vtt", "text/plain", "application/octet-stream"},
-    )
-    config = telegram_service.get_settings(db)
-    payload.update(
-        await telegram_storage_service.register_uploaded_media(
-            db,
-            config,
-            file_path=Path(payload["local_file_path"]),
-            file_url=payload["file_url"],
-            media_role="subtitle",
-            movie_id=movie_id,
-            original_filename=file.filename or payload["filename"],
-            mime_type=payload["content_type"],
-            file_size=payload["size"],
-        )
     )
     create_audit_log(
         db,

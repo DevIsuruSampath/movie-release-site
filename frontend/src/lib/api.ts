@@ -14,13 +14,6 @@ import type {
   Subtitle,
   Tag,
   TagListResponse,
-  TelegramMediaCacheListResponse,
-  TelegramPostLogListResponse,
-  TelegramSendResponse,
-  TelegramSettings,
-  TelegramSettingsPayload,
-  TelegramTestResponse,
-  TelegramValidateChannelResponse,
   UploadItem,
   UploadOrphanReport,
   UploadResponse,
@@ -246,42 +239,6 @@ class ApiClient {
 
   getUploadOrphans() {
     return this.get<UploadOrphanReport>('/api/v1/uploads/orphans').then((response) => response.data)
-  }
-
-  getTelegramSettings() {
-    return this.get<TelegramSettings>('/api/v1/telegram/settings').then((response) => response.data)
-  }
-
-  updateTelegramSettings(payload: TelegramSettingsPayload) {
-    return this.put<TelegramSettings, TelegramSettingsPayload>('/api/v1/telegram/settings', payload).then((response) => response.data)
-  }
-
-  testTelegramSettings() {
-    return this.post<TelegramTestResponse>('/api/v1/telegram/test').then((response) => response.data)
-  }
-
-  validateTelegramChannel() {
-    return this.post<TelegramValidateChannelResponse>('/api/v1/telegram/validate-channel').then((response) => response.data)
-  }
-
-  sendMovieToTelegram(movieId: number, force_resend = false) {
-    return this.post<TelegramSendResponse, { force_resend: boolean }>(`/api/v1/telegram/movies/${movieId}/send`, { force_resend }).then((response) => response.data)
-  }
-
-  retryTelegramLog(logId: number) {
-    return this.post<TelegramSendResponse>(`/api/v1/telegram/logs/${logId}/retry`).then((response) => response.data)
-  }
-
-  getTelegramLogs(params?: Record<string, Primitive | null | undefined>) {
-    return this.get<TelegramPostLogListResponse>('/api/v1/telegram/logs', { params }).then((response) => response.data)
-  }
-
-  getMovieTelegramLogs(movieId: number, params?: Record<string, Primitive | null | undefined>) {
-    return this.get<TelegramPostLogListResponse>(`/api/v1/telegram/logs/${movieId}`, { params }).then((response) => response.data)
-  }
-
-  getTelegramStorageMedia(params?: Record<string, Primitive | null | undefined>) {
-    return this.get<TelegramMediaCacheListResponse>('/api/v1/telegram/storage/media', { params }).then((response) => response.data)
   }
 }
 

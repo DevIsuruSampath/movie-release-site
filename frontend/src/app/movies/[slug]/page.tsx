@@ -56,6 +56,17 @@ function parseRobots(robots?: string | null): Metadata['robots'] | undefined {
   }
 }
 
+function normalizeSchemaMarkup(schemaMarkup?: string | null): string | null {
+  const normalized = schemaMarkup?.trim()
+  if (!normalized) return null
+
+  try {
+    return JSON.stringify(JSON.parse(normalized))
+  } catch {
+    return null
+  }
+}
+
 async function getMovie(slug: string): Promise<Movie | null> {
   try {
     return await api.get<Movie>(`/api/v1/movies/${slug}`).then((response) => response.data)
@@ -181,7 +192,7 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
   const posterImage = movie.poster_url || movie.thumbnail_url || movie.backdrop_url
   const heroSrc = getRenderableImageSrc(heroImage)
   const posterSrc = getRenderableImageSrc(posterImage)
-  const schemaMarkup = movie.schema_markup?.trim()
+  const schemaMarkup = normalizeSchemaMarkup(movie.schema_markup)
   const mediaButtonClassName = cn(
     'inline-flex h-10.5 items-center justify-center rounded-xl px-4.5 text-base font-medium transition-all duration-200',
     'bg-[#e50914] text-white shadow-lg shadow-red-900/20 hover:bg-[#b20710]'
@@ -195,7 +206,7 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
         <script
           type="application/ld+json"
           suppressHydrationWarning
-          dangerouslySetInnerHTML={{ __html: schemaMarkup.startsWith('{') ? schemaMarkup : `{${schemaMarkup}}` }}
+          dangerouslySetInnerHTML={{ __html: schemaMarkup }}
         />
       ) : null}
 

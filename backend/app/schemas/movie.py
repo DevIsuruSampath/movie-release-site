@@ -205,10 +205,6 @@ class MovieResponse(MovieBase):
     stream_links: List[StreamLinkResponse] = []
     download_links: List[DownloadLinkResponse] = []
     gallery: List[MovieGalleryResponse] = []
-    telegram_last_post_status: Optional[str] = None
-    telegram_last_error_message: Optional[str] = None
-    telegram_last_sent_at: Optional[datetime] = None
-    telegram_last_log_id: Optional[int] = None
     media_storage_summary: dict[str, dict[str, str | int | None]] = {}
 
     class Config:

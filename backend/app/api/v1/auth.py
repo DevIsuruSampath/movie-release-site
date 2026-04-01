@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -18,6 +18,14 @@ from app.models.user import User
 from app.schemas.user import AdminUserCreate, TokenResponse, UserLogin, UserRegister, UserResponse
 
 router = APIRouter()
+
+
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def _get_user_by_email(db: Session, email: str) -> User | None:
+    return db.query(User).filter(func.lower(User.email) == _normalize_email(email)).first()
 
 
 def create_audit_log(
@@ -89,7 +97,7 @@ def _build_token_response(user: User) -> TokenResponse:
 
 @router.post("/login", response_model=TokenResponse)
 def login(user_data: UserLogin, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_data.email).first()
+    user = _get_user_by_email(db, user_data.email)
     if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -120,7 +128,11 @@ def refresh_token(payload: dict, db: Session = Depends(get_db)):
 
     decoded = decode_and_validate_token(refresh_token_value, expected_type="refresh")
     user_id = decoded.get("sub")
-    user = db.query(User).filter(User.id == int(user_id)).first() if user_id else None
+    try:
+        normalized_user_id = int(user_id) if user_id is not None else None
+    except (TypeError, ValueError):
+        normalized_user_id = None
+    user = db.query(User).filter(User.id == normalized_user_id).first() if normalized_user_id is not None else None
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
@@ -140,13 +152,14 @@ def register(user_data: UserRegister, request: Request, db: Session = Depends(ge
         if user_data.registration_code != settings.ADMIN_REGISTRATION_CODE:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid registration code")
 
-    existing = db.query(User).filter(User.email == user_data.email).first()
+    normalized_email = _normalize_email(user_data.email)
+    existing = _get_user_by_email(db, normalized_email)
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     is_first_user = db.query(User).count() == 0
     user = User(
-        email=user_data.email,
+        email=normalized_email,
         hashed_password=get_password_hash(user_data.password),
         full_name=user_data.full_name,
         is_superuser=is_first_user,
@@ -175,12 +188,13 @@ def create_user_admin(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
-    existing = db.query(User).filter(User.email == user_data.email).first()
+    normalized_email = _normalize_email(user_data.email)
+    existing = _get_user_by_email(db, normalized_email)
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     user = User(
-        email=user_data.email,
+        email=normalized_email,
         hashed_password=get_password_hash(user_data.password),
         full_name=user_data.full_name,
         is_superuser=user_data.is_superuser,
