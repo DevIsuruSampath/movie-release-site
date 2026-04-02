@@ -67,45 +67,7 @@ def sanitize_extension(filename: str | None, default_extension: str = ".bin") ->
     return extension or default_extension
 
 
-async def save_upload(
-    file: UploadFile,
-    *,
-    folder: str,
-    allowed_extensions: set[str],
-    allowed_mime_types: set[str],
-) -> dict[str, Any]:
-    if folder not in UPLOAD_DIRECTORIES:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
-
-    extension = sanitize_extension(file.filename)
-    if extension not in allowed_extensions:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file extension")
-
-    if file.content_type not in allowed_mime_types:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
-
-    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-    filename = f"{uuid4().hex}{extension}"
-    if settings.STORAGE_BACKEND == "supabase":
-        content = await file.read()
-        if len(content) > max_bytes:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds maximum size")
-        bucket = supabase_storage.bucket_for_folder(folder)
-        file_url = supabase_storage.upload_bytes(
-            bucket=bucket,
-            path=filename,
-            content=content,
-            content_type=file.content_type or "application/octet-stream",
-        )
-        return {
-            "filename": filename,
-            "file_url": file_url,
-            "relative_path": f"{bucket}/{filename}",
-            "size": len(content),
-            "content_type": file.content_type,
-            "storage_source": "supabase",
-        }
-
+async def _save_local_upload(*, file: UploadFile, folder: str, filename: str, max_bytes: int) -> dict[str, Any]:
     ensure_upload_directories()
     target = UPLOAD_DIRECTORIES[folder] / filename
     total_bytes = 0
@@ -129,19 +91,72 @@ async def save_upload(
     }
 
 
-def list_upload_items(folder: str) -> list[dict[str, Any]]:
+async def save_upload(
+    file: UploadFile,
+    *,
+    folder: str,
+    allowed_extensions: set[str],
+    allowed_mime_types: set[str],
+) -> dict[str, Any]:
+    if folder not in UPLOAD_DIRECTORIES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
+
+    extension = sanitize_extension(file.filename)
+    if extension not in allowed_extensions:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file extension")
+
+    if file.content_type not in allowed_mime_types:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
+
+    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
+    filename = f"{uuid4().hex}{extension}"
     if settings.STORAGE_BACKEND == "supabase":
-        return [
-            {
-                "filename": item.path,
-                "file_url": item.public_url,
-                "relative_path": f"{item.bucket}/{item.path}",
-                "size": item.size or 0,
-                "updated_at": item.updated_at,
+        try:
+            content = await file.read()
+            if len(content) > max_bytes:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds maximum size")
+            bucket = supabase_storage.bucket_for_folder(folder)
+            file_url = supabase_storage.upload_bytes(
+                bucket=bucket,
+                path=filename,
+                content=content,
+                content_type=file.content_type or "application/octet-stream",
+            )
+            return {
+                "filename": filename,
+                "file_url": file_url,
+                "relative_path": f"{bucket}/{filename}",
+                "size": len(content),
+                "content_type": file.content_type,
                 "storage_source": "supabase",
             }
-            for item in supabase_storage.list_objects(folder=folder)
-        ]
+        except HTTPException as exc:
+            if exc.status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
+                raise
+            logger.exception("Supabase upload failed, falling back to local storage", extra={"folder": folder, "filename": filename})
+            await file.seek(0)
+
+    return await _save_local_upload(file=file, folder=folder, filename=filename, max_bytes=max_bytes)
+
+
+def list_upload_items(folder: str) -> list[dict[str, Any]]:
+    if settings.STORAGE_BACKEND == "supabase":
+        try:
+            return [
+                {
+                    "filename": item.path,
+                    "file_url": item.public_url,
+                    "relative_path": f"{item.bucket}/{item.path}",
+                    "size": item.size or 0,
+                    "updated_at": item.updated_at,
+                    "storage_source": "supabase",
+                }
+                for item in supabase_storage.list_objects(folder=folder)
+            ]
+        except HTTPException as exc:
+            if exc.status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
+                raise
+            logger.exception("Supabase list failed, falling back to local uploads", extra={"folder": folder})
 
     ensure_upload_directories()
     if folder not in UPLOAD_DIRECTORIES:
