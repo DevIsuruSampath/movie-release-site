@@ -405,6 +405,52 @@ def collect_upload_references(db: Session) -> dict[str, list[dict[str, Any]]]:
     return references
 
 
+def _folder_for_references(reference_items: list[dict[str, Any]]) -> str:
+    if any(item.get("entity") == "subtitle" for item in reference_items):
+        return "subtitles"
+    return "images"
+
+
+def _filename_from_key(key: str) -> str:
+    _, _, relative_path = key.partition(":")
+    return Path(relative_path).name
+
+
+def list_referenced_uploads(db: Session, folder: str | None = None) -> list[dict[str, Any]]:
+    references = collect_upload_references(db)
+    items: list[dict[str, Any]] = []
+
+    for key, reference_items in references.items():
+        storage_source, _, relative_path = key.partition(":")
+        if not relative_path:
+            continue
+        inferred_folder = _folder_for_references(reference_items)
+        if folder and inferred_folder != folder:
+            continue
+        file_url = next((item.get("file_url") for item in reference_items if item.get("file_url")), None)
+        if not file_url:
+            if storage_source == "local":
+                file_url = f"/uploads/{relative_path}"
+            else:
+                bucket, _, path = relative_path.partition("/")
+                file_url = supabase_storage.public_url(bucket, path) if bucket and path else ""
+        items.append(
+            {
+                "filename": _filename_from_key(key),
+                "file_url": file_url,
+                "relative_path": relative_path,
+                "size": 0,
+                "updated_at": None,
+                "storage_source": storage_source,
+                "references": reference_items,
+                "folder": inferred_folder,
+            }
+        )
+
+    items.sort(key=lambda item: (item["folder"], item["filename"]))
+    return items
+
+
 def scan_orphaned_uploads(db: Session) -> dict[str, Any]:
     references = collect_upload_references(db)
     files: list[dict[str, Any]] = []

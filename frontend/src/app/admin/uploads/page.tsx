@@ -74,8 +74,8 @@ export default function UploadsPage() {
       setLoading(true)
       try {
         const [imageItems, subtitleItems, orphanReport] = await Promise.all([
-          api.listImages(),
-          api.listSubtitleUploads(),
+          api.listReferencedUploads('images'),
+          api.listReferencedUploads('subtitles'),
           api.getUploadOrphans(),
         ])
         setImages(imageItems)
@@ -94,7 +94,7 @@ export default function UploadsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold text-white">Uploads</h1>
-        <p className="mt-1 text-sm text-gray-400">Inspect uploaded images and subtitles, including whether each file is stored locally or in Supabase.</p>
+        <p className="mt-1 text-sm text-gray-400">Inspect database-tracked images and subtitles, including whether each file points to local storage or Supabase.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -121,7 +121,7 @@ export default function UploadsPage() {
         </div>
         <div className="p-5">
           {!orphans || orphans.orphaned_files.length === 0 ? (
-            <EmptyState title="No orphaned uploads" description="Every tracked upload is currently referenced by a movie, category, subtitle, or gallery item." />
+          <EmptyState title="No orphaned uploads" description="No physical upload files are currently unreferenced." />
           ) : (
             <div className="space-y-3">
               {orphans.orphaned_files.map((item) => (

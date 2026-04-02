@@ -14,14 +14,14 @@ from app.models.subtitle import Subtitle
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.movie import MovieDashboardItem
-from app.services.file_storage import list_upload_items
+from app.services.file_storage import list_referenced_uploads
 
 router = APIRouter()
 
 
-def _summarize_uploads() -> dict[str, object]:
-    images = list_upload_items("images")
-    subtitles = list_upload_items("subtitles")
+def _summarize_uploads(db: Session) -> dict[str, object]:
+    images = list_referenced_uploads(db, folder="images")
+    subtitles = list_referenced_uploads(db, folder="subtitles")
     all_items = [*images, *subtitles]
     storage_sources = sorted({str(item.get("storage_source") or "unknown") for item in all_items})
     return {
@@ -64,7 +64,7 @@ def get_dashboard(
         .limit(10)
         .all()
     )
-    upload_summary = _summarize_uploads()
+    upload_summary = _summarize_uploads(db)
     return {
         "total_movies": movie_totals.total_movies or 0,
         "total_published_movies": movie_totals.total_published_movies or 0,

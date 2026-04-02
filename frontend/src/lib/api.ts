@@ -252,6 +252,12 @@ class ApiClient {
     return this.get<UploadItem[]>('/api/v1/uploads/subtitles').then((response) => response.data)
   }
 
+  listReferencedUploads(folder?: 'images' | 'subtitles') {
+    return this.get<UploadItem[]>('/api/v1/uploads/references', {
+      params: folder ? { folder } : {},
+    }).then((response) => response.data)
+  }
+
   getUploadOrphans() {
     return this.get<UploadOrphanReport>('/api/v1/uploads/orphans').then((response) => response.data)
   }

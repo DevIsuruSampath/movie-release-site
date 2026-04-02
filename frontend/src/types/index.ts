@@ -220,6 +220,8 @@ export interface UploadItem {
   updated_at?: number | string
   relative_path?: string
   storage_source?: string
+  references?: UploadReference[]
+  folder?: string
 }
 
 export interface UploadReference {

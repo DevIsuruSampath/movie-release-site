@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin_user
 from app.db.database import get_db
 from app.models.user import User
 from app.services.audit_service import create_audit_log
-from app.services.file_storage import list_upload_items, save_upload, scan_orphaned_uploads
+from app.services.file_storage import list_referenced_uploads, list_upload_items, save_upload, scan_orphaned_uploads
 
 router = APIRouter()
 IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -86,3 +86,14 @@ def list_orphan_uploads(
     _: User = Depends(get_current_admin_user),
 ):
     return scan_orphaned_uploads(db)
+
+
+@router.get("/references")
+def list_referenced_upload_items(
+    folder: str | None = None,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    if folder not in {None, "images", "subtitles"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
+    return list_referenced_uploads(db, folder=folder)
