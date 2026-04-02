@@ -66,13 +66,13 @@ export default function AdminLayout({
         <div className="sticky top-0 z-40 border-b border-white/10 bg-[#111111]/95 px-4 py-4 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-sm font-semibold text-white">MovieHub Admin</div>
-              <div className="text-xs text-gray-400">Manage movies, media, and publishing</div>
+              <div className="text-lg font-semibold leading-tight text-white">MovieHub Admin</div>
+              <div className="mt-1 text-sm text-gray-400">Manage movies, media, and publishing</div>
             </div>
             <button
               type="button"
               onClick={() => setMobileMenuOpen((current) => !current)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white active:scale-[0.98]"
               aria-label="Toggle admin menu"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

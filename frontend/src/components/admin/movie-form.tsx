@@ -121,6 +121,14 @@ export function MovieForm({
   const [tags, setTags] = useState<Tag[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    details: true,
+    media: true,
+    relations: false,
+    subtitles: false,
+    publishing: true,
+    seo: false,
+  })
 
   useEffect(() => {
     setForm(toPayload(movie))
@@ -151,14 +159,19 @@ export function MovieForm({
     await api.updateMovie(movie.id, { [field]: '' })
   }
 
-  const submit = async () => {
+  const toggleSection = (section: string) => {
+    setExpandedSections((current) => ({ ...current, [section]: !current[section] }))
+  }
+
+  const submit = async (overridePublished?: boolean) => {
     setSubmitting(true)
     setError('')
     try {
+      const payload = overridePublished === undefined ? form : { ...form, is_published: overridePublished }
       if (movie?.id) {
-        await api.updateMovie(movie.id, form)
+        await api.updateMovie(movie.id, payload)
       } else {
-        await api.createMovie(form)
+        await api.createMovie(payload)
       }
       router.push('/admin/movies')
       router.refresh()
@@ -175,8 +188,12 @@ export function MovieForm({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">Movie Details</h2>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <button type="button" onClick={() => toggleSection('details')} className="flex w-full items-center justify-between px-5 py-4 text-left">
+              <h2 className="text-lg font-semibold text-white">Details</h2>
+              <span className="text-sm text-gray-400">{expandedSections.details ? 'Hide' : 'Show'}</span>
+            </button>
+            {expandedSections.details ? <div className="border-t border-white/10 p-5">
             <div className="grid gap-4 md:grid-cols-2">
               <Input label="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
               <Input label="Slug" value={form.slug || ''} onChange={(event) => setForm({ ...form, slug: event.target.value })} />
@@ -210,10 +227,15 @@ export function MovieForm({
                 <Textarea label="Full description" value={form.description || ''} onChange={(event) => setForm({ ...form, description: event.target.value })} className="min-h-[200px]" />
               </div>
             </div>
+            </div> : null}
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">Media</h2>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <button type="button" onClick={() => toggleSection('media')} className="flex w-full items-center justify-between px-5 py-4 text-left">
+              <h2 className="text-lg font-semibold text-white">Media</h2>
+              <span className="text-sm text-gray-400">{expandedSections.media ? 'Hide' : 'Show'}</span>
+            </button>
+            {expandedSections.media ? <div className="border-t border-white/10 p-5">
             <div className="grid gap-5 md:grid-cols-2">
               <UploadField
                 label="Poster"
@@ -248,10 +270,15 @@ export function MovieForm({
                 onRemove={() => persistMediaRemoval('open_graph_image')}
               />
             </div>
+            </div> : null}
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">Relations</h2>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <button type="button" onClick={() => toggleSection('relations')} className="flex w-full items-center justify-between px-5 py-4 text-left">
+              <h2 className="text-lg font-semibold text-white">Relations</h2>
+              <span className="text-sm text-gray-400">{expandedSections.relations ? 'Hide' : 'Show'}</span>
+            </button>
+            {expandedSections.relations ? <div className="border-t border-white/10 p-5">
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-300">Categories</label>
@@ -294,18 +321,28 @@ export function MovieForm({
                 </select>
               </div>
             </div>
+            </div> : null}
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">Subtitles</h2>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <button type="button" onClick={() => toggleSection('subtitles')} className="flex w-full items-center justify-between px-5 py-4 text-left">
+              <h2 className="text-lg font-semibold text-white">Subtitles</h2>
+              <span className="text-sm text-gray-400">{expandedSections.subtitles ? 'Hide' : 'Show'}</span>
+            </button>
+            {expandedSections.subtitles ? <div className="border-t border-white/10 p-5">
             <SubtitleManager items={form.subtitles} movieId={movie?.id} onChange={(subtitles) => setForm({ ...form, subtitles })} />
+            </div> : null}
           </section>
 
         </div>
 
         <div className="space-y-6">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">Publishing</h2>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <button type="button" onClick={() => toggleSection('publishing')} className="flex w-full items-center justify-between px-5 py-4 text-left">
+              <h2 className="text-lg font-semibold text-white">Publishing</h2>
+              <span className="text-sm text-gray-400">{expandedSections.publishing ? 'Hide' : 'Show'}</span>
+            </button>
+            {expandedSections.publishing ? <div className="border-t border-white/10 p-5">
             <div className="space-y-3">
               <label className="flex items-center gap-3 text-sm text-gray-300">
                 <input type="checkbox" checked={form.is_published || false} onChange={(event) => setForm({ ...form, is_published: event.target.checked })} />
@@ -317,21 +354,32 @@ export function MovieForm({
               </label>
             </div>
             <p className="mt-4 text-xs text-gray-500">Streaming and download availability are set automatically from the Media URL.</p>
+            </div> : null}
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white">SEO</h2>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+            <button type="button" onClick={() => toggleSection('seo')} className="flex w-full items-center justify-between px-5 py-4 text-left">
+              <h2 className="text-lg font-semibold text-white">SEO</h2>
+              <span className="text-sm text-gray-400">{expandedSections.seo ? 'Hide' : 'Show'}</span>
+            </button>
+            {expandedSections.seo ? <div className="border-t border-white/10 p-5">
             <SeoFields value={form} onChange={(next) => setForm({ ...form, ...next })} />
+            </div> : null}
           </section>
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-3">
-            <Button disabled={submitting} onClick={submit}>
-              {submitting ? 'Saving...' : submitLabel}
-            </Button>
-            <Button variant="ghost" onClick={() => router.push('/admin/movies')}>
-              Cancel
-            </Button>
-          </div>
+      <div className="sticky bottom-3 z-20 rounded-2xl border border-white/10 bg-[#111111]/95 p-3 backdrop-blur">
+        <div className="grid gap-3 md:grid-cols-3">
+          <Button variant="ghost" className="h-12 rounded-2xl text-base" onClick={() => router.push('/admin/movies')}>
+            Cancel
+          </Button>
+          <Button variant="outline" className="h-12 rounded-2xl text-base font-semibold" disabled={submitting} onClick={() => submit(true)}>
+            {submitting ? 'Saving...' : 'Save & Publish'}
+          </Button>
+          <Button className="h-12 rounded-2xl text-base font-semibold" disabled={submitting} onClick={() => submit()}>
+            {submitting ? 'Saving...' : submitLabel}
+          </Button>
         </div>
       </div>
     </div>

@@ -29,19 +29,19 @@ export default function AdminNavbar({
 
   return (
     <div className={cn('flex h-full flex-col bg-[#111111]', mobile ? '' : 'border-r border-white/10')}>
-      <div className="border-b border-white/10 px-5 py-5">
+      <div className="border-b border-white/10 px-5 py-6">
         <Link href="/admin" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e50914] text-white">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e50914] text-white shadow-lg shadow-red-950/30">
             <span className="text-lg font-bold">M</span>
           </div>
           <div>
-            <div className="text-sm font-semibold text-white">MovieHub</div>
-            <div className="text-xs text-gray-400">Admin Console</div>
+            <div className="text-base font-semibold text-white">MovieHub</div>
+            <div className="text-sm text-gray-400">Admin Console</div>
           </div>
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-2 px-3 py-5">
         {links.map((link) => {
           const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
           return (
@@ -50,10 +50,10 @@ export default function AdminNavbar({
               href={link.href}
               onClick={onNavigate}
               className={cn(
-                'block rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                'block rounded-2xl px-4 py-3.5 text-base font-medium transition-colors active:scale-[0.99]',
                 active
                   ? 'bg-[#e50914]/15 text-[#ff676f]'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white active:bg-white/10'
               )}
             >
               {link.label}
@@ -63,12 +63,12 @@ export default function AdminNavbar({
       </nav>
 
       <div className="space-y-3 border-t border-white/10 p-4">
-        <Link href="/" onClick={onNavigate} className="block rounded-xl px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white">
+        <Link href="/" onClick={onNavigate} className="block rounded-2xl px-4 py-3 text-base text-gray-400 hover:bg-white/5 hover:text-white active:bg-white/10">
           View Site
         </Link>
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="h-12 w-full justify-start rounded-2xl px-4 text-base"
           onClick={() => {
             logout()
             onNavigate?.()

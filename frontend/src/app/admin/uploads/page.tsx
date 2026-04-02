@@ -52,7 +52,37 @@ function UploadSection({ title, items }: { title: string; items: UploadItem[] })
       <div className="border-b border-white/10 px-5 py-4">
         <h2 className="text-lg font-semibold text-white">{title}</h2>
       </div>
-      <div className="divide-y divide-white/10">
+      <div className="space-y-3 p-4 md:hidden">
+        {items.map((item) => (
+          <div key={`${item.storage_source || 'unknown'}:${item.relative_path || item.filename}:mobile`} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="truncate text-sm font-medium text-white">{item.filename}</div>
+                  {item.storage_source ? (
+                    <Badge variant={item.storage_source === 'supabase' ? 'success' : 'default'}>{item.storage_source}</Badge>
+                  ) : null}
+                </div>
+                <div className="mt-1 truncate text-xs text-gray-500">{item.relative_path || item.file_url}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                  <span>{formatSize(item.size)}</span>
+                  <span>{formatUpdatedAt(item.updated_at)}</span>
+                  {item.storage_source === 'local' && item.file_exists === false ? <span className="text-amber-400">Missing local file</span> : null}
+                </div>
+              </div>
+              <UploadPreview item={item} />
+            </div>
+            {!(item.storage_source === 'local' && item.file_exists === false) ? (
+              <div className="mt-4">
+                <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-medium text-[#ff676f] hover:text-white">
+                  Open
+                </a>
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      <div className="hidden divide-y divide-white/10 md:block">
         {items.map((item) => (
           <div key={`${item.storage_source || 'unknown'}:${item.relative_path || item.filename}`} className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 flex-1">
@@ -136,6 +166,7 @@ export default function UploadsPage() {
                 <Button
                   type="button"
                   variant="outline"
+                  className="h-12 rounded-2xl px-5 text-base font-semibold"
                   disabled={migrating}
                   onClick={async () => {
                     setMigrating(true)

@@ -46,7 +46,7 @@ export default function CategoriesPage() {
           <h1 className="text-3xl font-semibold text-white">Categories</h1>
           <p className="mt-1 text-sm text-gray-400">Manage category taxonomy and images.</p>
         </div>
-        <Button onClick={() => setCreating(true)}>New Category</Button>
+        <Button className="h-12 rounded-2xl px-5 text-base font-semibold" onClick={() => setCreating(true)}>New Category</Button>
       </div>
 
       <SearchFilterBar search={search} onSearchChange={setSearch} />
@@ -56,35 +56,53 @@ export default function CategoriesPage() {
       ) : items.length === 0 ? (
         <EmptyState title="No categories found" description="Create your first category." />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-white/[0.03]">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Slug</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/10">
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-4 text-white">{item.name}</td>
-                  <td className="px-4 py-4 text-sm text-gray-400">{item.slug}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setEditing(item)}>
-                        Edit
-                      </Button>
-                      <Button variant="destructive" onClick={() => setDeleting(item)}>
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
+        <>
+          <div className="space-y-3 md:hidden">
+            {items.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="text-base font-semibold text-white">{item.name}</div>
+                <div className="mt-1 text-sm text-gray-400">{item.slug}</div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="h-11 rounded-2xl text-sm" onClick={() => setEditing(item)}>
+                    Edit
+                  </Button>
+                  <Button variant="destructive" className="h-11 rounded-2xl text-sm" onClick={() => setDeleting(item)}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] md:block">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-white/[0.03]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Slug</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-4 text-white">{item.name}</td>
+                    <td className="px-4 py-4 text-sm text-gray-400">{item.slug}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" className="h-10 rounded-xl px-4" onClick={() => setEditing(item)}>
+                          Edit
+                        </Button>
+                        <Button variant="destructive" className="h-10 rounded-xl px-4" onClick={() => setDeleting(item)}>
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {(creating || editing) && (

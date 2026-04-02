@@ -21,15 +21,15 @@ export function Pagination({
   }
 
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-gray-400">
         Page {page} of {pages}
       </p>
       <div className="flex gap-2">
-        <Button variant="ghost" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+        <Button variant="ghost" className="h-11 rounded-2xl px-4" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
           Previous
         </Button>
-        <Button variant="ghost" disabled={page >= pages} onClick={() => goToPage(page + 1)}>
+        <Button variant="ghost" className="h-11 rounded-2xl px-4" disabled={page >= pages} onClick={() => goToPage(page + 1)}>
           Next
         </Button>
       </div>

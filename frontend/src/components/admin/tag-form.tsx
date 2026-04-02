@@ -47,13 +47,13 @@ export function TagForm({
       <Input label="Name" value={value.name || ''} onChange={(event) => setValue({ ...value, name: event.target.value })} />
       <Input label="Slug" value={value.slug || ''} onChange={(event) => setValue({ ...value, slug: event.target.value })} />
       <Textarea label="Description" value={value.description || ''} onChange={(event) => setValue({ ...value, description: event.target.value })} />
-      <div className="flex justify-end gap-3">
+      <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#111111]/95 p-3 backdrop-blur sm:flex-row sm:justify-end">
         {onCancel ? (
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <Button type="button" variant="ghost" className="h-12 rounded-2xl px-5 text-base" onClick={onCancel}>
             Cancel
           </Button>
         ) : null}
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" className="h-12 rounded-2xl px-5 text-base font-semibold" disabled={submitting}>
           {submitting ? 'Saving...' : 'Save Tag'}
         </Button>
       </div>
