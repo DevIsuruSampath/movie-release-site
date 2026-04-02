@@ -129,22 +129,43 @@ class SupabaseStorageService:
 
         self._bucket_cache.add(bucket)
 
-    def upload_bytes(self, *, bucket: str, path: str, content: bytes, content_type: str) -> str:
+    def upload_bytes(self, *, bucket: str, path: str, content: bytes, content_type: str, upsert: bool = False) -> str:
         base_url, _ = self._require_config()
         upload_url = f"{base_url}/storage/v1/object/{bucket}/{path}"
-        request_kwargs = {
-            "headers": {**self._headers(content_type=content_type), "x-upsert": "false"},
-            "data": content,
-        }
-        response = self._request("POST", upload_url, **request_kwargs)
-        if self._is_bucket_missing_response(response):
-            self.ensure_bucket(bucket)
+        upload_variants = (
+            {
+                "headers": {**self._headers(content_type=content_type), "x-upsert": "true" if upsert else "false"},
+                "data": content,
+            },
+            {
+                "headers": {**self._headers(), "x-upsert": "true" if upsert else "false"},
+                "files": {"file": (path, content, content_type)},
+            },
+        )
+        last_detail = "Unknown upload error"
+
+        for request_kwargs in upload_variants:
             response = self._request("POST", upload_url, **request_kwargs)
-        if response.status_code >= 400:
-            detail = self._extract_error_detail(response)
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage upload failed: {detail}")
-        self._bucket_cache.add(bucket)
-        return self.public_url(bucket, path)
+            if self._is_bucket_missing_response(response):
+                self.ensure_bucket(bucket)
+                response = self._request("POST", upload_url, **request_kwargs)
+            if response.status_code < 400:
+                self._bucket_cache.add(bucket)
+                return self.public_url(bucket, path)
+
+            last_detail = self._extract_error_detail(response)
+            if response.status_code not in {
+                status.HTTP_400_BAD_REQUEST,
+                status.HTTP_409_CONFLICT,
+                status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+            }:
+                break
+
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Supabase storage upload failed: {last_detail}",
+        )
 
     def list_objects(self, *, folder: str) -> list[StoredObject]:
         bucket = self.bucket_for_folder(folder)

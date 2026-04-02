@@ -245,6 +245,13 @@ export interface UploadOrphanReport {
   files: UploadFileReport[]
 }
 
+export interface UploadMigrationResult {
+  migrated: number
+  skipped_missing: number
+  failed: number
+  items: Array<Record<string, unknown>>
+}
+
 export interface UploadResponse {
   filename: string
   file_url: string

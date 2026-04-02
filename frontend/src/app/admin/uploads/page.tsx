@@ -6,7 +6,8 @@ import { Badge } from '@/components/admin/badge'
 import { EmptyState } from '@/components/admin/empty-state'
 import { LoadingSpinner } from '@/components/admin/loading-spinner'
 import api, { toAbsoluteUrl } from '@/lib/api'
-import type { UploadItem, UploadOrphanReport } from '@/types'
+import { Button } from '@/components/ui/button'
+import type { DashboardStats, UploadItem, UploadOrphanReport } from '@/types'
 
 function formatUpdatedAt(value?: number | string) {
   if (value === undefined || value === null) return 'Unknown'
@@ -67,34 +68,68 @@ export default function UploadsPage() {
   const [images, setImages] = useState<UploadItem[]>([])
   const [subtitles, setSubtitles] = useState<UploadItem[]>([])
   const [orphans, setOrphans] = useState<UploadOrphanReport | null>(null)
+  const [dashboard, setDashboard] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [migrating, setMigrating] = useState(false)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const [imageItems, subtitleItems, orphanReport, dashboardData] = await Promise.all([
+        api.listReferencedUploads('images'),
+        api.listReferencedUploads('subtitles'),
+        api.getUploadOrphans(),
+        api.getDashboard(),
+      ])
+      setImages(imageItems)
+      setSubtitles(subtitleItems)
+      setOrphans(orphanReport)
+      setDashboard(dashboardData)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function load() {
-      setLoading(true)
-      try {
-        const [imageItems, subtitleItems, orphanReport] = await Promise.all([
-          api.listReferencedUploads('images'),
-          api.listReferencedUploads('subtitles'),
-          api.getUploadOrphans(),
-        ])
-        setImages(imageItems)
-        setSubtitles(subtitleItems)
-        setOrphans(orphanReport)
-      } finally {
-        setLoading(false)
-      }
-    }
     void load()
   }, [])
 
   if (loading) return <LoadingSpinner label="Loading uploads..." />
 
+  const localReferenceCount = [...images, ...subtitles].filter((item) => item.storage_source === 'local').length
+
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <h1 className="text-3xl font-semibold text-white">Uploads</h1>
-        <p className="mt-1 text-sm text-gray-400">Inspect database-tracked images and subtitles, including whether each file points to local storage or Supabase.</p>
+        <div className="max-w-2xl space-y-3">
+          <p className="mt-1 text-sm text-gray-400">Inspect database-tracked images and subtitles, including whether each file points to local storage or Supabase.</p>
+          {dashboard?.upload_summary?.configured_backend === 'supabase' && localReferenceCount > 0 ? (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <p className="text-sm text-amber-100">
+                {localReferenceCount} referenced upload{localReferenceCount === 1 ? '' : 's'} still point to local storage because earlier Supabase uploads fell back locally.
+              </p>
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={migrating}
+                  onClick={async () => {
+                    setMigrating(true)
+                    try {
+                      await api.migrateLocalUploads()
+                      await load()
+                    } finally {
+                      setMigrating(false)
+                    }
+                  }}
+                >
+                  {migrating ? 'Migrating...' : 'Migrate local uploads to Supabase'}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

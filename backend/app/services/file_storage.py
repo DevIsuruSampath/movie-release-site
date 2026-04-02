@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 import logging
+import mimetypes
 from pathlib import Path, PurePosixPath
 from typing import Any
 from uuid import uuid4
@@ -327,6 +328,23 @@ def delete_managed_upload(file_url: str | None) -> bool:
     return False
 
 
+def _replace_referenced_upload_url(db: Session, reference_items: list[dict[str, Any]], new_file_url: str) -> None:
+    for item in reference_items:
+        entity = item.get("entity")
+        entity_id = item.get("entity_id")
+        field = item.get("field")
+        if not entity or not entity_id or not field:
+            continue
+        if entity == "movie":
+            db.query(Movie).filter(Movie.id == entity_id).update({field: new_file_url}, synchronize_session=False)
+        elif entity == "category":
+            db.query(Category).filter(Category.id == entity_id).update({field: new_file_url}, synchronize_session=False)
+        elif entity == "subtitle":
+            db.query(Subtitle).filter(Subtitle.id == entity_id).update({field: new_file_url}, synchronize_session=False)
+        elif entity == "movie_gallery":
+            db.query(MovieGallery).filter(MovieGallery.id == entity_id).update({field: new_file_url}, synchronize_session=False)
+
+
 def _is_upload_still_referenced(db: Session, file_url: str) -> bool:
     if db.query(Movie.id).filter(
         or_(
@@ -449,6 +467,76 @@ def list_referenced_uploads(db: Session, folder: str | None = None) -> list[dict
 
     items.sort(key=lambda item: (item["folder"], item["filename"]))
     return items
+
+
+def migrate_local_referenced_uploads_to_supabase(db: Session, folder: str | None = None) -> dict[str, Any]:
+    if settings.STORAGE_BACKEND != "supabase":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supabase storage is not enabled")
+
+    references = collect_upload_references(db)
+    results = {
+        "migrated": 0,
+        "skipped_missing": 0,
+        "failed": 0,
+        "items": [],
+    }
+
+    for key, reference_items in references.items():
+        storage_source, _, relative_path = key.partition(":")
+        if storage_source != "local" or not relative_path:
+            continue
+
+        inferred_folder = _folder_for_references(reference_items)
+        if folder and inferred_folder != folder:
+            continue
+
+        file_url = f"/uploads/{relative_path}"
+        local_path = resolve_local_upload_path(file_url)
+        if not local_path or not local_path.exists():
+            results["skipped_missing"] += 1
+            results["items"].append(
+                {
+                    "relative_path": relative_path,
+                    "status": "missing",
+                    "file_url": file_url,
+                }
+            )
+            continue
+
+        try:
+            bucket = supabase_storage.bucket_for_folder(inferred_folder)
+            content = local_path.read_bytes()
+            content_type = mimetypes.guess_type(local_path.name)[0] or "application/octet-stream"
+            public_url = supabase_storage.upload_bytes(
+                bucket=bucket,
+                path=local_path.name,
+                content=content,
+                content_type=content_type,
+                upsert=True,
+            )
+            _replace_referenced_upload_url(db, reference_items, public_url)
+            local_path.unlink(missing_ok=True)
+            results["migrated"] += 1
+            results["items"].append(
+                {
+                    "relative_path": relative_path,
+                    "status": "migrated",
+                    "file_url": public_url,
+                }
+            )
+        except Exception as exc:
+            logger.exception("Local upload migration to Supabase failed", extra={"relative_path": relative_path})
+            results["failed"] += 1
+            results["items"].append(
+                {
+                    "relative_path": relative_path,
+                    "status": "failed",
+                    "detail": str(exc),
+                }
+            )
+
+    db.commit()
+    return results
 
 
 def scan_orphaned_uploads(db: Session) -> dict[str, Any]:

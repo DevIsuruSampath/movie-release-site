@@ -5,7 +5,13 @@ from app.core.security import get_current_admin_user
 from app.db.database import get_db
 from app.models.user import User
 from app.services.audit_service import create_audit_log
-from app.services.file_storage import list_referenced_uploads, list_upload_items, save_upload, scan_orphaned_uploads
+from app.services.file_storage import (
+    list_referenced_uploads,
+    list_upload_items,
+    migrate_local_referenced_uploads_to_supabase,
+    save_upload,
+    scan_orphaned_uploads,
+)
 
 router = APIRouter()
 IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -97,3 +103,26 @@ def list_referenced_upload_items(
     if folder not in {None, "images", "subtitles"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
     return list_referenced_uploads(db, folder=folder)
+
+
+@router.post("/migrate-local")
+def migrate_local_uploads_to_supabase(
+    request: Request,
+    folder: str | None = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
+):
+    if folder not in {None, "images", "subtitles"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
+    payload = migrate_local_referenced_uploads_to_supabase(db, folder=folder)
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="migrate",
+        entity_type="upload",
+        description="Migrated local uploads to Supabase",
+        metadata_json={"folder": folder, **payload},
+    )
+    db.commit()
+    return payload

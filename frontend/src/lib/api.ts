@@ -28,6 +28,12 @@ const API_URL =
       process.env.NEXT_PUBLIC_API_BASE_URL ||
       'http://localhost:3000'
 
+const ASSET_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_URL ||
+  API_URL
+
 type Primitive = string | number | boolean
 type PaginatedItemsResponse<TItem> = { items: TItem[]; pages: number }
 
@@ -49,7 +55,8 @@ function getAccessToken() {
 function toAbsoluteUrl(path?: string | null) {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://')) return path
-  return `${API_URL}${path.startsWith('/') ? path : `/${path}`}`
+  const baseUrl = path.startsWith('/uploads/') ? ASSET_BASE_URL : API_URL
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
 }
 
 class ApiError extends Error {
@@ -260,6 +267,14 @@ class ApiClient {
 
   getUploadOrphans() {
     return this.get<UploadOrphanReport>('/api/v1/uploads/orphans').then((response) => response.data)
+  }
+
+  migrateLocalUploads(folder?: 'images' | 'subtitles') {
+    return this.post<{ migrated: number; skipped_missing: number; failed: number; items: Array<Record<string, unknown>> }>(
+      '/api/v1/uploads/migrate-local',
+      undefined,
+      { params: folder ? { folder } : {} }
+    ).then((response) => response.data)
   }
 }
 
