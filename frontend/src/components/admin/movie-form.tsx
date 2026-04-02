@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
-import type { Category, MediaStorageSummaryItem, Movie, MoviePayload, Tag } from '@/types'
+import type { Category, Movie, MoviePayload, Tag } from '@/types'
 
 const initialPayload: MoviePayload = {
   title: '',
@@ -122,9 +122,6 @@ export function MovieForm({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const mediaStorage = movie?.media_storage_summary || {}
-  const storageFor = (role: string): string | null => (mediaStorage[role] as MediaStorageSummaryItem | undefined)?.storage_source || null
-
   useEffect(() => {
     setForm(toPayload(movie))
   }, [movie])
@@ -209,10 +206,10 @@ export function MovieForm({
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <h2 className="mb-4 text-lg font-semibold text-white">Media</h2>
             <div className="grid gap-5 md:grid-cols-2">
-              <UploadField label="Poster" value={form.poster_url || ''} onChange={(poster_url) => setForm({ ...form, poster_url })} mediaRole="poster" movieId={movie?.id} storageSource={storageFor('poster')} />
-              <UploadField label="Backdrop" value={form.backdrop_url || ''} onChange={(backdrop_url) => setForm({ ...form, backdrop_url })} mediaRole="backdrop" movieId={movie?.id} storageSource={storageFor('backdrop')} />
-              <UploadField label="Thumbnail" value={form.thumbnail_url || ''} onChange={(thumbnail_url) => setForm({ ...form, thumbnail_url })} mediaRole="thumbnail" movieId={movie?.id} storageSource={storageFor('thumbnail')} />
-              <UploadField label="Open Graph Image" value={form.open_graph_image || ''} onChange={(open_graph_image) => setForm({ ...form, open_graph_image })} mediaRole="other" movieId={movie?.id} storageSource={storageFor('other')} />
+              <UploadField label="Poster" value={form.poster_url || ''} onChange={(poster_url) => setForm({ ...form, poster_url })} mediaRole="poster" movieId={movie?.id} />
+              <UploadField label="Backdrop" value={form.backdrop_url || ''} onChange={(backdrop_url) => setForm({ ...form, backdrop_url })} mediaRole="backdrop" movieId={movie?.id} />
+              <UploadField label="Thumbnail" value={form.thumbnail_url || ''} onChange={(thumbnail_url) => setForm({ ...form, thumbnail_url })} mediaRole="thumbnail" movieId={movie?.id} />
+              <UploadField label="Open Graph Image" value={form.open_graph_image || ''} onChange={(open_graph_image) => setForm({ ...form, open_graph_image })} mediaRole="other" movieId={movie?.id} />
             </div>
           </section>
 

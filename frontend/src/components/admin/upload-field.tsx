@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 
-import { Badge } from '@/components/admin/badge'
 import api, { toAbsoluteUrl } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,32 +12,42 @@ export function UploadField({
   onChange,
   mediaRole,
   movieId,
-  storageSource,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   mediaRole?: string
   movieId?: number
-  storageSource?: string | null
 }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
-  const [currentStorageSource, setCurrentStorageSource] = useState(storageSource || '')
+  const [manualMode, setManualMode] = useState(false)
 
   useEffect(() => {
-    setCurrentStorageSource(storageSource || '')
-  }, [storageSource])
+    if (!value) {
+      setManualMode(false)
+    }
+  }, [value])
 
   return (
     <div className="space-y-3">
-      <Input label={label} value={value} onChange={(event) => onChange(event.target.value)} placeholder="/uploads/file.webp" />
-      {currentStorageSource ? (
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <Badge variant={currentStorageSource === 'supabase' ? 'success' : 'default'}>
-            {currentStorageSource.replace('_', ' ')}
-          </Badge>
+          <div className="text-sm font-medium text-gray-200">{label}</div>
+          <div className="text-xs text-gray-500">
+            {value ? 'Image attached' : 'Upload an image or paste a manual URL'}
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setManualMode((current) => !current)}
+          className="text-xs font-medium text-gray-400 hover:text-white"
+        >
+          {manualMode ? 'Hide URL' : 'Edit URL'}
+        </button>
+      </div>
+      {manualMode ? (
+        <Input label={`${label} URL`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="/uploads/file.webp" />
       ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <label className="inline-flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-gray-300 hover:bg-white/10">
@@ -54,7 +63,7 @@ export function UploadField({
                   try {
                     const response = await api.uploadImage(file, { media_role: mediaRole, movie_id: movieId })
                     onChange(response.file_url)
-                    setCurrentStorageSource(response.storage_source || '')
+                    setManualMode(false)
                   } catch (uploadError) {
                     setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
                   } finally {
@@ -65,6 +74,11 @@ export function UploadField({
               />
           {uploading ? 'Uploading...' : 'Upload image'}
         </label>
+        {value ? (
+          <Button type="button" variant="ghost" onClick={() => onChange('')}>
+            Remove image
+          </Button>
+        ) : null}
         {value ? (
           <a href={toAbsoluteUrl(value)} target="_blank" className="text-sm text-[#ff676f]" rel="noreferrer">
             Open preview

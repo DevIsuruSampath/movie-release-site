@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
-import { Badge } from '@/components/admin/badge'
 import { LoadingSpinner } from '@/components/admin/loading-spinner'
 import { MovieForm } from '@/components/admin/movie-form'
 import api from '@/lib/api'
@@ -67,24 +66,6 @@ export default function EditMoviePage() {
         <h1 className="text-3xl font-semibold text-white">Edit Movie</h1>
         <p className="mt-1 text-sm text-gray-400">Update metadata, assets, publishing, and related links.</p>
       </div>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-          <div className="text-xs uppercase tracking-wide text-gray-500">Media Storage</div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Object.entries(movie.media_storage_summary || {}).length === 0 ? (
-              <span className="text-sm text-gray-400">No tracked media assets</span>
-            ) : (
-              Object.entries(movie.media_storage_summary || {}).map(([role, item]) => (
-                <Badge key={role} variant={item.storage_source === 'supabase' ? 'success' : 'default'}>
-                  {role}: {item.storage_source}
-                </Badge>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
       <MovieForm movie={movie} submitLabel="Save Changes" />
     </div>
   )
