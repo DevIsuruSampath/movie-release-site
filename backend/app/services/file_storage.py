@@ -133,7 +133,10 @@ async def save_upload(
         except HTTPException as exc:
             if exc.status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
                 raise
-            logger.exception("Supabase upload failed, falling back to local storage", extra={"folder": folder, "filename": filename})
+            logger.exception(
+                "Supabase upload failed, falling back to local storage",
+                extra={"upload_folder": folder, "upload_name": filename},
+            )
             await file.seek(0)
 
     return await _save_local_upload(file=file, folder=folder, filename=filename, max_bytes=max_bytes)
@@ -156,7 +159,7 @@ def list_upload_items(folder: str) -> list[dict[str, Any]]:
         except HTTPException as exc:
             if exc.status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
                 raise
-            logger.exception("Supabase list failed, falling back to local uploads", extra={"folder": folder})
+            logger.exception("Supabase list failed, falling back to local uploads", extra={"upload_folder": folder})
 
     ensure_upload_directories()
     if folder not in UPLOAD_DIRECTORIES:
