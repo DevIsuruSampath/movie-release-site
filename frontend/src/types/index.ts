@@ -202,6 +202,13 @@ export interface DashboardStats {
   total_categories: number
   total_tags: number
   total_subtitles: number
+  upload_summary: {
+    configured_backend: string
+    images_count: number
+    subtitles_count: number
+    total_count: number
+    storage_sources: string[]
+  }
   recent_movies: Array<Pick<Movie, 'id' | 'title' | 'slug' | 'poster_url' | 'status' | 'is_published' | 'created_at'>>
   recent_activity: AuditLog[]
 }
@@ -210,7 +217,9 @@ export interface UploadItem {
   filename: string
   file_url: string
   size: number
-  updated_at?: number
+  updated_at?: number | string
+  relative_path?: string
+  storage_source?: string
 }
 
 export interface UploadReference {

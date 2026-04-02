@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.config import settings
 from app.core.security import get_current_admin_user
 from app.db.database import get_db
 from app.models.audit import AuditLog
@@ -13,8 +14,23 @@ from app.models.subtitle import Subtitle
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.movie import MovieDashboardItem
+from app.services.file_storage import list_upload_items
 
 router = APIRouter()
+
+
+def _summarize_uploads() -> dict[str, object]:
+    images = list_upload_items("images")
+    subtitles = list_upload_items("subtitles")
+    all_items = [*images, *subtitles]
+    storage_sources = sorted({str(item.get("storage_source") or "unknown") for item in all_items})
+    return {
+        "configured_backend": settings.STORAGE_BACKEND,
+        "images_count": len(images),
+        "subtitles_count": len(subtitles),
+        "total_count": len(all_items),
+        "storage_sources": storage_sources,
+    }
 
 
 @router.get("/dashboard")
@@ -48,6 +64,7 @@ def get_dashboard(
         .limit(10)
         .all()
     )
+    upload_summary = _summarize_uploads()
     return {
         "total_movies": movie_totals.total_movies or 0,
         "total_published_movies": movie_totals.total_published_movies or 0,
@@ -57,6 +74,7 @@ def get_dashboard(
         "total_categories": movie_totals.total_categories or 0,
         "total_tags": movie_totals.total_tags or 0,
         "total_subtitles": movie_totals.total_subtitles or 0,
+        "upload_summary": upload_summary,
         "recent_movies": [MovieDashboardItem.model_validate(movie).model_dump() for movie in recent_movies],
         "recent_activity": [
             {

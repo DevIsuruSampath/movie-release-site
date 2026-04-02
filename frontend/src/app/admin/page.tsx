@@ -55,7 +55,43 @@ export default function DashboardPage() {
         <StatCard label="Categories" value={data.total_categories} />
         <StatCard label="Tags" value={data.total_tags} />
         <StatCard label="Subtitles" value={data.total_subtitles} />
+        <StatCard label="Uploads" value={data.upload_summary?.total_count || 0} />
       </div>
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Upload Storage</h2>
+            <p className="mt-1 text-sm text-gray-400">
+              Configured backend: <span className="text-white">{data.upload_summary?.configured_backend || 'unknown'}</span>
+            </p>
+          </div>
+          <Link href="/admin/uploads">
+            <Button variant="outline">Open Uploads</Button>
+          </Link>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {(data.upload_summary?.storage_sources || []).map((source) => (
+            <Badge key={source} variant={source === 'supabase' ? 'success' : 'default'}>
+              {source}
+            </Badge>
+          ))}
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+            <div className="text-xs uppercase tracking-wide text-gray-500">Images</div>
+            <div className="mt-2 text-2xl font-semibold text-white">{data.upload_summary?.images_count || 0}</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+            <div className="text-xs uppercase tracking-wide text-gray-500">Subtitles</div>
+            <div className="mt-2 text-2xl font-semibold text-white">{data.upload_summary?.subtitles_count || 0}</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+            <div className="text-xs uppercase tracking-wide text-gray-500">Total uploads</div>
+            <div className="mt-2 text-2xl font-semibold text-white">{data.upload_summary?.total_count || 0}</div>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
