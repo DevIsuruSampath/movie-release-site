@@ -109,7 +109,6 @@ export default function MoviesPage() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Movie</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Storage</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Categories</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Actions</th>
                 </tr>
@@ -129,32 +128,11 @@ export default function MoviesPage() {
                         <div>
                           <div className="font-medium text-white">{movie.title}</div>
                           <div className="text-sm text-gray-500">{movie.release_year || 'No year'} • {movie.slug}</div>
-                          {movie.media_storage_summary?.poster?.storage_source ? (
-                            <div className="mt-2">
-                              <Badge variant={movie.media_storage_summary.poster.storage_source === 'supabase' ? 'success' : 'default'}>
-                                {movie.media_storage_summary.poster.storage_source}
-                              </Badge>
-                            </div>
-                          ) : null}
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-4">
                       <Badge variant={movie.is_published ? 'success' : 'warning'}>{movie.status}</Badge>
-                    </td>
-                    <td className="px-4 py-4">
-                      {Object.keys(movie.media_storage_summary || {}).length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(movie.media_storage_summary || {}).map(([role, item]) => (
-                            <Badge
-                              key={role}
-                              variant={item.storage_source === 'supabase' ? 'success' : 'default'}
-                            >
-                              {role}: {item.storage_source}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : <span className="text-sm text-gray-500">No tracked uploads</span>}
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-300">
                       {movie.categories.map((item) => item.name).join(', ') || 'None'}
