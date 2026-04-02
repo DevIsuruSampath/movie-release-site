@@ -9,6 +9,9 @@ async function getFeaturedMovies() {
   try {
     const response = await api.get<MovieListResponse>('/api/v1/movies', {
       params: { is_published: true, featured: true, limit: 12 },
+      auth: false,
+      cacheMode: 'force-cache',
+      revalidateSeconds: 180,
     })
     return response.data.items || []
   } catch (error) {
@@ -20,7 +23,10 @@ async function getFeaturedMovies() {
 async function getLatestMovies() {
   try {
     const response = await api.get<MovieListResponse>('/api/v1/movies', {
-      params: { is_published: true, limit: 8 },
+      params: { is_published: true, limit: 8, sort: 'latest' },
+      auth: false,
+      cacheMode: 'force-cache',
+      revalidateSeconds: 180,
     })
     return response.data.items || []
   } catch (error) {
@@ -29,8 +35,27 @@ async function getLatestMovies() {
   }
 }
 
+async function getSubtitleReadyMovies() {
+  try {
+    const response = await api.get<MovieListResponse>('/api/v1/movies', {
+      params: { is_published: true, has_subtitles: true, limit: 8, sort: 'recently_updated' },
+      auth: false,
+      cacheMode: 'force-cache',
+      revalidateSeconds: 180,
+    })
+    return response.data.items || []
+  } catch (error) {
+    console.error('Failed to fetch subtitle-ready movies:', error)
+    return []
+  }
+}
+
 export default async function HomePage() {
-  const [featuredMovies, latestMovies] = await Promise.all([getFeaturedMovies(), getLatestMovies()])
+  const [featuredMovies, latestMovies, subtitleReadyMovies] = await Promise.all([
+    getFeaturedMovies(),
+    getLatestMovies(),
+    getSubtitleReadyMovies(),
+  ])
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -53,16 +78,16 @@ export default async function HomePage() {
             <div className="text-white space-y-6 md:space-y-8 animate-slide-up">
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full glass border border-white/20">
                 <span className="status-dot"></span>
-                <span className="text-xs sm:text-sm font-medium">Now Streaming</span>
+                <span className="text-xs sm:text-sm font-medium">Release Tracker + Discovery</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold leading-tight">
-                Latest Movie
-                <span className="text-gradient"> Releases</span>
+                Fresh Releases,
+                <span className="text-gradient"> Subtitle-Ready Picks</span>
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-xl leading-relaxed">
-                Discover and stream the latest movies in stunning quality. Your ultimate destination for premium entertainment.
+                A curated movie discovery portal for newly published titles, fast browsing, and subtitle-ready viewing decisions.
               </p>
 
               <div className="flex flex-wrap gap-3 sm:gap-4">
@@ -84,16 +109,16 @@ export default async function HomePage() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4 sm:gap-6 md:gap-8 pt-6 md:pt-8">
                 <div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-gold">1000+</div>
-                  <div className="text-xs sm:text-sm text-gray-400">Movies</div>
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-gold">{latestMovies.length || 0}</div>
+                  <div className="text-xs sm:text-sm text-gray-400">Latest Tracked</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-gold">50+</div>
-                  <div className="text-xs sm:text-sm text-gray-400">Categories</div>
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-gold">{featuredMovies.length || 0}</div>
+                  <div className="text-xs sm:text-sm text-gray-400">Featured Picks</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-gold">4K</div>
-                  <div className="text-xs sm:text-sm text-gray-400">Quality</div>
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-gradient-gold">{subtitleReadyMovies.length || 0}</div>
+                  <div className="text-xs sm:text-sm text-gray-400">Subtitle Ready</div>
                 </div>
               </div>
             </div>
@@ -251,6 +276,60 @@ export default async function HomePage() {
                 View All Movies
               </Button>
             </Link>
+          </div>
+        </section>
+      )}
+
+      {subtitleReadyMovies.length > 0 && (
+        <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-8 sm:mb-10">
+            <div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white section-title">
+                Subtitle-Ready Picks
+              </h2>
+              <p className="text-gray-400 mt-2 sm:mt-3 text-sm sm:text-base">Recently updated titles with subtitle support</p>
+            </div>
+            <Link href="/search?q=subtitles" className="hidden sm:flex items-center gap-2 text-[#e50914] hover:text-white transition-colors font-medium">
+              Explore Search
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+            {subtitleReadyMovies.map((movie) => (
+              <Link key={movie.id} href={`/movies/${movie.slug}`} className="group">
+                <div className="card-hover bg-[#141414] rounded-xl overflow-hidden">
+                  <div className="movie-poster relative">
+                    {movie.poster_url || movie.thumbnail_url || movie.backdrop_url ? (
+                      <img
+                        src={toAbsoluteUrl(movie.poster_url || movie.thumbnail_url || movie.backdrop_url)}
+                        alt={movie.title}
+                        className="card-image w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-white/5 text-sm text-gray-500">
+                        No poster
+                      </div>
+                    )}
+                    <div className="absolute left-2 top-2 rounded-md bg-black/75 px-2 py-1 text-[11px] font-semibold text-cyan-200">
+                      Subtitles
+                    </div>
+                  </div>
+                  <div className="p-3 sm:p-4">
+                    <h3 className="text-white font-semibold text-xs sm:text-sm mb-2 line-clamp-2 group-hover:text-[#e50914] transition-colors">
+                      {movie.title}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                      {movie.release_year ? <span className="px-2 py-0.5 bg-white/10 rounded-full">{movie.release_year}</span> : null}
+                      {movie.language ? <span className="px-2 py-0.5 bg-white/10 rounded-full">{movie.language}</span> : null}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}

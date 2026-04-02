@@ -9,7 +9,6 @@ import type { AuthResponse, User } from '@/types'
 interface AuthState {
   user: User | null
   accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   isAdmin: boolean
   hydrated: boolean
@@ -27,7 +26,6 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       isAdmin: false,
       hydrated: false,
@@ -37,13 +35,13 @@ export const useAuthStore = create<AuthState>()(
 
       setSession: (payload) => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('access_token', payload.access_token)
-          localStorage.setItem('refresh_token', payload.refresh_token)
+          sessionStorage.setItem('access_token', payload.access_token)
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
         }
         set({
           user: payload.user,
           accessToken: payload.access_token,
-          refreshToken: payload.refresh_token,
           isAuthenticated: true,
           isAdmin: payload.user.is_admin || payload.user.is_superuser,
         })
@@ -62,10 +60,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refresh: async () => {
-        const refreshToken = get().refreshToken || (typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null)
-        if (!refreshToken) return false
         try {
-          const response = await api.refresh(refreshToken)
+          const response = await api.refresh('')
           get().setSession(response)
           return true
         } catch {
@@ -103,13 +99,14 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('access_token')
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
         }
+        void api.logout().catch(() => undefined)
         set({
           user: null,
           accessToken: null,
-          refreshToken: null,
           isAuthenticated: false,
           isAdmin: false,
           loading: false,
@@ -123,8 +120,6 @@ export const useAuthStore = create<AuthState>()(
       },
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         isAdmin: state.isAdmin,
       }),

@@ -3,7 +3,7 @@ from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from slugify import slugify
-from sqlalchemy import func
+from sqlalchemy import case, desc, func, or_
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import get_current_admin_user
@@ -37,6 +37,19 @@ def _movie_query(db: Session):
         selectinload(Movie.download_links),
         selectinload(Movie.gallery),
     )
+
+
+def _apply_movie_sort(query, sort: str | None):
+    normalized_sort = (sort or "latest").strip().lower()
+    if normalized_sort == "recently_updated":
+        return query.order_by(Movie.updated_at.desc(), Movie.created_at.desc())
+    if normalized_sort == "rating":
+        return query.order_by(Movie.imdb_rating.desc().nullslast(), Movie.created_at.desc())
+    if normalized_sort == "year":
+        return query.order_by(Movie.release_year.desc().nullslast(), Movie.created_at.desc())
+    if normalized_sort == "title":
+        return query.order_by(Movie.title.asc())
+    return query.order_by(desc(func.coalesce(Movie.published_at, Movie.created_at)))
 
 
 def _resolve_slug(db: Session, raw_slug: str, movie_id: int | None = None) -> str:
@@ -200,24 +213,44 @@ def list_movies(
     limit: int = Query(20, ge=1, le=100),
     search: str | None = Query(None),
     category: str | None = Query(None),
+    tag: str | None = Query(None),
     year: int | None = Query(None),
     language: str | None = Query(None),
+    quality: str | None = Query(None),
+    has_subtitles: bool | None = Query(None),
     status_filter: str | None = Query(None, alias="status"),
     is_published: bool | None = Query(None),
     featured: bool | None = Query(None),
+    sort: str | None = Query("latest"),
     admin_view: bool = Query(False),
     db: Session = Depends(get_db),
 ):
     query = _movie_query(db)
     if category:
         query = query.filter(Movie.categories.any(Category.slug == category))
+    if tag:
+        query = query.filter(Movie.tags.any(Tag.slug == tag))
     if year:
         query = query.filter(Movie.release_year == year)
     if language:
         query = query.filter(Movie.language == language)
+    if quality:
+        query = query.filter(Movie.quality == quality)
+    if has_subtitles is not None:
+        if has_subtitles:
+            query = query.filter(Movie.subtitles.any())
+        else:
+            query = query.filter(~Movie.subtitles.any())
     normalized_search = _normalize_search_term(search)
     if normalized_search:
-        query = query.filter(Movie.title.ilike(f"%{normalized_search}%"))
+        query = query.filter(
+            or_(
+                Movie.title.ilike(f"%{normalized_search}%"),
+                Movie.original_title.ilike(f"%{normalized_search}%"),
+                Movie.short_description.ilike(f"%{normalized_search}%"),
+                Movie.description.ilike(f"%{normalized_search}%"),
+            )
+        )
     if status_filter:
         query = query.filter(Movie.status == status_filter)
     if is_published is not None:
@@ -229,7 +262,7 @@ def list_movies(
 
     total = query.with_entities(func.count(Movie.id)).scalar() or 0
     items = (
-        query.order_by(Movie.created_at.desc())
+        _apply_movie_sort(query, sort)
         .offset((page - 1) * limit)
         .limit(limit)
         .all()
@@ -240,6 +273,32 @@ def list_movies(
         page=page,
         pages=ceil(total / limit) if total else 1,
     )
+
+
+@router.get("/{slug}/related", response_model=list[MovieResponse])
+def get_related_movies(
+    slug: str,
+    limit: int = Query(6, ge=1, le=12),
+    db: Session = Depends(get_db),
+):
+    movie = _movie_query(db).filter(Movie.slug == slug, Movie.is_published.is_(True)).first()
+    if not movie:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+
+    category_ids = [category.id for category in movie.categories]
+    tag_ids = [tag.id for tag in movie.tags]
+    query = _movie_query(db).filter(Movie.id != movie.id, Movie.is_published.is_(True))
+    if category_ids or tag_ids:
+        relevance_score = (
+            case((Movie.categories.any(Category.id.in_(category_ids)), 2), else_=0)
+            + case((Movie.tags.any(Tag.id.in_(tag_ids)), 1), else_=0)
+            + case((Movie.language == movie.language, 1), else_=0)
+            + case((Movie.quality == movie.quality, 1), else_=0)
+        )
+        query = query.order_by(relevance_score.desc(), desc(func.coalesce(Movie.published_at, Movie.created_at)))
+    else:
+        query = _apply_movie_sort(query, "latest")
+    return query.limit(limit).all()
 
 
 @router.get("/id/{movie_id}", response_model=MovieResponse)

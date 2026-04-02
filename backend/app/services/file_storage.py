@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from io import BytesIO
 import logging
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -7,6 +8,7 @@ from uuid import uuid4
 
 import aiofiles
 from fastapi import HTTPException, UploadFile, status
+from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -26,6 +28,12 @@ UPLOAD_DIRECTORIES = {
     "images": IMAGE_DIR,
     "subtitles": SUBTITLE_DIR,
     "temp": TEMP_DIR,
+}
+IMAGE_ROLE_DIMENSIONS = {
+    "poster": (1200, 1800),
+    "backdrop": (1920, 1080),
+    "thumbnail": (640, 960),
+    "other": (settings.IMAGE_MAX_WIDTH, settings.IMAGE_MAX_HEIGHT),
 }
 
 
@@ -91,12 +99,101 @@ async def _save_local_upload(*, file: UploadFile, folder: str, filename: str, ma
     }
 
 
+async def _save_local_bytes(
+    *,
+    content: bytes,
+    folder: str,
+    filename: str,
+    content_type: str,
+) -> dict[str, Any]:
+    ensure_upload_directories(force=True)
+    target = UPLOAD_DIRECTORIES[folder] / filename
+    async with aiofiles.open(target, "wb") as output:
+        await output.write(content)
+
+    return {
+        "filename": filename,
+        "file_url": build_public_upload_url(folder, filename),
+        "local_file_path": str(target),
+        "relative_path": f"{folder}/{filename}",
+        "size": len(content),
+        "content_type": content_type,
+        "storage_source": "local",
+    }
+
+
+async def _read_upload_bytes(file: UploadFile, *, max_bytes: int) -> bytes:
+    content = await file.read()
+    if len(content) > max_bytes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds maximum size")
+    return content
+
+
+def _validate_subtitle_content(content: bytes, extension: str) -> None:
+    decoded: str | None = None
+    for encoding in ("utf-8-sig", "utf-16", "latin-1"):
+        try:
+            decoded = content.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    if decoded is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Subtitle file is not valid text")
+
+    lowered = decoded.lower()
+    if extension == ".vtt" and "webvtt" not in lowered:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid VTT subtitle file")
+    if extension == ".srt" and "-->" not in decoded:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid SRT subtitle file")
+    if extension == ".ass" and "[script info]" not in lowered and "[events]" not in lowered:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ASS subtitle file")
+
+
+def _optimize_image_content(
+    *,
+    content: bytes,
+    extension: str,
+    content_type: str | None,
+    media_role: str,
+) -> tuple[bytes, str, str]:
+    try:
+        with Image.open(BytesIO(content)) as verification_image:
+            verification_image.verify()
+    except (UnidentifiedImageError, OSError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is not a valid image") from exc
+
+    try:
+        with Image.open(BytesIO(content)) as image:
+            normalized = ImageOps.exif_transpose(image)
+            if normalized.format == "GIF":
+                return content, extension, content_type or "image/gif"
+
+            width_limit, height_limit = IMAGE_ROLE_DIMENSIONS.get(media_role, IMAGE_ROLE_DIMENSIONS["other"])
+            target_image = normalized.convert("RGBA")
+            target_image.thumbnail((width_limit, height_limit), Image.Resampling.LANCZOS)
+
+            output = BytesIO()
+            target_image.save(
+                output,
+                format="WEBP",
+                quality=settings.IMAGE_WEBP_QUALITY,
+                method=6,
+                optimize=True,
+            )
+            return output.getvalue(), ".webp", "image/webp"
+    except HTTPException:
+        raise
+    except OSError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not process uploaded image") from exc
+
+
 async def save_upload(
     file: UploadFile,
     *,
     folder: str,
     allowed_extensions: set[str],
     allowed_mime_types: set[str],
+    media_role: str = "other",
 ) -> dict[str, Any]:
     if folder not in UPLOAD_DIRECTORIES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
@@ -109,25 +206,37 @@ async def save_upload(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
 
     max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-    filename = f"{uuid4().hex}{extension}"
+    content_type = file.content_type or "application/octet-stream"
+
+    if folder == "images":
+        content = await _read_upload_bytes(file, max_bytes=max_bytes)
+        content, extension, content_type = _optimize_image_content(
+            content=content,
+            extension=extension,
+            content_type=content_type,
+            media_role=media_role,
+        )
+        filename = f"{uuid4().hex}{extension}"
+    else:
+        content = await _read_upload_bytes(file, max_bytes=max_bytes)
+        _validate_subtitle_content(content, extension)
+        filename = f"{uuid4().hex}{extension}"
+
     if settings.STORAGE_BACKEND == "supabase":
         try:
-            content = await file.read()
-            if len(content) > max_bytes:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds maximum size")
             bucket = supabase_storage.bucket_for_folder(folder)
             file_url = supabase_storage.upload_bytes(
                 bucket=bucket,
                 path=filename,
                 content=content,
-                content_type=file.content_type or "application/octet-stream",
+                content_type=content_type,
             )
             return {
                 "filename": filename,
                 "file_url": file_url,
                 "relative_path": f"{bucket}/{filename}",
                 "size": len(content),
-                "content_type": file.content_type,
+                "content_type": content_type,
                 "storage_source": "supabase",
             }
         except HTTPException as exc:
@@ -137,8 +246,10 @@ async def save_upload(
                 "Supabase upload failed, falling back to local storage",
                 extra={"upload_folder": folder, "upload_name": filename},
             )
-            await file.seek(0)
-
+    if folder == "images":
+        return await _save_local_bytes(content=content, folder=folder, filename=filename, content_type=content_type)
+    if folder == "subtitles":
+        return await _save_local_bytes(content=content, folder=folder, filename=filename, content_type=content_type)
     return await _save_local_upload(file=file, folder=folder, filename=filename, max_bytes=max_bytes)
 
 

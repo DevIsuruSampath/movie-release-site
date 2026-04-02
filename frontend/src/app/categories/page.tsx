@@ -7,7 +7,11 @@ import Footer from '@/components/footer'
 
 async function getAllCategories() {
   try {
-    return await fetchAllPaginated<Category>('/api/v1/categories', {}, 200)
+    return await fetchAllPaginated<Category>('/api/v1/categories', {}, 200, {
+      auth: false,
+      cacheMode: 'force-cache',
+      revalidateSeconds: 300,
+    })
   } catch (error) {
     console.error('Failed to fetch categories:', error)
     return []

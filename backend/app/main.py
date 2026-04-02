@@ -1,5 +1,9 @@
+from time import perf_counter
+from uuid import uuid4
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.admin import router as admin_router
@@ -18,6 +22,25 @@ from app.services.file_storage import ensure_upload_directories
 
 ensure_upload_directories()
 
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        request_id = request.headers.get("x-request-id") or uuid4().hex
+        start = perf_counter()
+        response = await call_next(request)
+        duration_ms = (perf_counter() - start) * 1000
+        response.headers["X-Request-Id"] = request_id
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        if request.url.path.startswith("/uploads/"):
+            response.headers.setdefault("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800")
+        elif request.url.path.startswith("/api/"):
+            response.headers.setdefault("Cache-Control", "no-store")
+        response.headers.setdefault("Server-Timing", f"app;dur={duration_ms:.1f}")
+        return response
+
 app = FastAPI(
     title="Movie Release API",
     description="Backend API for movie release website",
@@ -25,12 +48,14 @@ app = FastAPI(
     on_startup=[ensure_upload_directories, init_db],
 )
 
+app.add_middleware(SecurityHeadersMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-Request-Id"],
 )
 
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")

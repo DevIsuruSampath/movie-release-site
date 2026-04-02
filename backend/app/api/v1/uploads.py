@@ -28,6 +28,7 @@ async def upload_image(
         folder="images",
         allowed_extensions=IMAGE_EXTENSIONS,
         allowed_mime_types=IMAGE_TYPES,
+        media_role=media_role,
     )
     create_audit_log(
         db,

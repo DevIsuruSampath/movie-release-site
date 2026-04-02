@@ -41,6 +41,10 @@ def _build_token(data: dict, expires_delta: timedelta, token_type: str) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+def refresh_cookie_max_age_seconds() -> int:
+    return settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     return _build_token(
         data,

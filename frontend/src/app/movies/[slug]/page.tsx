@@ -75,6 +75,20 @@ async function getMovie(slug: string): Promise<Movie | null> {
   }
 }
 
+async function getRelatedMovies(slug: string): Promise<Movie[]> {
+  try {
+    return await api
+      .get<Movie[]>(`/api/v1/movies/${slug}/related`, {
+        auth: false,
+        cacheMode: 'force-cache',
+        revalidateSeconds: 180,
+      })
+      .then((response) => response.data || [])
+  } catch {
+    return []
+  }
+}
+
 function buildMetadata(movie: Movie): Metadata {
   const title = movie.meta_title || movie.title
   const description = movie.meta_description || movie.short_description || movie.description || `Watch ${movie.title}`
@@ -174,7 +188,7 @@ function PosterImage({ src, alt }: { src: string; alt: string }) {
 
 export default async function MovieDetailsPage({ params }: MoviePageProps) {
   const { slug } = await params
-  const movie = await getMovie(slug)
+  const [movie, relatedMovies] = await Promise.all([getMovie(slug), getRelatedMovies(slug)])
 
   if (!movie) {
     notFound()
@@ -339,6 +353,48 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
         </div>
 
         <div className="mt-12">
+          {relatedMovies.length > 0 ? (
+            <section className="mb-10">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Related Titles</h2>
+                  <p className="text-sm text-gray-400">More picks based on shared categories, tags, language, and quality</p>
+                </div>
+                <Link href="/movies" className="text-sm font-medium text-[#e50914] hover:text-white">
+                  Browse all
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                {relatedMovies.map((relatedMovie) => {
+                  const relatedPoster = relatedMovie.poster_url || relatedMovie.thumbnail_url || relatedMovie.backdrop_url
+                  return (
+                    <Link key={relatedMovie.id} href={`/movies/${relatedMovie.slug}`} className="group">
+                      <div className="overflow-hidden rounded-xl bg-[#141414]">
+                        {relatedPoster ? (
+                          <img
+                            src={toAbsoluteUrl(relatedPoster)}
+                            alt={relatedMovie.title}
+                            className="aspect-[2/3] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="flex aspect-[2/3] w-full items-center justify-center bg-white/5 text-sm text-gray-500">
+                            No poster
+                          </div>
+                        )}
+                        <div className="p-3">
+                          <h3 className="line-clamp-2 text-sm font-semibold text-white group-hover:text-[#e50914]">
+                            {relatedMovie.title}
+                          </h3>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
           <Link href="/movies">
             <Button variant="ghost" className="text-gray-400 hover:text-white hover:bg-white/5 rounded-full">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

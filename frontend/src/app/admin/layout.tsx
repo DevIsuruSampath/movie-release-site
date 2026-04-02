@@ -34,8 +34,9 @@ export default function AdminLayout({
       router.replace('/admin/login')
       return
     }
-    if (isAuthenticated && isAdmin && accessToken && fetchedAccessTokenRef.current !== accessToken) {
-      fetchedAccessTokenRef.current = accessToken
+    const authFetchKey = accessToken || '__cookie_refresh__'
+    if (isAuthenticated && isAdmin && fetchedAccessTokenRef.current !== authFetchKey) {
+      fetchedAccessTokenRef.current = authFetchKey
       void fetchCurrentUser()
     }
     if (isAuthenticated && isAdmin && isLoginPage) {

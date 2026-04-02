@@ -7,7 +7,11 @@ import Footer from '@/components/footer'
 
 async function getMovies() {
   try {
-    return await fetchAllPaginated<Movie>('/api/v1/movies', { is_published: true }, 100)
+    return await fetchAllPaginated<Movie>('/api/v1/movies', { is_published: true }, 100, {
+      auth: false,
+      cacheMode: 'force-cache',
+      revalidateSeconds: 180,
+    })
   } catch (error) {
     console.error('Failed to fetch movies:', error)
     return []

@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlsplit
 
 from typing import Any, Generator
@@ -8,6 +9,8 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.models import Base
+
+logger = logging.getLogger(__name__)
 
 engine = create_engine(
     settings.DATABASE_URL,
@@ -143,8 +146,17 @@ def init_db() -> None:
         )
 
     try:
-        Base.metadata.create_all(bind=engine)
-        _ensure_schema_compatibility()
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        if settings.DB_STARTUP_MODE == "bootstrap":
+            Base.metadata.create_all(bind=engine)
+            if settings.APPLY_RUNTIME_SCHEMA_PATCHES:
+                _ensure_schema_compatibility()
+        else:
+            logger.info(
+                "Database startup mode is '%s'; skipping runtime schema creation and compatibility patching",
+                settings.DB_STARTUP_MODE,
+            )
     except OperationalError as exc:
         if settings.direct_supabase_host_requires_pooler(settings.DATABASE_URL):
             raise RuntimeError(

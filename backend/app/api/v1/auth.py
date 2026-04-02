@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -13,12 +13,13 @@ from app.core.security import (
     get_current_admin_user,
     get_current_user,
     get_password_hash,
+    refresh_cookie_max_age_seconds,
     verify_password,
 )
 from app.db.database import get_db
 from app.models.audit import AuditLog
 from app.models.user import User
-from app.schemas.user import AdminUserCreate, TokenResponse, UserLogin, UserRegister, UserResponse
+from app.schemas.user import AdminUserCreate, RefreshTokenRequest, TokenResponse, UserLogin, UserRegister, UserResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -100,8 +101,42 @@ def _build_token_response(user: User) -> TokenResponse:
     )
 
 
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    response.set_cookie(
+        key=settings.REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        domain=settings.COOKIE_DOMAIN,
+        max_age=refresh_cookie_max_age_seconds(),
+        expires=refresh_cookie_max_age_seconds(),
+        path="/api/v1/auth",
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.REFRESH_COOKIE_NAME,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        domain=settings.COOKIE_DOMAIN,
+        path="/api/v1/auth",
+    )
+
+
+def _get_refresh_token_from_request(request: Request, payload: RefreshTokenRequest | None) -> str | None:
+    cookie_token = request.cookies.get(settings.REFRESH_COOKIE_NAME)
+    if cookie_token:
+        return cookie_token
+    if payload and payload.refresh_token:
+        return payload.refresh_token
+    return None
+
+
 @router.post("/login", response_model=TokenResponse)
-def login(user_data: UserLogin, request: Request, db: Session = Depends(get_db)):
+def login(user_data: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     user = _get_user_by_email(db, user_data.email)
     if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
@@ -122,12 +157,19 @@ def login(user_data: UserLogin, request: Request, db: Session = Depends(get_db))
         f"{user.email} logged in",
     )
     commit_audit_log_safely(db)
-    return _build_token_response(user)
+    token_response = _build_token_response(user)
+    _set_refresh_cookie(response, token_response.refresh_token or "")
+    return token_response
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_token(payload: dict, db: Session = Depends(get_db)):
-    refresh_token_value = payload.get("refresh_token")
+def refresh_token(
+    request: Request,
+    response: Response,
+    payload: RefreshTokenRequest | None = None,
+    db: Session = Depends(get_db),
+):
+    refresh_token_value = _get_refresh_token_from_request(request, payload)
     if not refresh_token_value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token required")
 
@@ -141,7 +183,15 @@ def refresh_token(payload: dict, db: Session = Depends(get_db)):
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    return _build_token_response(user)
+    token_response = _build_token_response(user)
+    _set_refresh_cookie(response, token_response.refresh_token or "")
+    return token_response
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response):
+    _clear_refresh_cookie(response)
+    return None
 
 
 @router.get("/me", response_model=UserResponse)

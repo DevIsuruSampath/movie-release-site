@@ -37,11 +37,13 @@ interface RequestOptions<TBody = unknown> {
   headers?: HeadersInit
   body?: TBody
   auth?: boolean
+  cacheMode?: RequestCache
+  revalidateSeconds?: number
 }
 
 function getAccessToken() {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('access_token')
+  return sessionStorage.getItem('access_token') || localStorage.getItem('access_token')
 }
 
 function toAbsoluteUrl(path?: string | null) {
@@ -84,7 +86,7 @@ class ApiClient {
     const token = options.auth === false ? null : getAccessToken()
     let response: Response
     try {
-      response = await fetch(this.buildUrl(endpoint, options.params), {
+      const requestInit: RequestInit & { next?: { revalidate: number } } = {
         method: options.method || 'GET',
         headers: {
           ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
@@ -97,8 +99,11 @@ class ApiClient {
             : options.body !== undefined
               ? JSON.stringify(options.body)
               : undefined,
-        cache: 'no-store',
-      })
+        cache: options.cacheMode || 'no-store',
+        credentials: 'same-origin',
+        next: options.revalidateSeconds ? { revalidate: options.revalidateSeconds } : undefined,
+      }
+      response = await fetch(this.buildUrl(endpoint, options.params), requestInit)
     } catch {
       throw new ApiError(502, 'Network request failed')
     }
@@ -141,7 +146,11 @@ class ApiClient {
   }
 
   refresh(refresh_token: string) {
-    return this.post<AuthResponse>('/api/v1/auth/refresh', { refresh_token }, { auth: false }).then((response) => response.data)
+    return this.post<AuthResponse>('/api/v1/auth/refresh', refresh_token ? { refresh_token } : {}, { auth: false }).then((response) => response.data)
+  }
+
+  logout() {
+    return this.post<void>('/api/v1/auth/logout', {}, { auth: false }).then((response) => response.data)
   }
 
   me() {
@@ -253,10 +262,14 @@ const api = new ApiClient(API_URL)
 async function fetchAllPaginated<TItem>(
   endpoint: string,
   params: Record<string, Primitive | null | undefined>,
-  limit: number
+  limit: number,
+  options?: { auth?: boolean; cacheMode?: RequestCache; revalidateSeconds?: number }
 ) {
   const firstPage = await api.get<PaginatedItemsResponse<TItem>>(endpoint, {
     params: { ...params, page: 1, limit },
+    auth: options?.auth,
+    cacheMode: options?.cacheMode,
+    revalidateSeconds: options?.revalidateSeconds,
   })
   const items = [...(firstPage.data.items || [])]
   const remainingPages = Array.from({ length: Math.max((firstPage.data.pages || 1) - 1, 0) }, (_, index) => index + 2)
@@ -264,6 +277,9 @@ async function fetchAllPaginated<TItem>(
     remainingPages.map((page) =>
       api.get<PaginatedItemsResponse<TItem>>(endpoint, {
         params: { ...params, page, limit },
+        auth: options?.auth,
+        cacheMode: options?.cacheMode,
+        revalidateSeconds: options?.revalidateSeconds,
       })
     )
   )

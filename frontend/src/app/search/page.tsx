@@ -13,22 +13,28 @@ function SearchPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') || '')
+  const [sort, setSort] = useState(searchParams.get('sort') || 'latest')
+  const [subtitleOnly, setSubtitleOnly] = useState(searchParams.get('subtitles') === '1')
   const [results, setResults] = useState<Movie[]>([])
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
   useEffect(() => {
     const nextQuery = searchParams.get('q') || ''
+    const nextSort = searchParams.get('sort') || 'latest'
+    const nextSubtitleOnly = searchParams.get('subtitles') === '1'
     setQuery(nextQuery)
+    setSort(nextSort)
+    setSubtitleOnly(nextSubtitleOnly)
     if (nextQuery.trim()) {
-      void performSearch(nextQuery)
+      void performSearch(nextQuery, nextSort, nextSubtitleOnly)
     } else {
       setResults([])
       setHasSearched(false)
     }
   }, [searchParams])
 
-  const performSearch = async (searchQuery: string) => {
+  const performSearch = async (searchQuery: string, searchSort = sort, onlySubtitles = subtitleOnly) => {
     const normalizedQuery = searchQuery.trim()
     if (!normalizedQuery) {
       setResults([])
@@ -43,6 +49,8 @@ function SearchPageContent() {
         params: {
           search: normalizedQuery,
           limit: 50,
+          sort: searchSort,
+          has_subtitles: onlySubtitles,
         },
       })
       setResults(response.data.items || [])
@@ -57,8 +65,8 @@ function SearchPageContent() {
     e.preventDefault()
     const normalizedQuery = query.trim()
     if (normalizedQuery) {
-      void performSearch(normalizedQuery)
-      router.push(`/search?q=${encodeURIComponent(normalizedQuery)}`)
+      void performSearch(normalizedQuery, sort, subtitleOnly)
+      router.push(`/search?q=${encodeURIComponent(normalizedQuery)}&sort=${encodeURIComponent(sort)}${subtitleOnly ? '&subtitles=1' : ''}`)
     }
   }
 
@@ -135,6 +143,31 @@ function SearchPageContent() {
                 )}
               </Button>
             </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={subtitleOnly}
+                  onChange={(event) => setSubtitleOnly(event.target.checked)}
+                  className="h-4 w-4 rounded border-white/20 bg-white/10"
+                />
+                Subtitle-ready only
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <span>Sort</span>
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value)}
+                  className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white"
+                >
+                  <option value="latest">Latest</option>
+                  <option value="recently_updated">Recently updated</option>
+                  <option value="rating">Top rated</option>
+                  <option value="year">Newest year</option>
+                  <option value="title">Title A-Z</option>
+                </select>
+              </label>
+            </div>
           </form>
 
           {/* Quick Search Tags */}
@@ -146,8 +179,8 @@ function SearchPageContent() {
                   key={tag}
                   onClick={() => {
                     setQuery(tag)
-                    void performSearch(tag)
-                    router.push(`/search?q=${encodeURIComponent(tag)}`)
+                    void performSearch(tag, sort, subtitleOnly)
+                    router.push(`/search?q=${encodeURIComponent(tag)}&sort=${encodeURIComponent(sort)}${subtitleOnly ? '&subtitles=1' : ''}`)
                   }}
                   className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white/5 hover:bg-[#e50914] border border-white/10 hover:border-[#e50914] rounded-full text-xs sm:text-sm text-gray-300 hover:text-white transition-all hover:scale-105 active:scale-95"
                 >

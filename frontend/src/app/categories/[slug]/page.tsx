@@ -7,7 +7,11 @@ import Footer from '@/components/footer'
 
 async function getCategoryMovies(slug: string) {
   try {
-    return await fetchAllPaginated<Movie>('/api/v1/movies', { category: slug }, 100)
+    return await fetchAllPaginated<Movie>('/api/v1/movies', { category: slug }, 100, {
+      auth: false,
+      cacheMode: 'force-cache',
+      revalidateSeconds: 180,
+    })
   } catch (error) {
     console.error('Failed to fetch category movies:', error)
     return []
@@ -16,7 +20,11 @@ async function getCategoryMovies(slug: string) {
 
 async function getCategoryDetails(slug: string): Promise<Category | null> {
   try {
-    const response = await api.get<Category>(`/api/v1/categories/slug/${slug}`)
+    const response = await api.get<Category>(`/api/v1/categories/slug/${slug}`, {
+      auth: false,
+      cacheMode: 'force-cache',
+      revalidateSeconds: 300,
+    })
     return response.data || null
   } catch (error) {
     console.error('Failed to fetch category:', error)

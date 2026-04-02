@@ -3,7 +3,7 @@ Application configuration using Pydantic settings
 """
 import json
 import socket
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import field_validator, model_validator
@@ -11,6 +11,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    APP_ENV: Literal["development", "staging", "production", "test"] = "development"
+
     # API Settings
     API_V1_STR: str = "/api"
     PROJECT_NAME: str = "Movie Release API"
@@ -18,6 +20,8 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = ""
+    DB_STARTUP_MODE: Literal["bootstrap", "migrate"] | str = ""
+    APPLY_RUNTIME_SCHEMA_PATCHES: bool = False
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
     DATABASE_POOL_RECYCLE_SECONDS: int = 1800
@@ -28,6 +32,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_COOKIE_NAME: str = "moviehub_refresh_token"
+    COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
+    COOKIE_DOMAIN: str | None = None
 
     # CORS - Can be a list or comma-separated string
     ALLOWED_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:3001"]
@@ -56,6 +64,11 @@ class Settings(BaseSettings):
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 100
+
+    # Media optimization
+    IMAGE_MAX_WIDTH: int = 1600
+    IMAGE_MAX_HEIGHT: int = 1600
+    IMAGE_WEBP_QUALITY: int = 82
 
     # Registration
     ADMIN_REGISTRATION_CODE: Optional[str] = None
@@ -93,6 +106,16 @@ class Settings(BaseSettings):
     @classmethod
     def validate_positive_int(cls, value: int) -> int:
         return max(1, value)
+
+    @field_validator("IMAGE_MAX_WIDTH", "IMAGE_MAX_HEIGHT")
+    @classmethod
+    def validate_image_dimensions(cls, value: int) -> int:
+        return min(max(320, value), 4096)
+
+    @field_validator("IMAGE_WEBP_QUALITY")
+    @classmethod
+    def validate_quality(cls, value: int) -> int:
+        return min(max(50, value), 95)
 
     @staticmethod
     def _normalize_database_url(database_url: str | None) -> str:
@@ -134,6 +157,8 @@ class Settings(BaseSettings):
             raise ValueError("Set SUPABASE_DB_URL or DATABASE_URL before starting the backend")
         self.DATABASE_URL = normalized_database_url
         self.SUPABASE_DB_URL = self._normalize_database_url(self.SUPABASE_DB_URL)
+        if not self.DB_STARTUP_MODE:
+            self.DB_STARTUP_MODE = "bootstrap" if self.APP_ENV in {"development", "test"} else "migrate"
         if self.STORAGE_BACKEND == "supabase" and self._looks_like_publishable_supabase_key(self.SUPABASE_SERVICE_ROLE_KEY):
             raise ValueError(
                 "SUPABASE_SERVICE_ROLE_KEY must be the server-side service role key, not the publishable/anon key."
