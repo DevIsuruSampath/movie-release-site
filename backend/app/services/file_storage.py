@@ -29,8 +29,8 @@ UPLOAD_DIRECTORIES = {
 }
 
 
-def ensure_upload_directories() -> None:
-    if settings.STORAGE_BACKEND == "supabase":
+def ensure_upload_directories(*, force: bool = False) -> None:
+    if settings.STORAGE_BACKEND == "supabase" and not force:
         return
     for directory in UPLOAD_DIRECTORIES.values():
         directory.mkdir(parents=True, exist_ok=True)
@@ -68,7 +68,7 @@ def sanitize_extension(filename: str | None, default_extension: str = ".bin") ->
 
 
 async def _save_local_upload(*, file: UploadFile, folder: str, filename: str, max_bytes: int) -> dict[str, Any]:
-    ensure_upload_directories()
+    ensure_upload_directories(force=True)
     target = UPLOAD_DIRECTORIES[folder] / filename
     total_bytes = 0
     async with aiofiles.open(target, "wb") as output:
@@ -161,7 +161,7 @@ def list_upload_items(folder: str) -> list[dict[str, Any]]:
                 raise
             logger.exception("Supabase list failed, falling back to local uploads", extra={"upload_folder": folder})
 
-    ensure_upload_directories()
+    ensure_upload_directories(force=True)
     if folder not in UPLOAD_DIRECTORIES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
     items: list[dict[str, Any]] = []

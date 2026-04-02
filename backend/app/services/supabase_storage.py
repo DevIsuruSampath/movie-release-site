@@ -152,7 +152,12 @@ class SupabaseStorageService:
         list_url = f"{base_url}/storage/v1/object/list/{bucket}"
         request_kwargs = {
             "headers": {**self._headers(), "Content-Type": "application/json"},
-            "json": {"limit": 1000, "offset": 0, "sortBy": {"column": "updated_at", "order": "desc"}},
+            "json": {
+                "prefix": "",
+                "limit": 1000,
+                "offset": 0,
+                "sortBy": {"column": "updated_at", "order": "desc"},
+            },
         }
         response = self._request("POST", list_url, **request_kwargs)
         if self._is_bucket_missing_response(response):
