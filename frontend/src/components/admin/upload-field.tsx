@@ -25,11 +25,13 @@ export function UploadField({
   const [removing, setRemoving] = useState(false)
   const [error, setError] = useState('')
   const [manualMode, setManualMode] = useState(false)
+  const [previewFailed, setPreviewFailed] = useState(false)
 
   useEffect(() => {
     if (!value) {
       setManualMode(false)
     }
+    setPreviewFailed(false)
   }, [value])
 
   return (
@@ -108,7 +110,18 @@ export function UploadField({
       </div>
       {value ? (
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-          <img src={toAbsoluteUrl(value)} alt={label} className="h-48 w-full object-cover" />
+          {previewFailed ? (
+            <div className="flex h-48 w-full items-center justify-center text-sm text-gray-500">
+              Preview unavailable
+            </div>
+          ) : (
+            <img
+              src={toAbsoluteUrl(value)}
+              alt={label}
+              className="h-48 w-full object-cover"
+              onError={() => setPreviewFailed(true)}
+            />
+          )}
         </div>
       ) : null}
       {error ? <p className="text-sm text-red-400">{error}</p> : null}

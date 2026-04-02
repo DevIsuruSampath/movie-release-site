@@ -21,6 +21,27 @@ function formatSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function UploadPreview({ item }: { item: UploadItem }) {
+  const [failed, setFailed] = useState(false)
+
+  if (!item.file_url.match(/\.(png|jpe?g|webp|gif)$/i)) return null
+  if (item.storage_source === 'local' && item.file_exists === false) {
+    return <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-[10px] text-gray-500">Missing</div>
+  }
+  if (failed) {
+    return <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-[10px] text-gray-500">No preview</div>
+  }
+
+  return (
+    <img
+      src={toAbsoluteUrl(item.file_url)}
+      alt={item.filename}
+      className="h-14 w-14 rounded-lg object-cover"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
 function UploadSection({ title, items }: { title: string; items: UploadItem[] }) {
   if (items.length === 0) {
     return <EmptyState title={`No ${title.toLowerCase()}`} description={`No ${title.toLowerCase()} were found.`} />
@@ -47,15 +68,16 @@ function UploadSection({ title, items }: { title: string; items: UploadItem[] })
               <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
                 <span>{formatSize(item.size)}</span>
                 <span>{formatUpdatedAt(item.updated_at)}</span>
+                {item.storage_source === 'local' && item.file_exists === false ? <span className="text-amber-400">Missing local file</span> : null}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="text-sm text-[#ff676f] hover:text-white">
-                Open
-              </a>
-              {item.file_url.match(/\.(png|jpe?g|webp|gif)$/i) ? (
-                <img src={toAbsoluteUrl(item.file_url)} alt={item.filename} className="h-14 w-14 rounded-lg object-cover" />
+              {!(item.storage_source === 'local' && item.file_exists === false) ? (
+                <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="text-sm text-[#ff676f] hover:text-white">
+                  Open
+                </a>
               ) : null}
+              <UploadPreview item={item} />
             </div>
           </div>
         ))}
@@ -71,6 +93,7 @@ export default function UploadsPage() {
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [migrating, setMigrating] = useState(false)
+  const [migrationMessage, setMigrationMessage] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -116,8 +139,15 @@ export default function UploadsPage() {
                   disabled={migrating}
                   onClick={async () => {
                     setMigrating(true)
+                    setMigrationMessage(null)
                     try {
-                      await api.migrateLocalUploads()
+                      const result = await api.migrateLocalUploads()
+                      const firstFailure = result.items.find((item) => item.status === 'failed') as { detail?: string } | undefined
+                      setMigrationMessage(
+                        result.migrated > 0
+                          ? `Migrated ${result.migrated} upload${result.migrated === 1 ? '' : 's'} to Supabase.`
+                          : firstFailure?.detail || 'No uploads were migrated.'
+                      )
                       await load()
                     } finally {
                       setMigrating(false)
@@ -127,6 +157,7 @@ export default function UploadsPage() {
                   {migrating ? 'Migrating...' : 'Migrate local uploads to Supabase'}
                 </Button>
               </div>
+              {migrationMessage ? <p className="mt-3 text-sm text-amber-100">{migrationMessage}</p> : null}
             </div>
           ) : null}
         </div>

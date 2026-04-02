@@ -36,6 +36,18 @@ IMAGE_ROLE_DIMENSIONS = {
     "thumbnail": (640, 960),
     "other": (settings.IMAGE_MAX_WIDTH, settings.IMAGE_MAX_HEIGHT),
 }
+IMAGE_EXTENSION_ALIASES = {
+    ".jfif": ".jpg",
+    ".pjpeg": ".jpg",
+    ".jpe": ".jpg",
+}
+RELAXED_IMAGE_CONTENT_TYPES = {
+    "",
+    "application/octet-stream",
+    "binary/octet-stream",
+    "image/jpg",
+    "image/pjpeg",
+}
 
 
 def ensure_upload_directories(*, force: bool = False) -> None:
@@ -73,7 +85,9 @@ def resolve_local_upload_path(file_url: str) -> Path | None:
 
 def sanitize_extension(filename: str | None, default_extension: str = ".bin") -> str:
     extension = Path(filename or "upload").suffix.lower().strip()
-    return extension or default_extension
+    if not extension:
+        return default_extension
+    return IMAGE_EXTENSION_ALIASES.get(extension, extension)
 
 
 async def _save_local_upload(*, file: UploadFile, folder: str, filename: str, max_bytes: int) -> dict[str, Any]:
@@ -200,27 +214,40 @@ async def save_upload(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
 
     extension = sanitize_extension(file.filename)
-    if extension not in allowed_extensions:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file extension")
-
-    if file.content_type not in allowed_mime_types:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
+    content_type = (file.content_type or "").lower().strip()
 
     max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-    content_type = file.content_type or "application/octet-stream"
 
     if folder == "images":
+        if extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file extension. Allowed image types: {', '.join(sorted(allowed_extensions))}",
+            )
+        if content_type not in allowed_mime_types and content_type not in RELAXED_IMAGE_CONTENT_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Unsupported file type. Use a JPEG, PNG, WebP, or GIF image.",
+            )
         content = await _read_upload_bytes(file, max_bytes=max_bytes)
         content, extension, content_type = _optimize_image_content(
             content=content,
             extension=extension,
-            content_type=content_type,
+            content_type=content_type or "application/octet-stream",
             media_role=media_role,
         )
         filename = f"{uuid4().hex}{extension}"
     else:
+        if extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file extension. Allowed subtitle types: {', '.join(sorted(allowed_extensions))}",
+            )
+        if content_type not in allowed_mime_types:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
         content = await _read_upload_bytes(file, max_bytes=max_bytes)
         _validate_subtitle_content(content, extension)
+        content_type = content_type or "application/octet-stream"
         filename = f"{uuid4().hex}{extension}"
 
     if settings.STORAGE_BACKEND == "supabase":
@@ -452,14 +479,25 @@ def list_referenced_uploads(db: Session, folder: str | None = None) -> list[dict
             else:
                 bucket, _, path = relative_path.partition("/")
                 file_url = supabase_storage.public_url(bucket, path) if bucket and path else ""
+        file_exists: bool | None = None
+        size = 0
+        updated_at = None
+        if storage_source == "local":
+            local_path = resolve_local_upload_path(file_url)
+            file_exists = bool(local_path and local_path.exists())
+            if file_exists and local_path:
+                stat = local_path.stat()
+                size = stat.st_size
+                updated_at = stat.st_mtime
         items.append(
             {
                 "filename": _filename_from_key(key),
                 "file_url": file_url,
                 "relative_path": relative_path,
-                "size": 0,
-                "updated_at": None,
+                "size": size,
+                "updated_at": updated_at,
                 "storage_source": storage_source,
+                "file_exists": file_exists,
                 "references": reference_items,
                 "folder": inferred_folder,
             }
