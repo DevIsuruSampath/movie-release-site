@@ -49,9 +49,15 @@ class SupabaseStorageService:
 
     def bucket_for_folder(self, folder: str) -> str:
         if folder == "images":
-            return settings.SUPABASE_IMAGES_BUCKET
+            bucket = settings.SUPABASE_IMAGES_BUCKET.strip()
+            if not bucket:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="SUPABASE_IMAGES_BUCKET is not configured")
+            return bucket
         if folder == "subtitles":
-            return settings.SUPABASE_SUBTITLES_BUCKET
+            bucket = settings.SUPABASE_SUBTITLES_BUCKET.strip()
+            if not bucket:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="SUPABASE_SUBTITLES_BUCKET is not configured")
+            return bucket
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
 
     def public_url(self, bucket: str, path: str) -> str:
@@ -91,11 +97,46 @@ class SupabaseStorageService:
                 detail="Supabase storage request failed. Check SUPABASE_URL, service role key, and outbound network access.",
             ) from exc
 
-    def ensure_bucket(self, bucket: str) -> None:
-        if bucket in self._bucket_cache:
+    def _create_bucket(self, bucket: str) -> None:
+        base_url, _ = self._require_config()
+        create_response = self._request(
+            "POST",
+            f"{base_url}/storage/v1/bucket",
+            headers={**self._headers(), "Content-Type": "application/json"},
+            json={"id": bucket, "name": bucket, "public": True},
+        )
+        if create_response.status_code >= 400:
+            detail = self._extract_error_detail(create_response)
+            if "already exists" not in detail.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Supabase storage bucket creation failed for '{bucket}': {detail}",
+                )
+
+        update_response = self._request(
+            "PUT",
+            f"{base_url}/storage/v1/bucket/{bucket}",
+            headers={**self._headers(), "Content-Type": "application/json"},
+            json={"public": True},
+        )
+        if update_response.status_code >= 400:
+            detail = self._extract_error_detail(update_response)
+            if "not found" in detail.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Supabase storage bucket update failed for '{bucket}': {detail}",
+                )
+
+    def ensure_bucket(self, bucket: str, *, force_create: bool = False) -> None:
+        if bucket in self._bucket_cache and not force_create:
             return
 
         base_url, _ = self._require_config()
+        if force_create:
+            self._create_bucket(bucket)
+            self._bucket_cache.add(bucket)
+            return
+
         detail = ""
         lookup_response = self._request(
             "GET",
@@ -113,20 +154,7 @@ class SupabaseStorageService:
                 detail=f"Supabase storage bucket check failed for '{bucket}': {detail}",
             )
 
-        create_response = self._request(
-            "POST",
-            f"{base_url}/storage/v1/bucket",
-            headers={**self._headers(), "Content-Type": "application/json"},
-            json={"id": bucket, "name": bucket, "public": True},
-        )
-        if create_response.status_code >= 400:
-            detail = self._extract_error_detail(create_response)
-            if "already exists" not in detail.lower():
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=f"Supabase storage bucket creation failed for '{bucket}': {detail}",
-                )
-
+        self._create_bucket(bucket)
         self._bucket_cache.add(bucket)
 
     def upload_bytes(self, *, bucket: str, path: str, content: bytes, content_type: str, upsert: bool = False) -> str:
@@ -147,7 +175,7 @@ class SupabaseStorageService:
         for request_kwargs in upload_variants:
             response = self._request("POST", upload_url, **request_kwargs)
             if self._is_bucket_missing_response(response):
-                self.ensure_bucket(bucket)
+                self.ensure_bucket(bucket, force_create=True)
                 response = self._request("POST", upload_url, **request_kwargs)
             if response.status_code < 400:
                 self._bucket_cache.add(bucket)
@@ -182,7 +210,7 @@ class SupabaseStorageService:
         }
         response = self._request("POST", list_url, **request_kwargs)
         if self._is_bucket_missing_response(response):
-            self.ensure_bucket(bucket)
+            self.ensure_bucket(bucket, force_create=True)
             response = self._request("POST", list_url, **request_kwargs)
         if response.status_code >= 400:
             detail = self._extract_error_detail(response)
