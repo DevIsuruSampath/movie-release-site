@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
+    SUPABASE_POOLER_DB_URL: str = ""
     SUPABASE_DB_URL: str = ""
     SUPABASE_IMAGES_BUCKET: str = "movie-images"
     SUPABASE_SUBTITLES_BUCKET: str = "movie-subtitles"
@@ -109,13 +110,29 @@ class Settings(BaseSettings):
             normalized = urlunsplit(parsed._replace(query=urlencode(query_params)))
         return normalized
 
+    @staticmethod
+    def _validate_supabase_network_path(database_url: str) -> None:
+        parsed = urlsplit(database_url)
+        hostname = parsed.hostname or ""
+        if not hostname.endswith(".supabase.co") or ".pooler.supabase.co" in hostname:
+            return
+        try:
+            socket.getaddrinfo(hostname, parsed.port or 5432, socket.AF_INET, socket.SOCK_STREAM)
+        except OSError as exc:
+            raise ValueError(
+                "The direct Supabase database host does not have a reachable IPv4 path from this runtime. "
+                "Use SUPABASE_POOLER_DB_URL from the Supabase Connection Pooling settings, or run on an IPv6-enabled network."
+            ) from exc
+
     @model_validator(mode="after")
     def apply_database_defaults(self) -> "Settings":
-        preferred_database_url = self.SUPABASE_DB_URL or self.DATABASE_URL
+        preferred_database_url = self.SUPABASE_POOLER_DB_URL or self.SUPABASE_DB_URL or self.DATABASE_URL
         normalized_database_url = self._normalize_database_url(preferred_database_url)
         if not normalized_database_url:
             raise ValueError("Set SUPABASE_DB_URL or DATABASE_URL before starting the backend")
+        self._validate_supabase_network_path(normalized_database_url)
         self.DATABASE_URL = normalized_database_url
+        self.SUPABASE_POOLER_DB_URL = self._normalize_database_url(self.SUPABASE_POOLER_DB_URL)
         self.SUPABASE_DB_URL = self._normalize_database_url(self.SUPABASE_DB_URL)
         return self
 
