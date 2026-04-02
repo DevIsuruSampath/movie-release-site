@@ -20,9 +20,15 @@ export default function MoviesPage() {
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [status, setStatus] = useState('')
   const [category, setCategory] = useState('')
   const [movieToDelete, setMovieToDelete] = useState<Movie | null>(null)
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search), 250)
+    return () => window.clearTimeout(timeout)
+  }, [search])
 
   useEffect(() => {
     void api.listCategories({ page: 1, limit: 200 }).then((response) => setCategories(response.items))
@@ -35,7 +41,7 @@ export default function MoviesPage() {
         const response = await api.listMovies({
           page,
           limit: 12,
-          search,
+          search: debouncedSearch,
           category,
           status,
           admin_view: true,
@@ -47,7 +53,7 @@ export default function MoviesPage() {
       }
     }
     void load()
-  }, [page, search, status, category])
+  }, [page, debouncedSearch, status, category])
 
   return (
     <div className="space-y-6">

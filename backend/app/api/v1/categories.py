@@ -10,8 +10,14 @@ from app.models.audit import AuditLog
 from app.models.category import Category
 from app.models.user import User
 from app.schemas.category import CategoryCreate, CategoryListResponse, CategoryResponse, CategoryUpdate
+from app.services.file_storage import cleanup_unreferenced_uploads
 
 router = APIRouter()
+
+
+def _normalize_search_term(value: str | None) -> str | None:
+    normalized = value.strip() if value else ""
+    return normalized or None
 
 
 def _resolve_slug(db: Session, slug: str, category_id: int | None = None) -> str:
@@ -50,8 +56,9 @@ def list_categories(
     db: Session = Depends(get_db),
 ):
     query = db.query(Category)
-    if search:
-        query = query.filter(Category.name.ilike(f"%{search}%"))
+    normalized_search = _normalize_search_term(search)
+    if normalized_search:
+        query = query.filter(Category.name.ilike(f"%{normalized_search}%"))
     total = query.count()
     items = query.order_by(Category.name.asc()).offset((page - 1) * limit).limit(limit).all()
     return CategoryListResponse(
@@ -106,6 +113,7 @@ def update_category(
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    previous_file_urls = [category.image_url, category.og_image]
 
     updates = category_data.model_dump(exclude_unset=True)
     if "slug" in updates or "name" in updates:
@@ -115,6 +123,7 @@ def update_category(
             setattr(category, field, value)
     _log(db, request, current_admin, "update", category)
     db.commit()
+    cleanup_unreferenced_uploads(db, previous_file_urls)
     db.refresh(category)
     return category
 
@@ -129,6 +138,8 @@ def delete_category(
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+    previous_file_urls = [category.image_url, category.og_image]
     _log(db, request, current_admin, "delete", category)
     db.delete(category)
     db.commit()
+    cleanup_unreferenced_uploads(db, previous_file_urls)

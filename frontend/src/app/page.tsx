@@ -30,8 +30,7 @@ async function getLatestMovies() {
 }
 
 export default async function HomePage() {
-  const featuredMovies = await getFeaturedMovies()
-  const latestMovies = await getLatestMovies()
+  const [featuredMovies, latestMovies] = await Promise.all([getFeaturedMovies(), getLatestMovies()])
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">

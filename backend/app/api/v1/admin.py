@@ -22,12 +22,18 @@ def get_dashboard(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_admin_user),
 ):
+    total_categories_subquery = db.query(func.count(Category.id)).scalar_subquery()
+    total_tags_subquery = db.query(func.count(Tag.id)).scalar_subquery()
+    total_subtitles_subquery = db.query(func.count(Subtitle.id)).scalar_subquery()
     movie_totals = db.query(
         func.count(Movie.id).label("total_movies"),
         func.sum(case((Movie.is_published.is_(True), 1), else_=0)).label("total_published_movies"),
         func.sum(case((Movie.featured.is_(True), 1), else_=0)).label("total_featured_movies"),
         func.sum(case((Movie.stream_enabled.is_(True), 1), else_=0)).label("total_media_ready_movies"),
         func.sum(case(((Movie.trailer_url.isnot(None)) & (Movie.trailer_url != ""), 1), else_=0)).label("total_trailer_movies"),
+        total_categories_subquery.label("total_categories"),
+        total_tags_subquery.label("total_tags"),
+        total_subtitles_subquery.label("total_subtitles"),
     ).one()
     recent_movies = (
         db.query(Movie)
@@ -48,9 +54,9 @@ def get_dashboard(
         "total_featured_movies": movie_totals.total_featured_movies or 0,
         "total_media_ready_movies": movie_totals.total_media_ready_movies or 0,
         "total_trailer_movies": movie_totals.total_trailer_movies or 0,
-        "total_categories": db.query(Category).count(),
-        "total_tags": db.query(Tag).count(),
-        "total_subtitles": db.query(Subtitle).count(),
+        "total_categories": movie_totals.total_categories or 0,
+        "total_tags": movie_totals.total_tags or 0,
+        "total_subtitles": movie_totals.total_subtitles or 0,
         "recent_movies": [MovieDashboardItem.model_validate(movie).model_dump() for movie in recent_movies],
         "recent_activity": [
             {
@@ -76,9 +82,15 @@ def get_activity(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_admin_user),
 ):
-    query = db.query(AuditLog).options(joinedload(AuditLog.actor)).order_by(AuditLog.created_at.desc())
-    total = query.count()
-    items = query.offset((page - 1) * limit).limit(limit).all()
+    total = db.query(func.count(AuditLog.id)).scalar() or 0
+    items = (
+        db.query(AuditLog)
+        .options(joinedload(AuditLog.actor))
+        .order_by(AuditLog.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
     return {
         "items": [
             {

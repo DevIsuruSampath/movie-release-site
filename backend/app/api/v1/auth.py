@@ -1,5 +1,8 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -18,6 +21,7 @@ from app.models.user import User
 from app.schemas.user import AdminUserCreate, TokenResponse, UserLogin, UserRegister, UserResponse
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _normalize_email(email: str) -> str:
@@ -57,6 +61,7 @@ def commit_audit_log_safely(db: Session) -> None:
         db.commit()
     except Exception:
         db.rollback()
+        logger.exception("Audit log commit failed")
 
 
 def ensure_admin_login_access(db: Session, user: User) -> User:
@@ -157,7 +162,7 @@ def register(user_data: UserRegister, request: Request, db: Session = Depends(ge
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
-    is_first_user = db.query(User).count() == 0
+    is_first_user = db.query(User.id).first() is None
     user = User(
         email=normalized_email,
         hashed_password=get_password_hash(user_data.password),
@@ -166,7 +171,11 @@ def register(user_data: UserRegister, request: Request, db: Session = Depends(ge
         is_admin=is_first_user,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered") from None
     db.refresh(user)
     create_audit_log(
         db,
@@ -201,7 +210,11 @@ def create_user_admin(
         is_admin=user_data.is_admin or user_data.is_superuser,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered") from None
     db.refresh(user)
     create_audit_log(
         db,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Any
 from urllib.parse import urlparse
 
@@ -8,6 +9,8 @@ import requests
 from fastapi import HTTPException, status
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -20,6 +23,9 @@ class StoredObject:
 
 
 class SupabaseStorageService:
+    def __init__(self) -> None:
+        self._bucket_cache: set[str] = set()
+
     def is_enabled(self) -> bool:
         return settings.STORAGE_BACKEND == "supabase"
 
@@ -52,38 +58,96 @@ class SupabaseStorageService:
         base_url, _ = self._require_config()
         return f"{base_url}/storage/v1/object/public/{bucket}/{path}"
 
+    @staticmethod
+    def _extract_error_detail(response: requests.Response) -> str:
+        detail = response.text
+        try:
+            payload = response.json()
+        except ValueError:
+            return detail
+        if isinstance(payload, dict):
+            return (
+                payload.get("message")
+                or payload.get("error_description")
+                or payload.get("error")
+                or detail
+            )
+        return detail
+
+    def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
+        try:
+            return requests.request(method, url, timeout=30, **kwargs)
+        except requests.RequestException as exc:
+            logger.exception("Supabase storage request failed", extra={"url": url, "method": method})
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Supabase storage request failed. Check SUPABASE_URL, service role key, and outbound network access.",
+            ) from exc
+
+    def ensure_bucket(self, bucket: str) -> None:
+        if bucket in self._bucket_cache:
+            return
+
+        base_url, _ = self._require_config()
+        detail = ""
+        lookup_response = self._request(
+            "GET",
+            f"{base_url}/storage/v1/bucket/{bucket}",
+            headers=self._headers(),
+        )
+        if lookup_response.status_code < 400:
+            self._bucket_cache.add(bucket)
+            return
+
+        if lookup_response.status_code != status.HTTP_404_NOT_FOUND:
+            detail = self._extract_error_detail(lookup_response)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Supabase storage bucket check failed for '{bucket}': {detail}",
+            )
+
+        create_response = self._request(
+            "POST",
+            f"{base_url}/storage/v1/bucket",
+            headers={**self._headers(), "Content-Type": "application/json"},
+            json={"id": bucket, "name": bucket, "public": True},
+        )
+        if create_response.status_code >= 400:
+            detail = self._extract_error_detail(create_response)
+            if "already exists" not in detail.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Supabase storage bucket creation failed for '{bucket}': {detail}",
+                )
+
+        self._bucket_cache.add(bucket)
+
     def upload_bytes(self, *, bucket: str, path: str, content: bytes, content_type: str) -> str:
         base_url, _ = self._require_config()
-        response = requests.post(
+        self.ensure_bucket(bucket)
+        response = self._request(
+            "POST",
             f"{base_url}/storage/v1/object/{bucket}/{path}",
             headers={**self._headers(content_type=content_type), "x-upsert": "false"},
             data=content,
-            timeout=30,
         )
         if response.status_code >= 400:
-            detail = response.text
-            try:
-                detail = response.json().get("message") or response.json().get("error") or detail
-            except ValueError:
-                pass
+            detail = self._extract_error_detail(response)
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage upload failed: {detail}")
         return self.public_url(bucket, path)
 
     def list_objects(self, *, folder: str) -> list[StoredObject]:
         bucket = self.bucket_for_folder(folder)
         base_url, _ = self._require_config()
-        response = requests.post(
+        self.ensure_bucket(bucket)
+        response = self._request(
+            "POST",
             f"{base_url}/storage/v1/object/list/{bucket}",
             headers={**self._headers(), "Content-Type": "application/json"},
             json={"limit": 1000, "offset": 0, "sortBy": {"column": "updated_at", "order": "desc"}},
-            timeout=30,
         )
         if response.status_code >= 400:
-            detail = response.text
-            try:
-                detail = response.json().get("message") or response.json().get("error") or detail
-            except ValueError:
-                pass
+            detail = self._extract_error_detail(response)
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage list failed: {detail}")
 
         payload = response.json()
@@ -102,6 +166,18 @@ class SupabaseStorageService:
                 )
             )
         return items
+
+    def delete_object(self, *, bucket: str, path: str) -> None:
+        base_url, _ = self._require_config()
+        response = self._request(
+            "DELETE",
+            f"{base_url}/storage/v1/object/{bucket}/{path}",
+            headers=self._headers(),
+        )
+        if response.status_code in {status.HTTP_200_OK, status.HTTP_204_NO_CONTENT, status.HTTP_404_NOT_FOUND}:
+            return
+        detail = self._extract_error_detail(response)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage delete failed: {detail}")
 
     def normalize_public_url(self, file_url: str | None) -> str | None:
         if not file_url:

@@ -41,7 +41,15 @@ export async function proxyToBackend(request: Request, pathname: string) {
     redirect: 'manual',
     cache: 'no-store',
   }
-  const response = await fetch(targetUrl, requestInit)
+  let response: Response
+  try {
+    response = await fetch(targetUrl, requestInit)
+  } catch {
+    return Response.json(
+      { detail: 'Backend request failed' },
+      { status: 502 }
+    )
+  }
 
   return new Response(response.body, {
     status: response.status,

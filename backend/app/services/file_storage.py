@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path, PurePosixPath
 from typing import Any
 from uuid import uuid4
 
 import aiofiles
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -13,6 +15,8 @@ from app.models.category import Category
 from app.models.movie import Movie, MovieGallery
 from app.models.subtitle import Subtitle
 from app.services.supabase_storage import supabase_storage
+
+logger = logging.getLogger(__name__)
 
 UPLOAD_ROOT = Path(settings.UPLOAD_DIR)
 IMAGE_DIR = UPLOAD_ROOT / "images"
@@ -176,6 +180,62 @@ def normalize_upload_key(file_url: str | None) -> str | None:
         return f"supabase:{supabase_path}"
 
     return None
+
+
+def delete_managed_upload(file_url: str | None) -> bool:
+    local_path = resolve_local_upload_path(file_url or "")
+    if local_path:
+        local_path.unlink(missing_ok=True)
+        return True
+
+    supabase_path = supabase_storage.normalize_public_url(file_url)
+    if supabase_path:
+        bucket, _, path = supabase_path.partition("/")
+        if bucket and path:
+            supabase_storage.delete_object(bucket=bucket, path=path)
+            return True
+
+    return False
+
+
+def _is_upload_still_referenced(db: Session, file_url: str) -> bool:
+    if db.query(Movie.id).filter(
+        or_(
+            Movie.poster_url == file_url,
+            Movie.backdrop_url == file_url,
+            Movie.thumbnail_url == file_url,
+            Movie.open_graph_image == file_url,
+        )
+    ).first():
+        return True
+    if db.query(Category.id).filter(or_(Category.image_url == file_url, Category.og_image == file_url)).first():
+        return True
+    if db.query(Subtitle.id).filter(Subtitle.file_url == file_url).first():
+        return True
+    if db.query(MovieGallery.id).filter(MovieGallery.image_url == file_url).first():
+        return True
+    return False
+
+
+def cleanup_unreferenced_uploads(db: Session, file_urls: list[str | None]) -> list[str]:
+    candidate_urls = []
+    seen_urls: set[str] = set()
+    for file_url in file_urls:
+        if not file_url or file_url in seen_urls or not normalize_upload_key(file_url):
+            continue
+        seen_urls.add(file_url)
+        candidate_urls.append(file_url)
+
+    deleted_urls: list[str] = []
+    for file_url in candidate_urls:
+        if _is_upload_still_referenced(db, file_url):
+            continue
+        try:
+            if delete_managed_upload(file_url):
+                deleted_urls.append(file_url)
+        except Exception:
+            logger.exception("Managed upload cleanup failed", extra={"file_url": file_url})
+    return deleted_urls
 
 
 def collect_upload_references(db: Session) -> dict[str, list[dict[str, Any]]]:

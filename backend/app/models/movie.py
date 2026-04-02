@@ -73,14 +73,20 @@ class Movie(Base):
     )
     @property
     def media_url(self) -> str | None:
-        active_streams = [link for link in self.stream_links if link.is_active]
-        if active_streams:
-            primary_stream = next((link for link in active_streams if link.is_primary), active_streams[0])
-            return primary_stream.url
+        first_active_stream = None
+        for link in self.stream_links:
+            if not link.is_active:
+                continue
+            if link.is_primary:
+                return link.url
+            if first_active_stream is None:
+                first_active_stream = link
+        if first_active_stream is not None:
+            return first_active_stream.url
 
-        active_downloads = [link for link in self.download_links if link.is_active]
-        if active_downloads:
-            return active_downloads[0].url
+        for link in self.download_links:
+            if link.is_active:
+                return link.url
 
         return None
 

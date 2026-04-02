@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.category import CategoryResponse
 from app.schemas.tag import TagResponse
@@ -199,13 +199,13 @@ class MovieResponse(MovieBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     published_at: Optional[datetime] = None
-    categories: List[CategoryResponse] = []
-    tags: List[TagResponse] = []
-    subtitles: List["SubtitleResponseLight"] = []
-    stream_links: List[StreamLinkResponse] = []
-    download_links: List[DownloadLinkResponse] = []
-    gallery: List[MovieGalleryResponse] = []
-    media_storage_summary: dict[str, dict[str, str | int | None]] = {}
+    categories: List[CategoryResponse] = Field(default_factory=list)
+    tags: List[TagResponse] = Field(default_factory=list)
+    subtitles: List["SubtitleResponseLight"] = Field(default_factory=list)
+    stream_links: List[StreamLinkResponse] = Field(default_factory=list)
+    download_links: List[DownloadLinkResponse] = Field(default_factory=list)
+    gallery: List[MovieGalleryResponse] = Field(default_factory=list)
+    media_storage_summary: dict[str, dict[str, str | int | None]] = Field(default_factory=dict)
 
     class Config:
         from_attributes = True

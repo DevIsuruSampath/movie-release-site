@@ -1,4 +1,4 @@
-import api from '@/lib/api'
+import { fetchAllPaginated } from '@/lib/api'
 import { Category } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -7,8 +7,7 @@ import Footer from '@/components/footer'
 
 async function getAllCategories() {
   try {
-    const response = await api.get<{ items: Category[] }>('/api/v1/categories')
-    return response.data.items || []
+    return await fetchAllPaginated<Category>('/api/v1/categories', {}, 200)
   } catch (error) {
     console.error('Failed to fetch categories:', error)
     return []

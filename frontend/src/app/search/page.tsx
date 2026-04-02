@@ -18,19 +18,30 @@ function SearchPageContent() {
   const [hasSearched, setHasSearched] = useState(false)
 
   useEffect(() => {
-    if (query) {
-      performSearch(query)
+    const nextQuery = searchParams.get('q') || ''
+    setQuery(nextQuery)
+    if (nextQuery.trim()) {
+      void performSearch(nextQuery)
+    } else {
+      setResults([])
+      setHasSearched(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [searchParams])
 
   const performSearch = async (searchQuery: string) => {
+    const normalizedQuery = searchQuery.trim()
+    if (!normalizedQuery) {
+      setResults([])
+      setHasSearched(false)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setHasSearched(true)
     try {
       const response = await api.get<MovieListResponse>('/api/v1/movies', {
         params: {
-          search: searchQuery,
+          search: normalizedQuery,
           limit: 50,
         },
       })
@@ -44,9 +55,10 @@ function SearchPageContent() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (query.trim()) {
-      performSearch(query)
-      router.push(`/search?q=${encodeURIComponent(query)}`)
+    const normalizedQuery = query.trim()
+    if (normalizedQuery) {
+      void performSearch(normalizedQuery)
+      router.push(`/search?q=${encodeURIComponent(normalizedQuery)}`)
     }
   }
 
@@ -134,7 +146,8 @@ function SearchPageContent() {
                   key={tag}
                   onClick={() => {
                     setQuery(tag)
-                    performSearch(tag)
+                    void performSearch(tag)
+                    router.push(`/search?q=${encodeURIComponent(tag)}`)
                   }}
                   className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white/5 hover:bg-[#e50914] border border-white/10 hover:border-[#e50914] rounded-full text-xs sm:text-sm text-gray-300 hover:text-white transition-all hover:scale-105 active:scale-95"
                 >

@@ -1,4 +1,4 @@
-import api, { toAbsoluteUrl } from '@/lib/api'
+import api, { fetchAllPaginated, toAbsoluteUrl } from '@/lib/api'
 import { Movie, MovieListResponse, Category } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -7,10 +7,7 @@ import Footer from '@/components/footer'
 
 async function getCategoryMovies(slug: string) {
   try {
-    const response = await api.get<MovieListResponse>('/api/v1/movies', {
-      params: { category: slug },
-    })
-    return response.data.items || []
+    return await fetchAllPaginated<Movie>('/api/v1/movies', { category: slug }, 100)
   } catch (error) {
     console.error('Failed to fetch category movies:', error)
     return []
@@ -29,8 +26,7 @@ async function getCategoryDetails(slug: string): Promise<Category | null> {
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const movies = await getCategoryMovies(slug)
-  const category = await getCategoryDetails(slug)
+  const [movies, category] = await Promise.all([getCategoryMovies(slug), getCategoryDetails(slug)])
   const categoryName = category?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 
   const categoryGradients: Record<string, string> = {

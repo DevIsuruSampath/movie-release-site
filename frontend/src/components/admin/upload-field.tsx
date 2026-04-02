@@ -46,22 +46,23 @@ export function UploadField({
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={async (event) => {
-              const file = event.target.files?.[0]
-              if (!file) return
-              setUploading(true)
-              setError('')
-              try {
-                const response = await api.uploadImage(file, { media_role: mediaRole, movie_id: movieId })
-                onChange(response.file_url)
-                setCurrentStorageSource(response.storage_source || '')
-              } catch (uploadError) {
-                setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
-              } finally {
-                setUploading(false)
-              }
-            }}
-          />
+                onChange={async (event) => {
+                  const file = event.target.files?.[0]
+                  if (!file) return
+                  setUploading(true)
+                  setError('')
+                  try {
+                    const response = await api.uploadImage(file, { media_role: mediaRole, movie_id: movieId })
+                    onChange(response.file_url)
+                    setCurrentStorageSource(response.storage_source || '')
+                  } catch (uploadError) {
+                    setError(uploadError instanceof Error ? uploadError.message : 'Upload failed')
+                  } finally {
+                    event.target.value = ''
+                    setUploading(false)
+                  }
+                }}
+              />
           {uploading ? 'Uploading...' : 'Upload image'}
         </label>
         {value ? (

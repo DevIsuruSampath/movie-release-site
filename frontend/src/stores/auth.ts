@@ -86,13 +86,18 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           const refreshed = await get().refresh()
           if (!refreshed) return null
-          const user = await api.me()
-          set({
-            user,
-            isAuthenticated: true,
-            isAdmin: user.is_admin || user.is_superuser,
-          })
-          return user
+          try {
+            const user = await api.me()
+            set({
+              user,
+              isAuthenticated: true,
+              isAdmin: user.is_admin || user.is_superuser,
+            })
+            return user
+          } catch {
+            get().logout()
+            return null
+          }
         }
       },
 

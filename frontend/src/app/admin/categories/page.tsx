@@ -15,14 +15,20 @@ export default function CategoriesPage() {
   const [items, setItems] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [editing, setEditing] = useState<Category | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<Category | null>(null)
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search), 250)
+    return () => window.clearTimeout(timeout)
+  }, [search])
+
   const load = async () => {
     setLoading(true)
     try {
-      const response = await api.listCategories({ page: 1, limit: 100, search })
+      const response = await api.listCategories({ page: 1, limit: 200, search: debouncedSearch })
       setItems(response.items)
     } finally {
       setLoading(false)
@@ -31,7 +37,7 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     void load()
-  }, [search])
+  }, [debouncedSearch])
 
   return (
     <div className="space-y-6">

@@ -29,6 +29,7 @@ const API_URL =
       'http://localhost:3000'
 
 type Primitive = string | number | boolean
+type PaginatedItemsResponse<TItem> = { items: TItem[]; pages: number }
 
 interface RequestOptions<TBody = unknown> {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -81,21 +82,26 @@ class ApiClient {
 
   private async request<TResponse, TBody = unknown>(endpoint: string, options: RequestOptions<TBody> = {}) {
     const token = options.auth === false ? null : getAccessToken()
-    const response = await fetch(this.buildUrl(endpoint, options.params), {
-      method: options.method || 'GET',
-      headers: {
-        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...options.headers,
-      },
-      body:
-        options.body instanceof FormData
-          ? options.body
-          : options.body !== undefined
-            ? JSON.stringify(options.body)
-            : undefined,
-      cache: 'no-store',
-    })
+    let response: Response
+    try {
+      response = await fetch(this.buildUrl(endpoint, options.params), {
+        method: options.method || 'GET',
+        headers: {
+          ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...options.headers,
+        },
+        body:
+          options.body instanceof FormData
+            ? options.body
+            : options.body !== undefined
+              ? JSON.stringify(options.body)
+              : undefined,
+        cache: 'no-store',
+      })
+    } catch {
+      throw new ApiError(502, 'Network request failed')
+    }
 
     if (!response.ok) {
       let detail = response.statusText
@@ -244,5 +250,28 @@ class ApiClient {
 
 const api = new ApiClient(API_URL)
 
-export { API_URL, ApiError, api, toAbsoluteUrl }
+async function fetchAllPaginated<TItem>(
+  endpoint: string,
+  params: Record<string, Primitive | null | undefined>,
+  limit: number
+) {
+  const firstPage = await api.get<PaginatedItemsResponse<TItem>>(endpoint, {
+    params: { ...params, page: 1, limit },
+  })
+  const items = [...(firstPage.data.items || [])]
+  const remainingPages = Array.from({ length: Math.max((firstPage.data.pages || 1) - 1, 0) }, (_, index) => index + 2)
+  const responses = await Promise.all(
+    remainingPages.map((page) =>
+      api.get<PaginatedItemsResponse<TItem>>(endpoint, {
+        params: { ...params, page, limit },
+      })
+    )
+  )
+  for (const response of responses) {
+    items.push(...(response.data.items || []))
+  }
+  return items
+}
+
+export { API_URL, ApiError, api, fetchAllPaginated, toAbsoluteUrl }
 export default api

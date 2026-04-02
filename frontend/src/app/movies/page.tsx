@@ -1,4 +1,4 @@
-import api, { toAbsoluteUrl } from '@/lib/api'
+import { fetchAllPaginated, toAbsoluteUrl } from '@/lib/api'
 import { Movie, MovieListResponse } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -7,10 +7,7 @@ import Footer from '@/components/footer'
 
 async function getMovies() {
   try {
-    const response = await api.get<MovieListResponse>('/api/v1/movies', {
-      params: { is_published: true, limit: 100 },
-    })
-    return response.data.items || []
+    return await fetchAllPaginated<Movie>('/api/v1/movies', { is_published: true }, 100)
   } catch (error) {
     console.error('Failed to fetch movies:', error)
     return []

@@ -8,7 +8,7 @@ from app.models.subtitle import Subtitle
 from app.models.user import User
 from app.schemas.subtitle import SubtitleCreate, SubtitleListResponse, SubtitleResponse, SubtitleUpdate
 from app.services.audit_service import create_audit_log
-from app.services.file_storage import save_upload
+from app.services.file_storage import cleanup_unreferenced_uploads, save_upload
 
 router = APIRouter()
 
@@ -68,6 +68,7 @@ def update_subtitle(
     subtitle = db.query(Subtitle).filter(Subtitle.id == subtitle_id).first()
     if not subtitle:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtitle not found")
+    previous_file_urls = [subtitle.file_url]
     for field, value in subtitle_data.model_dump(exclude_unset=True).items():
         setattr(subtitle, field, value)
     if subtitle.is_default:
@@ -82,6 +83,7 @@ def update_subtitle(
         description=f"Updated subtitle {subtitle.label}",
     )
     db.commit()
+    cleanup_unreferenced_uploads(db, previous_file_urls)
     db.refresh(subtitle)
     return subtitle
 
@@ -96,6 +98,7 @@ def delete_subtitle(
     subtitle = db.query(Subtitle).filter(Subtitle.id == subtitle_id).first()
     if not subtitle:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtitle not found")
+    previous_file_urls = [subtitle.file_url]
     create_audit_log(
         db,
         request,
@@ -107,6 +110,7 @@ def delete_subtitle(
     )
     db.delete(subtitle)
     db.commit()
+    cleanup_unreferenced_uploads(db, previous_file_urls)
 
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)

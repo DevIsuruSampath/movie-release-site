@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
 import AdminNavbar from '@/components/admin-navbar'
@@ -17,8 +17,10 @@ export default function AdminLayout({
   const hydrated = useAuthStore((state) => state.hydrated)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const isAdmin = useAuthStore((state) => state.isAdmin)
+  const accessToken = useAuthStore((state) => state.accessToken)
   const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const fetchedAccessTokenRef = useRef<string | null>(null)
 
   const isLoginPage = pathname === '/admin/login'
 
@@ -32,13 +34,17 @@ export default function AdminLayout({
       router.replace('/admin/login')
       return
     }
-    if (isAuthenticated && isAdmin) {
+    if (isAuthenticated && isAdmin && accessToken && fetchedAccessTokenRef.current !== accessToken) {
+      fetchedAccessTokenRef.current = accessToken
       void fetchCurrentUser()
     }
     if (isAuthenticated && isAdmin && isLoginPage) {
       router.replace('/admin')
     }
-  }, [fetchCurrentUser, hydrated, isAdmin, isAuthenticated, isLoginPage, router])
+    if (!isAuthenticated) {
+      fetchedAccessTokenRef.current = null
+    }
+  }, [accessToken, fetchCurrentUser, hydrated, isAdmin, isAuthenticated, isLoginPage, router])
 
   useEffect(() => {
     setMobileMenuOpen(false)

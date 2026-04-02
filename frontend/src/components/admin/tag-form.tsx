@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,14 @@ export function TagForm({
     description: initialValue?.description || '',
   })
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    setValue({
+      name: initialValue?.name || '',
+      slug: initialValue?.slug || '',
+      description: initialValue?.description || '',
+    })
+  }, [initialValue])
 
   return (
     <form

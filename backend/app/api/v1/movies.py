@@ -23,6 +23,7 @@ from app.schemas.movie import (
     SubtitleInline,
 )
 from app.services.audit_service import create_audit_log
+from app.services.file_storage import cleanup_unreferenced_uploads
 
 router = APIRouter()
 
@@ -181,6 +182,18 @@ def _log(db: Session, request: Request, actor: User, action: str, movie: Movie) 
     )
 
 
+def _collect_movie_managed_file_urls(movie: Movie) -> list[str | None]:
+    file_urls: list[str | None] = [
+        movie.poster_url,
+        movie.backdrop_url,
+        movie.thumbnail_url,
+        movie.open_graph_image,
+    ]
+    file_urls.extend(subtitle.file_url for subtitle in movie.subtitles)
+    file_urls.extend(item.image_url for item in movie.gallery)
+    return file_urls
+
+
 @router.get("", response_model=MovieListResponse)
 def list_movies(
     page: int = Query(1, ge=1),
@@ -280,6 +293,7 @@ def update_movie(
     movie = _movie_query(db).filter(Movie.id == movie_id).first()
     if not movie:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+    previous_file_urls = _collect_movie_managed_file_urls(movie)
 
     updates = movie_data.model_dump(
         exclude_unset=True,
@@ -295,6 +309,7 @@ def update_movie(
     _apply_movie_relations(db, movie, movie_data)
     _log(db, request, current_admin, "update", movie)
     db.commit()
+    cleanup_unreferenced_uploads(db, previous_file_urls)
     return _movie_query(db).filter(Movie.id == movie.id).first()
 
 
@@ -305,12 +320,14 @@ def delete_movie(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
-    movie = db.query(Movie).filter(Movie.id == movie_id).first()
+    movie = _movie_query(db).filter(Movie.id == movie_id).first()
     if not movie:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+    previous_file_urls = _collect_movie_managed_file_urls(movie)
     _log(db, request, current_admin, "delete", movie)
     db.delete(movie)
     db.commit()
+    cleanup_unreferenced_uploads(db, previous_file_urls)
     return None
 
 

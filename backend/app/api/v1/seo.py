@@ -10,6 +10,27 @@ from app.schemas.seo import SEOCreate, SEOResponse, SEOUpdate
 router = APIRouter()
 
 
+def _normalize_page_slug(page_slug: str | None) -> str | None:
+    normalized = page_slug.strip() if page_slug else ""
+    return normalized or None
+
+
+def _find_existing_metadata(
+    db: Session,
+    *,
+    page_type: str,
+    page_slug: str | None,
+    exclude_id: int | None = None,
+) -> SEOMetadata | None:
+    query = db.query(SEOMetadata).filter(
+        SEOMetadata.page_type == page_type,
+        SEOMetadata.page_slug.is_(page_slug) if page_slug is None else SEOMetadata.page_slug == page_slug,
+    )
+    if exclude_id is not None:
+        query = query.filter(SEOMetadata.id != exclude_id)
+    return query.first()
+
+
 @router.get("", response_model=list[SEOResponse])
 def list_seo(page_type: str | None = None, db: Session = Depends(get_db)):
     query = db.query(SEOMetadata)
@@ -24,7 +45,11 @@ def create_seo_metadata(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_admin_user),
 ):
-    seo = SEOMetadata(**seo_data.model_dump())
+    normalized_page_slug = _normalize_page_slug(seo_data.page_slug)
+    if _find_existing_metadata(db, page_type=seo_data.page_type, page_slug=normalized_page_slug):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SEO metadata already exists for this page")
+
+    seo = SEOMetadata(**seo_data.model_dump(), page_slug=normalized_page_slug)
     db.add(seo)
     db.commit()
     db.refresh(seo)
@@ -41,7 +66,21 @@ def update_seo_metadata(
     seo = db.query(SEOMetadata).filter(SEOMetadata.id == seo_id).first()
     if not seo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SEO metadata not found")
-    for field, value in seo_data.model_dump(exclude_unset=True).items():
+
+    updates = seo_data.model_dump(exclude_unset=True)
+    normalized_page_type = updates.get("page_type", seo.page_type)
+    normalized_page_slug = _normalize_page_slug(updates.get("page_slug", seo.page_slug))
+    if _find_existing_metadata(
+        db,
+        page_type=normalized_page_type,
+        page_slug=normalized_page_slug,
+        exclude_id=seo.id,
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SEO metadata already exists for this page")
+
+    for field, value in updates.items():
+        if field == "page_slug":
+            value = normalized_page_slug
         setattr(seo, field, value)
     db.commit()
     db.refresh(seo)

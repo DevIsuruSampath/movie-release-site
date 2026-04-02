@@ -14,6 +14,11 @@ from app.schemas.tag import TagCreate, TagListResponse, TagResponse, TagUpdate
 router = APIRouter()
 
 
+def _normalize_search_term(value: str | None) -> str | None:
+    normalized = value.strip() if value else ""
+    return normalized or None
+
+
 def _resolve_slug(db: Session, value: str, tag_id: int | None = None) -> str:
     base_slug = slugify(value) or "tag"
     candidate = base_slug
@@ -36,8 +41,9 @@ def list_tags(
     db: Session = Depends(get_db),
 ):
     query = db.query(Tag)
-    if search:
-        query = query.filter(Tag.name.ilike(f"%{search}%"))
+    normalized_search = _normalize_search_term(search)
+    if normalized_search:
+        query = query.filter(Tag.name.ilike(f"%{normalized_search}%"))
     total = query.count()
     items = query.order_by(Tag.name.asc()).offset((page - 1) * limit).limit(limit).all()
     return TagListResponse(items=items, total=total, page=page, pages=ceil(total / limit) if total else 1)
