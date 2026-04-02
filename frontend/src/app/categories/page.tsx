@@ -1,4 +1,4 @@
-import { fetchAllPaginated } from '@/lib/api'
+import { fetchAllPaginated, toAbsoluteUrl } from '@/lib/api'
 import { Category } from '@/types'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -90,6 +90,18 @@ export default async function CategoriesPage() {
                 className="group"
               >
                 <div className={`category-card bg-gradient-to-br ${categoryGradients[index % categoryGradients.length]} animate-slide-up stagger-${(index % 6) + 1}`}>
+                  {category.image_url ? (
+                    <>
+                      <img
+                        src={toAbsoluteUrl(category.image_url)}
+                        alt={category.name}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-black/45" />
+                    </>
+                  ) : null}
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white relative z-10">
                     <div className="category-icon w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
