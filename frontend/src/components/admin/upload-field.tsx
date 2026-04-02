@@ -12,14 +12,17 @@ export function UploadField({
   onChange,
   mediaRole,
   movieId,
+  onRemove,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   mediaRole?: string
   movieId?: number
+  onRemove?: () => Promise<void> | void
 }) {
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState('')
   const [manualMode, setManualMode] = useState(false)
 
@@ -75,8 +78,26 @@ export function UploadField({
           {uploading ? 'Uploading...' : 'Upload image'}
         </label>
         {value ? (
-          <Button type="button" variant="ghost" onClick={() => onChange('')}>
-            Remove image
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={removing}
+            onClick={async () => {
+              const previousValue = value
+              setError('')
+              setRemoving(true)
+              onChange('')
+              try {
+                await onRemove?.()
+              } catch (removeError) {
+                onChange(previousValue)
+                setError(removeError instanceof Error ? removeError.message : 'Failed to remove image')
+              } finally {
+                setRemoving(false)
+              }
+            }}
+          >
+            {removing ? 'Removing...' : 'Remove image'}
           </Button>
         ) : null}
         {value ? (

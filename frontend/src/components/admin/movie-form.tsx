@@ -142,6 +142,15 @@ export function MovieForm({
     void loadOptions()
   }, [])
 
+  const persistMediaRemoval = async (
+    field: 'poster_url' | 'backdrop_url' | 'thumbnail_url' | 'open_graph_image'
+  ) => {
+    if (!movie?.id) {
+      return
+    }
+    await api.updateMovie(movie.id, { [field]: '' })
+  }
+
   const submit = async () => {
     setSubmitting(true)
     setError('')
@@ -206,10 +215,38 @@ export function MovieForm({
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
             <h2 className="mb-4 text-lg font-semibold text-white">Media</h2>
             <div className="grid gap-5 md:grid-cols-2">
-              <UploadField label="Poster" value={form.poster_url || ''} onChange={(poster_url) => setForm({ ...form, poster_url })} mediaRole="poster" movieId={movie?.id} />
-              <UploadField label="Backdrop" value={form.backdrop_url || ''} onChange={(backdrop_url) => setForm({ ...form, backdrop_url })} mediaRole="backdrop" movieId={movie?.id} />
-              <UploadField label="Thumbnail" value={form.thumbnail_url || ''} onChange={(thumbnail_url) => setForm({ ...form, thumbnail_url })} mediaRole="thumbnail" movieId={movie?.id} />
-              <UploadField label="Open Graph Image" value={form.open_graph_image || ''} onChange={(open_graph_image) => setForm({ ...form, open_graph_image })} mediaRole="other" movieId={movie?.id} />
+              <UploadField
+                label="Poster"
+                value={form.poster_url || ''}
+                onChange={(poster_url) => setForm({ ...form, poster_url })}
+                mediaRole="poster"
+                movieId={movie?.id}
+                onRemove={() => persistMediaRemoval('poster_url')}
+              />
+              <UploadField
+                label="Backdrop"
+                value={form.backdrop_url || ''}
+                onChange={(backdrop_url) => setForm({ ...form, backdrop_url })}
+                mediaRole="backdrop"
+                movieId={movie?.id}
+                onRemove={() => persistMediaRemoval('backdrop_url')}
+              />
+              <UploadField
+                label="Thumbnail"
+                value={form.thumbnail_url || ''}
+                onChange={(thumbnail_url) => setForm({ ...form, thumbnail_url })}
+                mediaRole="thumbnail"
+                movieId={movie?.id}
+                onRemove={() => persistMediaRemoval('thumbnail_url')}
+              />
+              <UploadField
+                label="Open Graph Image"
+                value={form.open_graph_image || ''}
+                onChange={(open_graph_image) => setForm({ ...form, open_graph_image })}
+                mediaRole="other"
+                movieId={movie?.id}
+                onRemove={() => persistMediaRemoval('open_graph_image')}
+              />
             </div>
           </section>
 

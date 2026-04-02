@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { UploadField } from '@/components/admin/upload-field'
+import api from '@/lib/api'
 import type { Category } from '@/types'
 
 export function CategoryForm({
@@ -50,7 +51,15 @@ export function CategoryForm({
       <Input label="Name" value={value.name || ''} onChange={(event) => setValue({ ...value, name: event.target.value })} />
       <Input label="Slug" value={value.slug || ''} onChange={(event) => setValue({ ...value, slug: event.target.value })} />
       <Textarea label="Description" value={value.description || ''} onChange={(event) => setValue({ ...value, description: event.target.value })} />
-      <UploadField label="Image" value={value.image_url || ''} onChange={(image_url) => setValue({ ...value, image_url })} />
+      <UploadField
+        label="Image"
+        value={value.image_url || ''}
+        onChange={(image_url) => setValue({ ...value, image_url })}
+        onRemove={async () => {
+          if (!initialValue?.id) return
+          await api.updateCategory(initialValue.id, { image_url: '' })
+        }}
+      />
       <div className="flex justify-end gap-3">
         {onCancel ? (
           <Button type="button" variant="ghost" onClick={onCancel}>
