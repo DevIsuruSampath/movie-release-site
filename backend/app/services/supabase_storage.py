@@ -35,7 +35,7 @@ class SupabaseStorageService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Supabase storage is enabled but SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing",
             )
-        return settings.SUPABASE_URL.rstrip("/"), settings.SUPABASE_SERVICE_ROLE_KEY
+        return settings.SUPABASE_URL.rstrip("/"), settings.SUPABASE_SERVICE_ROLE_KEY.strip()
 
     def _headers(self, *, content_type: str | None = None) -> dict[str, str]:
         _, service_key = self._require_config()
@@ -73,6 +73,13 @@ class SupabaseStorageService:
                 or detail
             )
         return detail
+
+    @classmethod
+    def _is_bucket_missing_response(cls, response: requests.Response) -> bool:
+        if response.status_code == status.HTTP_404_NOT_FOUND:
+            return True
+        detail = cls._extract_error_detail(response).lower()
+        return "bucket" in detail and any(keyword in detail for keyword in ("not found", "does not exist", "missing"))
 
     def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
         try:
@@ -124,33 +131,39 @@ class SupabaseStorageService:
 
     def upload_bytes(self, *, bucket: str, path: str, content: bytes, content_type: str) -> str:
         base_url, _ = self._require_config()
-        self.ensure_bucket(bucket)
-        response = self._request(
-            "POST",
-            f"{base_url}/storage/v1/object/{bucket}/{path}",
-            headers={**self._headers(content_type=content_type), "x-upsert": "false"},
-            data=content,
-        )
+        upload_url = f"{base_url}/storage/v1/object/{bucket}/{path}"
+        request_kwargs = {
+            "headers": {**self._headers(content_type=content_type), "x-upsert": "false"},
+            "data": content,
+        }
+        response = self._request("POST", upload_url, **request_kwargs)
+        if self._is_bucket_missing_response(response):
+            self.ensure_bucket(bucket)
+            response = self._request("POST", upload_url, **request_kwargs)
         if response.status_code >= 400:
             detail = self._extract_error_detail(response)
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage upload failed: {detail}")
+        self._bucket_cache.add(bucket)
         return self.public_url(bucket, path)
 
     def list_objects(self, *, folder: str) -> list[StoredObject]:
         bucket = self.bucket_for_folder(folder)
         base_url, _ = self._require_config()
-        self.ensure_bucket(bucket)
-        response = self._request(
-            "POST",
-            f"{base_url}/storage/v1/object/list/{bucket}",
-            headers={**self._headers(), "Content-Type": "application/json"},
-            json={"limit": 1000, "offset": 0, "sortBy": {"column": "updated_at", "order": "desc"}},
-        )
+        list_url = f"{base_url}/storage/v1/object/list/{bucket}"
+        request_kwargs = {
+            "headers": {**self._headers(), "Content-Type": "application/json"},
+            "json": {"limit": 1000, "offset": 0, "sortBy": {"column": "updated_at", "order": "desc"}},
+        }
+        response = self._request("POST", list_url, **request_kwargs)
+        if self._is_bucket_missing_response(response):
+            self.ensure_bucket(bucket)
+            response = self._request("POST", list_url, **request_kwargs)
         if response.status_code >= 400:
             detail = self._extract_error_detail(response)
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage list failed: {detail}")
 
         payload = response.json()
+        self._bucket_cache.add(bucket)
         items: list[StoredObject] = []
         for item in payload:
             name = item.get("name")
