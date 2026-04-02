@@ -102,7 +102,7 @@ class Settings(BaseSettings):
         preferred_database_url = self.SUPABASE_DB_URL or self.DATABASE_URL
         normalized_database_url = self._normalize_database_url(preferred_database_url)
         if not normalized_database_url:
-            normalized_database_url = "postgresql://movie_user:movie_pass@postgres:5432/movie_db"
+            raise ValueError("Set SUPABASE_DB_URL or DATABASE_URL before starting the backend")
         self.DATABASE_URL = normalized_database_url
         self.SUPABASE_DB_URL = self._normalize_database_url(self.SUPABASE_DB_URL)
         return self
