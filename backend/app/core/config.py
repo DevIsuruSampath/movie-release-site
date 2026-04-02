@@ -2,7 +2,9 @@
 Application configuration using Pydantic settings
 """
 import json
+import socket
 from typing import List, Optional, Union
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -92,9 +94,19 @@ class Settings(BaseSettings):
         normalized = (database_url or "").strip()
         if normalized.startswith("postgres://"):
             normalized = normalized.replace("postgres://", "postgresql://", 1)
-        if normalized and "supabase.co" in normalized and "sslmode=" not in normalized:
-            separator = "&" if "?" in normalized else "?"
-            normalized = f"{normalized}{separator}sslmode=require"
+        if normalized and "supabase.co" in normalized:
+            parsed = urlsplit(normalized)
+            query_params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            if "sslmode" not in query_params:
+                query_params["sslmode"] = "require"
+            if parsed.hostname and "hostaddr" not in query_params:
+                try:
+                    ipv4_address = socket.getaddrinfo(parsed.hostname, parsed.port or 5432, socket.AF_INET, socket.SOCK_STREAM)[0][4][0]
+                except OSError:
+                    ipv4_address = ""
+                if ipv4_address:
+                    query_params["hostaddr"] = ipv4_address
+            normalized = urlunsplit(parsed._replace(query=urlencode(query_params)))
         return normalized
 
     @model_validator(mode="after")
