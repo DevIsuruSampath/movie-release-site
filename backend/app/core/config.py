@@ -41,7 +41,6 @@ class Settings(BaseSettings):
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""
-    SUPABASE_POOLER_DB_URL: str = ""
     SUPABASE_DB_URL: str = ""
     SUPABASE_IMAGES_BUCKET: str = "movie-images"
     SUPABASE_SUBTITLES_BUCKET: str = "movie-subtitles"
@@ -85,6 +84,11 @@ class Settings(BaseSettings):
             return "local"
         return normalized
 
+    @staticmethod
+    def _looks_like_publishable_supabase_key(value: str | None) -> bool:
+        normalized = (value or "").strip().lower()
+        return normalized.startswith("sb_publishable_") or normalized.startswith("sb_anon_")
+
     @field_validator("DATABASE_POOL_SIZE", "DATABASE_MAX_OVERFLOW", "DATABASE_POOL_RECYCLE_SECONDS", "DATABASE_POOL_TIMEOUT_SECONDS")
     @classmethod
     def validate_positive_int(cls, value: int) -> int:
@@ -124,13 +128,16 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def apply_database_defaults(self) -> "Settings":
-        preferred_database_url = self.SUPABASE_POOLER_DB_URL or self.SUPABASE_DB_URL or self.DATABASE_URL
+        preferred_database_url = self.SUPABASE_DB_URL or self.DATABASE_URL
         normalized_database_url = self._normalize_database_url(preferred_database_url)
         if not normalized_database_url:
             raise ValueError("Set SUPABASE_DB_URL or DATABASE_URL before starting the backend")
         self.DATABASE_URL = normalized_database_url
-        self.SUPABASE_POOLER_DB_URL = self._normalize_database_url(self.SUPABASE_POOLER_DB_URL)
         self.SUPABASE_DB_URL = self._normalize_database_url(self.SUPABASE_DB_URL)
+        if self.STORAGE_BACKEND == "supabase" and self._looks_like_publishable_supabase_key(self.SUPABASE_SERVICE_ROLE_KEY):
+            raise ValueError(
+                "SUPABASE_SERVICE_ROLE_KEY must be the server-side service role key, not the publishable/anon key."
+            )
         return self
 
     model_config = SettingsConfigDict(
