@@ -1,6 +1,9 @@
+from urllib.parse import urlsplit
+
 from typing import Any, Generator
 
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
@@ -129,8 +132,24 @@ def _ensure_schema_compatibility() -> None:
             connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS description TEXT"))
 
 def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
-    _ensure_schema_compatibility()
+    parsed_database_url = urlsplit(settings.DATABASE_URL)
+    if settings.direct_supabase_host_requires_pooler(settings.DATABASE_URL):
+        raise RuntimeError(
+            "The configured Supabase direct database host "
+            f"'{parsed_database_url.hostname}' does not have a reachable IPv4 path from this runtime. "
+            "Set SUPABASE_POOLER_DB_URL from Supabase Connection Pooling settings, or run this backend on an IPv6-enabled network."
+        )
+
+    try:
+        Base.metadata.create_all(bind=engine)
+        _ensure_schema_compatibility()
+    except OperationalError as exc:
+        if settings.direct_supabase_host_requires_pooler(settings.DATABASE_URL):
+            raise RuntimeError(
+                "Database startup failed because this runtime cannot reach the direct Supabase database host over IPv4. "
+                "Set SUPABASE_POOLER_DB_URL from Supabase Connection Pooling settings."
+            ) from exc
+        raise
 
 
 def get_db() -> Generator[Any, None, None]:
