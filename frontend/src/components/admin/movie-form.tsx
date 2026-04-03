@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
-import type { Category, Movie, MoviePayload, Tag } from '@/types'
+import type { AdminSettings, Category, Movie, MoviePayload, Tag } from '@/types'
 
 const initialPayload: MoviePayload = {
   title: '',
@@ -65,7 +65,31 @@ function isSimpleMediaUrlMovie(movie: Movie): boolean {
   return streamLink.url === downloadLink.url
 }
 
-function toPayload(movie?: Movie | null): MoviePayload {
+function toEditorMediaUrl(mediaUrl: string | null | undefined, mediaBaseUrl: string | null | undefined): string {
+  const normalizedUrl = (mediaUrl || '').trim()
+  if (!normalizedUrl) return ''
+
+  const normalizedBase = (mediaBaseUrl || '').trim().replace(/\/+$/, '')
+  if (!normalizedBase) return normalizedUrl
+
+  const baseWithProtocol =
+    normalizedBase.startsWith('http://') || normalizedBase.startsWith('https://')
+      ? normalizedBase
+      : `https://${normalizedBase}`
+
+  if (!normalizedUrl.startsWith(baseWithProtocol)) {
+    return normalizedUrl
+  }
+
+  const relativePath = normalizedUrl.slice(baseWithProtocol.length)
+  if (!relativePath.startsWith('/')) {
+    return normalizedUrl
+  }
+
+  return relativePath || normalizedUrl
+}
+
+function toPayload(movie?: Movie | null, mediaBaseUrl?: string | null): MoviePayload {
   if (!movie) return initialPayload
   const useSimpleMediaUrl = isSimpleMediaUrlMovie(movie)
   return {
@@ -81,7 +105,7 @@ function toPayload(movie?: Movie | null): MoviePayload {
     country: movie.country || '',
     imdb_rating: movie.imdb_rating || undefined,
     quality: movie.quality || '',
-    media_url: useSimpleMediaUrl ? movie.media_url || '' : undefined,
+    media_url: useSimpleMediaUrl ? toEditorMediaUrl(movie.media_url, mediaBaseUrl) : undefined,
     trailer_url: movie.trailer_url || '',
     poster_url: movie.poster_url || '',
     backdrop_url: movie.backdrop_url || '',
@@ -116,6 +140,7 @@ export function MovieForm({
   submitLabel: string
 }) {
   const router = useRouter()
+  const [mediaBaseUrl, setMediaBaseUrl] = useState<string>('')
   const [form, setForm] = useState<MoviePayload>(toPayload(movie))
   const [categories, setCategories] = useState<Category[]>([])
   const [tags, setTags] = useState<Tag[]>([])
@@ -131,18 +156,20 @@ export function MovieForm({
   })
 
   useEffect(() => {
-    setForm(toPayload(movie))
-  }, [movie])
+    setForm(toPayload(movie, mediaBaseUrl))
+  }, [movie, mediaBaseUrl])
 
   useEffect(() => {
     async function loadOptions() {
       try {
-        const [categoryResponse, tagResponse] = await Promise.all([
+        const [categoryResponse, tagResponse, settingsResponse] = await Promise.all([
           api.listCategories({ page: 1, limit: 200 }),
           api.listTags({ page: 1, limit: 200 }),
+          api.getAdminSettings().catch(() => ({ storage_backend: 'local', media_base_url: '' } as AdminSettings)),
         ])
         setCategories(categoryResponse.items)
         setTags(tagResponse.items)
+        setMediaBaseUrl(settingsResponse.media_base_url || '')
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : 'Failed to load category and tag options')
       }
