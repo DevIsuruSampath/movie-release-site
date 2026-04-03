@@ -28,7 +28,7 @@ export default async function MoviesPage() {
   const movies = await getMovies()
   const featuredMovie = movies.find((movie) => movie.featured) || movies[0]
   const latestMovie = movies[0]
-  const subtitleMovie = movies.find((movie) => movie.has_subtitles)
+  const subtitleMovie = movies.find((movie) => movie.subtitles && movie.subtitles.length > 0)
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -41,7 +41,7 @@ export default async function MoviesPage() {
         stats={[
           { label: 'Titles', value: `${movies.length}` },
           { label: 'Featured', value: `${movies.filter((movie) => movie.featured).length}` },
-          { label: 'Subtitles', value: `${movies.filter((movie) => movie.has_subtitles).length}` },
+          { label: 'Subtitles', value: `${movies.filter((movie) => movie.subtitles && movie.subtitles.length > 0).length}` },
         ]}
         primaryAction={{ href: '/search', label: 'Search movies' }}
         secondaryAction={{ href: '/categories', label: 'Browse categories' }}
@@ -93,7 +93,7 @@ export default async function MoviesPage() {
               <div key={movie.id} className="animate-slide-up" style={{ animationDelay: `${(index % 8) * 0.04}s` }}>
                 <CinematicMovieCard
                   movie={movie}
-                  badge={movie.featured ? 'Featured' : movie.has_subtitles ? 'Subtitles ready' : 'Now browsing'}
+                  badge={movie.featured ? 'Featured' : movie.subtitles && movie.subtitles.length > 0 ? 'Subtitles ready' : 'Now browsing'}
                 />
               </div>
             ))}
