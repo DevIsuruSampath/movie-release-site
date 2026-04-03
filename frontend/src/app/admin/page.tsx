@@ -43,6 +43,9 @@ export default function DashboardPage() {
           <Link href="/admin/uploads">
             <Button variant="outline">Uploads</Button>
           </Link>
+          <Link href="/admin/settings">
+            <Button variant="outline">Settings</Button>
+          </Link>
         </div>
       </div>
 
@@ -68,6 +71,9 @@ export default function DashboardPage() {
           </div>
           <Link href="/admin/uploads">
             <Button variant="outline">Open Uploads</Button>
+          </Link>
+          <Link href="/admin/settings">
+            <Button variant="outline">Settings</Button>
           </Link>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">

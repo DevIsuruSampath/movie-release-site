@@ -14,7 +14,15 @@ from app.models.subtitle import Subtitle
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.movie import MovieDashboardItem
+from app.schemas.site_setting import AdminSettingsResponse, AdminSettingsUpdate
 from app.services.file_storage import list_referenced_uploads
+from app.services.site_settings import (
+    MEDIA_BASE_URL_KEY,
+    STORAGE_BACKEND_KEY,
+    get_setting_value,
+    resolve_storage_backend,
+    set_setting_value,
+)
 
 router = APIRouter()
 
@@ -25,11 +33,37 @@ def _summarize_uploads(db: Session) -> dict[str, object]:
     all_items = [*images, *subtitles]
     storage_sources = sorted({str(item.get("storage_source") or "unknown") for item in all_items})
     return {
-        "configured_backend": settings.STORAGE_BACKEND,
+        "configured_backend": resolve_storage_backend(db),
         "images_count": len(images),
         "subtitles_count": len(subtitles),
         "total_count": len(all_items),
         "storage_sources": storage_sources,
+    }
+
+
+@router.get("/settings", response_model=AdminSettingsResponse)
+def get_admin_settings(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    return {
+        "storage_backend": resolve_storage_backend(db),
+        "media_base_url": get_setting_value(db, MEDIA_BASE_URL_KEY) or None,
+    }
+
+
+@router.put("/settings", response_model=AdminSettingsResponse)
+def update_admin_settings(
+    payload: AdminSettingsUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    set_setting_value(db, STORAGE_BACKEND_KEY, payload.storage_backend)
+    set_setting_value(db, MEDIA_BASE_URL_KEY, payload.media_base_url or "")
+    db.commit()
+    return {
+        "storage_backend": payload.storage_backend,
+        "media_base_url": payload.media_base_url,
     }
 
 

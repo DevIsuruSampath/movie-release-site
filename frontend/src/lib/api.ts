@@ -1,5 +1,6 @@
 import type {
   AuditLog,
+  AdminSettings,
   AuthResponse,
   Category,
   CategoryListResponse,
@@ -166,6 +167,14 @@ class ApiClient {
 
   getDashboard() {
     return this.get<DashboardStats>('/api/v1/admin/dashboard').then((response) => response.data)
+  }
+
+  getAdminSettings() {
+    return this.get<AdminSettings>('/api/v1/admin/settings').then((response) => response.data)
+  }
+
+  updateAdminSettings(payload: AdminSettings) {
+    return this.put<AdminSettings, AdminSettings>('/api/v1/admin/settings', payload).then((response) => response.data)
   }
 
   getActivity(params?: { page?: number; limit?: number }) {

@@ -134,6 +134,22 @@ def _ensure_schema_compatibility() -> None:
         if "description" not in audit_columns:
             connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS description TEXT"))
 
+        if "site_settings" not in inspector.get_table_names():
+            connection.execute(
+                text(
+                    """
+                    CREATE TABLE IF NOT EXISTS site_settings (
+                        id SERIAL PRIMARY KEY,
+                        key VARCHAR(100) NOT NULL UNIQUE,
+                        value TEXT NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                    """
+                )
+            )
+            connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_site_settings_key ON site_settings (key)"))
+
 def init_db() -> None:
     parsed_database_url = urlsplit(settings.DATABASE_URL)
     database_name = parsed_database_url.path.lstrip("/") or "<missing>"

@@ -9,3 +9,4 @@ from app.models.movie import Movie, StreamLink, DownloadLink, MovieGallery  # no
 from app.models.subtitle import Subtitle  # noqa: E402,F401
 from app.models.seo import SEOMetadata  # noqa: E402,F401
 from app.models.audit import AuditLog  # noqa: E402,F401
+from app.models.site_setting import SiteSetting  # noqa: E402,F401

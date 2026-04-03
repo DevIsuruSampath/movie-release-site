@@ -24,6 +24,7 @@ from app.schemas.movie import (
 )
 from app.services.audit_service import create_audit_log
 from app.services.file_storage import cleanup_unreferenced_uploads
+from app.services.site_settings import normalize_media_url
 
 router = APIRouter()
 
@@ -169,6 +170,9 @@ def _apply_movie_relations(db: Session, movie: Movie, payload: MovieCreate | Mov
     if tag_ids is not None:
         movie.tags = _validate_relation_ids(db, model=Tag, ids=tag_ids, entity_name="tag")
     _sync_nested_relations(movie, payload)
+    media_url = getattr(payload, "media_url", None)
+    if media_url is not None:
+        setattr(payload, "media_url", normalize_media_url(media_url, db))
     _sync_single_media_url(movie, payload)
 
 

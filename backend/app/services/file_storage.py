@@ -18,6 +18,7 @@ from app.models.category import Category
 from app.models.movie import Movie, MovieGallery
 from app.models.subtitle import Subtitle
 from app.services.supabase_storage import supabase_storage
+from app.services.site_settings import resolve_storage_backend
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +206,7 @@ def _optimize_image_content(
 async def save_upload(
     file: UploadFile,
     *,
+    db: Session | None = None,
     folder: str,
     allowed_extensions: set[str],
     allowed_mime_types: set[str],
@@ -250,7 +252,7 @@ async def save_upload(
         content_type = content_type or "application/octet-stream"
         filename = f"{uuid4().hex}{extension}"
 
-    if settings.STORAGE_BACKEND == "supabase":
+    if resolve_storage_backend(db) == "supabase":
         try:
             bucket = supabase_storage.bucket_for_folder(folder)
             file_url = supabase_storage.upload_bytes(
@@ -508,7 +510,7 @@ def list_referenced_uploads(db: Session, folder: str | None = None) -> list[dict
 
 
 def migrate_local_referenced_uploads_to_supabase(db: Session, folder: str | None = None) -> dict[str, Any]:
-    if settings.STORAGE_BACKEND != "supabase":
+    if resolve_storage_backend(db) != "supabase":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Supabase storage is not enabled")
 
     references = collect_upload_references(db)

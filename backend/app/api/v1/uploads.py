@@ -31,6 +31,7 @@ async def upload_image(
 ):
     payload = await save_upload(
         file,
+        db=db,
         folder="images",
         allowed_extensions=IMAGE_EXTENSIONS,
         allowed_mime_types=IMAGE_TYPES,
@@ -59,6 +60,7 @@ async def upload_subtitle(
 ):
     payload = await save_upload(
         file,
+        db=db,
         folder="subtitles",
         allowed_extensions=SUBTITLE_EXTENSIONS,
         allowed_mime_types=SUBTITLE_TYPES,

@@ -213,6 +213,11 @@ export interface DashboardStats {
   recent_activity: AuditLog[]
 }
 
+export interface AdminSettings {
+  storage_backend: 'local' | 'supabase'
+  media_base_url?: string | null
+}
+
 export interface UploadItem {
   filename: string
   file_url: string

@@ -13,6 +13,7 @@ const links = [
   { href: '/admin/categories', label: 'Categories' },
   { href: '/admin/tags', label: 'Tags' },
   { href: '/admin/uploads', label: 'Uploads' },
+  { href: '/admin/settings', label: 'Settings' },
   { href: '/admin/activity', label: 'Activity' },
 ]
 

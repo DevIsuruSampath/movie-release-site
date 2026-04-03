@@ -210,7 +210,13 @@ export function MovieForm({
                   value={form.media_url || ''}
                   onChange={(event) => setForm({ ...form, media_url: event.target.value })}
                 />
-                <p className="mt-2 text-xs text-gray-500">Use one direct URL here. The frontend will use it for both watch and download.</p>
+                <p className="mt-2 text-xs leading-5 text-gray-500">
+                  Use one direct URL here for both watch and download. You can paste a full URL or a relative path like
+                  {' '}
+                  <span className="text-gray-300">/folder/nKjlObikMY</span>
+                  {' '}
+                  and the admin settings media domain will turn it into a full URL automatically.
+                </p>
               </div>
               <div className="md:col-span-2">
                 <Input
