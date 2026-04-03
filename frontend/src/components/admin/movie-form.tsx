@@ -281,7 +281,8 @@ export function MovieForm({
                   multiple
                   value={form.category_ids.map(String)}
                   onChange={(event) => setForm({ ...form, category_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)) })}
-                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none"
+                  style={{ color: '#ffffff', backgroundColor: '#11151d' }}
+                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[#11151d] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none focus:ring-4 focus:ring-[#e50914]/15"
                 >
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>{category.name}</option>
@@ -295,7 +296,8 @@ export function MovieForm({
                   multiple
                   value={form.tag_ids.map(String)}
                   onChange={(event) => setForm({ ...form, tag_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)) })}
-                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none"
+                  style={{ color: '#ffffff', backgroundColor: '#11151d' }}
+                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[#11151d] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none focus:ring-4 focus:ring-[#e50914]/15"
                 >
                   {tags.map((tag) => (
                     <option key={tag.id} value={tag.id}>{tag.name}</option>
