@@ -54,7 +54,7 @@ export function TagForm({
         value={value.description || ''}
         onChange={(event) => setValue({ ...value, description: event.target.value })}
       />
-      <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#111111]/95 p-3 backdrop-blur sm:flex-row sm:justify-end">
+      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#111111]/95 p-3 backdrop-blur sm:flex-row sm:justify-end">
         {onCancel ? (
           <Button type="button" variant="ghost" className="h-12 rounded-2xl px-5 text-base" onClick={onCancel}>
             Cancel

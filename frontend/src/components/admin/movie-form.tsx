@@ -334,7 +334,7 @@ export function MovieForm({
         </div>
       </div>
 
-      <div className="sticky bottom-3 z-20 rounded-2xl border border-white/10 bg-[#111111]/95 p-3 backdrop-blur">
+      <div className="rounded-2xl border border-white/10 bg-[#111111]/95 p-3 backdrop-blur">
         <div className="grid gap-3 md:grid-cols-3">
           <Button variant="ghost" className="h-12 rounded-2xl text-base" onClick={() => router.push('/admin/movies')}>
             Cancel
