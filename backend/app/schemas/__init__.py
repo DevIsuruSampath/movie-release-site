@@ -10,7 +10,6 @@ from app.schemas.movie import (
     MovieGalleryResponse
 )
 from app.schemas.tag import TagBase, TagCreate, TagUpdate, TagResponse, TagListResponse
-from app.schemas.subtitle import SubtitleBase, SubtitleCreate, SubtitleUpdate, SubtitleResponse, SubtitleListResponse
 from app.schemas.seo import SEOBase, SEOCreate, SEOUpdate, SEOResponse
 
 __all__ = [
@@ -25,8 +24,6 @@ __all__ = [
     "MovieGalleryResponse",
     # Tag schemas
     "TagBase", "TagCreate", "TagUpdate", "TagResponse", "TagListResponse",
-    # Subtitle schemas
-    "SubtitleBase", "SubtitleCreate", "SubtitleUpdate", "SubtitleResponse", "SubtitleListResponse",
     # SEO schemas
     "SEOBase", "SEOCreate", "SEOUpdate", "SEOResponse",
 ]

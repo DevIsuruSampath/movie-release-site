@@ -13,7 +13,6 @@ from app.api.v1.download import router as download_router
 from app.api.v1.movies import router as movies_router
 from app.api.v1.seo import router as seo_router
 from app.api.v1.stream import router as stream_router
-from app.api.v1.subtitles import router as subtitles_router
 from app.api.v1.tags import router as tags_router
 from app.api.v1.uploads import router as uploads_router
 from app.core.config import settings
@@ -65,7 +64,6 @@ app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(movies_router, prefix="/api/v1/movies", tags=["movies"])
 app.include_router(categories_router, prefix="/api/v1/categories", tags=["categories"])
 app.include_router(tags_router, prefix="/api/v1/tags", tags=["tags"])
-app.include_router(subtitles_router, prefix="/api/v1/subtitles", tags=["subtitles"])
 app.include_router(stream_router, prefix="/api/v1/stream", tags=["stream"])
 app.include_router(download_router, prefix="/api/v1/download", tags=["download"])
 app.include_router(seo_router, prefix="/api/v1/seo", tags=["seo"])

@@ -10,7 +10,6 @@ from app.db.database import get_db
 from app.models.audit import AuditLog
 from app.models.category import Category
 from app.models.movie import Movie
-from app.models.subtitle import Subtitle
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.movie import MovieDashboardItem
@@ -29,14 +28,11 @@ router = APIRouter()
 
 def _summarize_uploads(db: Session) -> dict[str, object]:
     images = list_referenced_uploads(db, folder="images")
-    subtitles = list_referenced_uploads(db, folder="subtitles")
-    all_items = [*images, *subtitles]
-    storage_sources = sorted({str(item.get("storage_source") or "unknown") for item in all_items})
+    storage_sources = sorted({str(item.get("storage_source") or "unknown") for item in images})
     return {
         "configured_backend": resolve_storage_backend(db),
         "images_count": len(images),
-        "subtitles_count": len(subtitles),
-        "total_count": len(all_items),
+        "total_count": len(images),
         "storage_sources": storage_sources,
     }
 
@@ -74,7 +70,6 @@ def get_dashboard(
 ):
     total_categories_subquery = db.query(func.count(Category.id)).scalar_subquery()
     total_tags_subquery = db.query(func.count(Tag.id)).scalar_subquery()
-    total_subtitles_subquery = db.query(func.count(Subtitle.id)).scalar_subquery()
     movie_totals = db.query(
         func.count(Movie.id).label("total_movies"),
         func.sum(case((Movie.is_published.is_(True), 1), else_=0)).label("total_published_movies"),
@@ -83,7 +78,6 @@ def get_dashboard(
         func.sum(case(((Movie.trailer_url.isnot(None)) & (Movie.trailer_url != ""), 1), else_=0)).label("total_trailer_movies"),
         total_categories_subquery.label("total_categories"),
         total_tags_subquery.label("total_tags"),
-        total_subtitles_subquery.label("total_subtitles"),
     ).one()
     recent_movies = (
         db.query(Movie)
@@ -107,7 +101,6 @@ def get_dashboard(
         "total_trailer_movies": movie_totals.total_trailer_movies or 0,
         "total_categories": movie_totals.total_categories or 0,
         "total_tags": movie_totals.total_tags or 0,
-        "total_subtitles": movie_totals.total_subtitles or 0,
         "upload_summary": upload_summary,
         "recent_movies": [MovieDashboardItem.model_validate(movie).model_dump() for movie in recent_movies],
         "recent_activity": [

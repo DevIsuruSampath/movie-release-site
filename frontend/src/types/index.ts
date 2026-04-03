@@ -53,19 +53,6 @@ export interface Tag {
   updated_at?: string | null
 }
 
-export interface Subtitle {
-  id?: number
-  movie_id?: number
-  language: string
-  label: string
-  file_url: string
-  format: string
-  is_default: boolean
-  sort_order: number
-  created_at?: string
-  updated_at?: string | null
-}
-
 export interface MediaStorageSummaryItem {
   storage_source?: string | null
   public_url?: string | null
@@ -141,7 +128,6 @@ export interface Movie extends SeoMetadata {
   media_storage_summary?: Record<string, MediaStorageSummaryItem>
   categories: Category[]
   tags: Tag[]
-  subtitles: Subtitle[]
   stream_links: StreamLink[]
   download_links: DownloadLink[]
   gallery: MovieGallery[]
@@ -175,7 +161,6 @@ export interface MoviePayload extends SeoMetadata {
   open_graph_image?: string
   category_ids: number[]
   tag_ids: number[]
-  subtitles: Omit<Subtitle, 'movie_id' | 'created_at' | 'updated_at'>[]
   stream_links: Omit<StreamLink, 'movie_id' | 'created_at' | 'updated_at'>[]
   download_links: Omit<DownloadLink, 'movie_id' | 'created_at' | 'updated_at'>[]
 }
@@ -201,11 +186,9 @@ export interface DashboardStats {
   total_trailer_movies: number
   total_categories: number
   total_tags: number
-  total_subtitles: number
   upload_summary: {
     configured_backend: string
     images_count: number
-    subtitles_count: number
     total_count: number
     storage_sources: string[]
   }

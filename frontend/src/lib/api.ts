@@ -12,7 +12,6 @@ import type {
   PaginatedResponse,
   SeoMetadata,
   StreamLink,
-  Subtitle,
   Tag,
   TagListResponse,
   StorageCleanupResult,
@@ -235,10 +234,6 @@ class ApiClient {
     return this.delete<void>(`/api/v1/tags/${id}`).then((response) => response.data)
   }
 
-  listMovieSubtitles(movieId: number) {
-    return this.get<{ items: Subtitle[]; total: number }>(`/api/v1/subtitles/movie/${movieId}`).then((response) => response.data)
-  }
-
   listMovieStreams(movieId: number) {
     return this.get<StreamLink[]>(`/api/v1/stream/movie/${movieId}`).then((response) => response.data)
   }
@@ -255,22 +250,7 @@ class ApiClient {
     return this.post<UploadResponse, FormData>('/api/v1/uploads/image', body, {}).then((response) => response.data)
   }
 
-  uploadSubtitleFile(file: File, options?: { movie_id?: number }) {
-    const body = new FormData()
-    body.append('file', file)
-    if (options?.movie_id) body.append('movie_id', String(options.movie_id))
-    return this.post<UploadResponse, FormData>('/api/v1/uploads/subtitle', body, {}).then((response) => response.data)
-  }
-
-  listImages() {
-    return this.get<UploadItem[]>('/api/v1/uploads/images').then((response) => response.data)
-  }
-
-  listSubtitleUploads() {
-    return this.get<UploadItem[]>('/api/v1/uploads/subtitles').then((response) => response.data)
-  }
-
-  listReferencedUploads(folder?: 'images' | 'subtitles') {
+  listReferencedUploads(folder?: 'images') {
     return this.get<UploadItem[]>('/api/v1/uploads/references', {
       params: folder ? { folder } : {},
     }).then((response) => response.data)
@@ -280,7 +260,7 @@ class ApiClient {
     return this.get<UploadOrphanReport>('/api/v1/uploads/orphans').then((response) => response.data)
   }
 
-  migrateLocalUploads(folder?: 'images' | 'subtitles') {
+  migrateLocalUploads(folder?: 'images') {
     return this.post<UploadMigrationResult>(
       '/api/v1/uploads/migrate-local',
       undefined,
@@ -288,13 +268,13 @@ class ApiClient {
     ).then((response) => response.data)
   }
 
-  cleanupOrphanedStorage(folder?: 'images' | 'subtitles') {
+  cleanupOrphanedStorage(folder?: 'images') {
     return this.post<StorageCleanupResult>('/api/v1/uploads/orphans/cleanup', undefined, {
       params: folder ? { folder } : {},
     }).then((response) => response.data)
   }
 
-  cleanupMissingStorageReferences(folder?: 'images' | 'subtitles') {
+  cleanupMissingStorageReferences(folder?: 'images') {
     return this.post<StorageCleanupResult>('/api/v1/uploads/references/cleanup-missing', undefined, {
       params: folder ? { folder } : {},
     }).then((response) => response.data)

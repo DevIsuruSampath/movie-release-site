@@ -93,16 +93,6 @@ class DownloadLinkResponse(DownloadLinkBase):
         from_attributes = True
 
 
-class SubtitleInline(BaseModel):
-    id: Optional[int] = None
-    language: str
-    label: str
-    file_url: str
-    format: str = "srt"
-    is_default: bool = False
-    sort_order: int = 0
-
-
 class StreamLinkInline(StreamLinkBase):
     id: Optional[int] = None
 
@@ -148,7 +138,6 @@ class MovieBase(BaseModel):
 class MovieCreate(MovieBase):
     category_ids: List[int] = []
     tag_ids: List[int] = []
-    subtitles: List[SubtitleInline] = []
     stream_links: List[StreamLinkInline] = []
     download_links: List[DownloadLinkInline] = []
 
@@ -187,7 +176,6 @@ class MovieUpdate(BaseModel):
     schema_markup: Optional[str] = None
     category_ids: Optional[List[int]] = None
     tag_ids: Optional[List[int]] = None
-    subtitles: Optional[List[SubtitleInline]] = None
     stream_links: Optional[List[StreamLinkInline]] = None
     download_links: Optional[List[DownloadLinkInline]] = None
 
@@ -201,25 +189,10 @@ class MovieResponse(MovieBase):
     published_at: Optional[datetime] = None
     categories: List[CategoryResponse] = Field(default_factory=list)
     tags: List[TagResponse] = Field(default_factory=list)
-    subtitles: List["SubtitleResponseLight"] = Field(default_factory=list)
     stream_links: List[StreamLinkResponse] = Field(default_factory=list)
     download_links: List[DownloadLinkResponse] = Field(default_factory=list)
     gallery: List[MovieGalleryResponse] = Field(default_factory=list)
     media_storage_summary: dict[str, dict[str, str | int | None]] = Field(default_factory=dict)
-
-    class Config:
-        from_attributes = True
-
-
-class SubtitleResponseLight(BaseModel):
-    id: int
-    movie_id: int
-    language: str
-    label: str
-    file_url: str
-    format: str
-    is_default: bool
-    sort_order: int
 
     class Config:
         from_attributes = True

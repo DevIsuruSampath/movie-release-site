@@ -59,12 +59,6 @@ class Movie(Base):
         cascade="all, delete-orphan",
         order_by="DownloadLink.sort_order",
     )
-    subtitles = relationship(
-        "Subtitle",
-        back_populates="movie",
-        cascade="all, delete-orphan",
-        order_by="Subtitle.sort_order",
-    )
     gallery = relationship(
         "MovieGallery",
         back_populates="movie",

@@ -18,8 +18,6 @@ from app.services.file_storage import (
 router = APIRouter()
 IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-SUBTITLE_TYPES = {"application/x-subrip", "text/vtt", "text/plain", "application/octet-stream"}
-SUBTITLE_EXTENSIONS = {".srt", ".vtt", ".ass"}
 
 
 @router.post("/image", status_code=status.HTTP_201_CREATED)
@@ -52,48 +50,12 @@ async def upload_image(
     return payload
 
 
-@router.post("/subtitle", status_code=status.HTTP_201_CREATED)
-async def upload_subtitle(
-    request: Request,
-    file: UploadFile = File(...),
-    movie_id: int | None = Form(None),
-    db: Session = Depends(get_db),
-    current_admin: User = Depends(get_current_admin_user),
-):
-    payload = await save_upload(
-        file,
-        db=db,
-        folder="subtitles",
-        allowed_extensions=SUBTITLE_EXTENSIONS,
-        allowed_mime_types=SUBTITLE_TYPES,
-    )
-    create_audit_log(
-        db,
-        request,
-        current_admin,
-        action="upload",
-        entity_type="subtitle_file",
-        description=f"Uploaded subtitle {payload['filename']}",
-        metadata_json={"file_url": payload["file_url"], "content_type": payload["content_type"]},
-    )
-    db.commit()
-    return payload
-
-
 @router.get("/images")
 def list_images(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_admin_user),
 ):
     return list_upload_items("images", db=db)
-
-
-@router.get("/subtitles")
-def list_subtitles(
-    db: Session = Depends(get_db),
-    _: User = Depends(get_current_admin_user),
-):
-    return list_upload_items("subtitles", db=db)
 
 
 @router.get("/orphans")
@@ -110,7 +72,7 @@ def list_referenced_upload_items(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_admin_user),
 ):
-    if folder not in {None, "images", "subtitles"}:
+    if folder not in {None, "images"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
     return list_referenced_uploads(db, folder=folder)
 
@@ -122,7 +84,7 @@ def migrate_local_uploads_to_supabase(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
-    if folder not in {None, "images", "subtitles"}:
+    if folder not in {None, "images"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
     payload = migrate_local_referenced_uploads_to_supabase(db, folder=folder)
     create_audit_log(
@@ -145,7 +107,7 @@ def cleanup_storage_orphans(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
-    if folder not in {None, "images", "subtitles"}:
+    if folder not in {None, "images"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
     payload = cleanup_orphaned_uploads(db, folder=folder)
     create_audit_log(
@@ -168,7 +130,7 @@ def cleanup_missing_storage_references(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user),
 ):
-    if folder not in {None, "images", "subtitles"}:
+    if folder not in {None, "images"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
     payload = cleanup_missing_referenced_uploads(db, folder=folder)
     create_audit_log(

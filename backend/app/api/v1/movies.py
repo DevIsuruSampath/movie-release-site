@@ -10,7 +10,6 @@ from app.core.security import get_current_admin_user
 from app.db.database import get_db
 from app.models.category import Category
 from app.models.movie import DownloadLink, Movie, StreamLink
-from app.models.subtitle import Subtitle
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.movie import (
@@ -20,7 +19,6 @@ from app.schemas.movie import (
     MovieResponse,
     MovieUpdate,
     StreamLinkInline,
-    SubtitleInline,
 )
 from app.services.audit_service import create_audit_log
 from app.services.file_storage import cleanup_unreferenced_uploads
@@ -33,7 +31,6 @@ def _movie_query(db: Session):
     return db.query(Movie).options(
         selectinload(Movie.categories),
         selectinload(Movie.tags),
-        selectinload(Movie.subtitles),
         selectinload(Movie.stream_links),
         selectinload(Movie.download_links),
         selectinload(Movie.gallery),
@@ -95,20 +92,6 @@ def _validate_relation_ids(
 
 
 def _sync_nested_relations(movie: Movie, payload: MovieCreate | MovieUpdate) -> None:
-    subtitles = getattr(payload, "subtitles", None)
-    if subtitles is not None:
-        normalized_subtitles: list[Subtitle] = []
-        default_subtitle_assigned = False
-        for item in subtitles:
-            subtitle = Subtitle(**item.model_dump(exclude={"id"}))
-            if subtitle.is_default:
-                if default_subtitle_assigned:
-                    subtitle.is_default = False
-                else:
-                    default_subtitle_assigned = True
-            normalized_subtitles.append(subtitle)
-        movie.subtitles = normalized_subtitles
-
     stream_links = getattr(payload, "stream_links", None)
     if stream_links is not None:
         normalized_stream_links: list[StreamLink] = []
@@ -206,7 +189,6 @@ def _collect_movie_managed_file_urls(movie: Movie) -> list[str | None]:
         movie.thumbnail_url,
         movie.open_graph_image,
     ]
-    file_urls.extend(subtitle.file_url for subtitle in movie.subtitles)
     file_urls.extend(item.image_url for item in movie.gallery)
     return file_urls
 
@@ -221,7 +203,6 @@ def list_movies(
     year: int | None = Query(None),
     language: str | None = Query(None),
     quality: str | None = Query(None),
-    has_subtitles: bool | None = Query(None),
     status_filter: str | None = Query(None, alias="status"),
     is_published: bool | None = Query(None),
     featured: bool | None = Query(None),
@@ -240,11 +221,6 @@ def list_movies(
         query = query.filter(Movie.language == language)
     if quality:
         query = query.filter(Movie.quality == quality)
-    if has_subtitles is not None:
-        if has_subtitles:
-            query = query.filter(Movie.subtitles.any())
-        else:
-            query = query.filter(~Movie.subtitles.any())
     normalized_search = _normalize_search_term(search)
     if normalized_search:
         query = query.filter(
@@ -332,7 +308,7 @@ def create_movie(
 ):
     movie = Movie(
         **movie_data.model_dump(
-            exclude={"slug", "media_url", "category_ids", "tag_ids", "subtitles", "stream_links", "download_links"}
+            exclude={"slug", "media_url", "category_ids", "tag_ids", "stream_links", "download_links"}
         )
     )
     movie.slug = _resolve_slug(db, movie_data.slug or movie_data.title)
@@ -360,7 +336,7 @@ def update_movie(
 
     updates = movie_data.model_dump(
         exclude_unset=True,
-        exclude={"media_url", "category_ids", "tag_ids", "subtitles", "stream_links", "download_links"},
+        exclude={"media_url", "category_ids", "tag_ids", "stream_links", "download_links"},
     )
     if "slug" in updates or "title" in updates:
         movie.slug = _resolve_slug(db, updates.get("slug") or updates.get("title") or movie.slug, movie.id)
