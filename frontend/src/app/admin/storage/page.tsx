@@ -107,7 +107,6 @@ function StorageSection({ title, items }: { title: string; items: UploadItem[] }
 
 export default function StoragePage() {
   const [images, setImages] = useState<UploadItem[]>([])
-  const [subtitles, setSubtitles] = useState<UploadItem[]>([])
   const [orphans, setOrphans] = useState<UploadOrphanReport | null>(null)
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -119,14 +118,12 @@ export default function StoragePage() {
   async function load() {
     setLoading(true)
     try {
-      const [imageItems, subtitleItems, orphanReport, dashboardData] = await Promise.all([
+      const [imageItems, orphanReport, dashboardData] = await Promise.all([
         api.listReferencedUploads('images'),
-        api.listReferencedUploads('subtitles'),
         api.getUploadOrphans(),
         api.getDashboard(),
       ])
       setImages(imageItems)
-      setSubtitles(subtitleItems)
       setOrphans(orphanReport)
       setDashboard(dashboardData)
     } finally {
@@ -138,8 +135,8 @@ export default function StoragePage() {
     void load()
   }, [])
 
-  const localReferenceCount = useMemo(() => [...images, ...subtitles].filter((item) => item.storage_source === 'local').length, [images, subtitles])
-  const brokenReferenceCount = useMemo(() => [...images, ...subtitles].filter((item) => item.storage_source === 'local' && item.file_exists === false).length, [images, subtitles])
+  const localReferenceCount = useMemo(() => images.filter((item) => item.storage_source === 'local').length, [images])
+  const brokenReferenceCount = useMemo(() => images.filter((item) => item.storage_source === 'local' && item.file_exists === false).length, [images])
   const orphanCount = orphans?.orphaned_files.length || 0
 
   if (loading) return <LoadingSpinner label="Loading storage..." />

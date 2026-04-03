@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.category import Category
 from app.models.movie import Movie, MovieGallery
-from app.models.subtitle import Subtitle
 from app.services.supabase_storage import supabase_storage
 from app.services.site_settings import resolve_storage_backend
 
@@ -24,11 +23,9 @@ logger = logging.getLogger(__name__)
 
 UPLOAD_ROOT = Path(settings.UPLOAD_DIR)
 IMAGE_DIR = UPLOAD_ROOT / "images"
-SUBTITLE_DIR = UPLOAD_ROOT / "subtitles"
 TEMP_DIR = UPLOAD_ROOT / "temp"
 UPLOAD_DIRECTORIES = {
     "images": IMAGE_DIR,
-    "subtitles": SUBTITLE_DIR,
     "temp": TEMP_DIR,
 }
 IMAGE_ROLE_DIMENSIONS = {
@@ -145,26 +142,6 @@ async def _read_upload_bytes(file: UploadFile, *, max_bytes: int) -> bytes:
     return content
 
 
-def _validate_subtitle_content(content: bytes, extension: str) -> None:
-    decoded: str | None = None
-    for encoding in ("utf-8-sig", "utf-16", "latin-1"):
-        try:
-            decoded = content.decode(encoding)
-            break
-        except UnicodeDecodeError:
-            continue
-    if decoded is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Subtitle file is not valid text")
-
-    lowered = decoded.lower()
-    if extension == ".vtt" and "webvtt" not in lowered:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid VTT subtitle file")
-    if extension == ".srt" and "-->" not in decoded:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid SRT subtitle file")
-    if extension == ".ass" and "[script info]" not in lowered and "[events]" not in lowered:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ASS subtitle file")
-
-
 def _optimize_image_content(
     *,
     content: bytes,
@@ -239,18 +216,7 @@ async def save_upload(
             media_role=media_role,
         )
         filename = f"{uuid4().hex}{extension}"
-    else:
-        if extension not in allowed_extensions:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file extension. Allowed subtitle types: {', '.join(sorted(allowed_extensions))}",
-            )
-        if content_type not in allowed_mime_types:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
-        content = await _read_upload_bytes(file, max_bytes=max_bytes)
-        _validate_subtitle_content(content, extension)
-        content_type = content_type or "application/octet-stream"
-        filename = f"{uuid4().hex}{extension}"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
 
     if resolve_storage_backend(db) == "supabase":
         try:
@@ -277,8 +243,6 @@ async def save_upload(
                 extra={"upload_folder": folder, "upload_name": filename},
             )
     if folder == "images":
-        return await _save_local_bytes(content=content, folder=folder, filename=filename, content_type=content_type)
-    if folder == "subtitles":
         return await _save_local_bytes(content=content, folder=folder, filename=filename, content_type=content_type)
     return await _save_local_upload(file=file, folder=folder, filename=filename, max_bytes=max_bytes)
 
@@ -368,8 +332,6 @@ def _replace_referenced_upload_url(db: Session, reference_items: list[dict[str, 
             db.query(Movie).filter(Movie.id == entity_id).update({field: new_file_url}, synchronize_session=False)
         elif entity == "category":
             db.query(Category).filter(Category.id == entity_id).update({field: new_file_url}, synchronize_session=False)
-        elif entity == "subtitle":
-            db.query(Subtitle).filter(Subtitle.id == entity_id).update({field: new_file_url}, synchronize_session=False)
         elif entity == "movie_gallery":
             db.query(MovieGallery).filter(MovieGallery.id == entity_id).update({field: new_file_url}, synchronize_session=False)
 
@@ -385,8 +347,6 @@ def _is_upload_still_referenced(db: Session, file_url: str) -> bool:
     ).first():
         return True
     if db.query(Category.id).filter(or_(Category.image_url == file_url, Category.og_image == file_url)).first():
-        return True
-    if db.query(Subtitle.id).filter(Subtitle.file_url == file_url).first():
         return True
     if db.query(MovieGallery.id).filter(MovieGallery.image_url == file_url).first():
         return True
@@ -439,9 +399,6 @@ def collect_upload_references(db: Session) -> dict[str, list[dict[str, Any]]]:
         _add_reference(references, image_url, {"entity": "category", "entity_id": category_id, "field": "image_url", "label": name})
         _add_reference(references, og_image, {"entity": "category", "entity_id": category_id, "field": "og_image", "label": name})
 
-    for subtitle_id, label, file_url in db.query(Subtitle.id, Subtitle.label, Subtitle.file_url):
-        _add_reference(references, file_url, {"entity": "subtitle", "entity_id": subtitle_id, "field": "file_url", "label": label})
-
     for gallery_item_id, image_type, image_url in db.query(MovieGallery.id, MovieGallery.image_type, MovieGallery.image_url):
         _add_reference(
             references,
@@ -453,8 +410,6 @@ def collect_upload_references(db: Session) -> dict[str, list[dict[str, Any]]]:
 
 
 def _folder_for_references(reference_items: list[dict[str, Any]]) -> str:
-    if any(item.get("entity") == "subtitle" for item in reference_items):
-        return "subtitles"
     return "images"
 
 
@@ -585,7 +540,7 @@ def scan_orphaned_uploads(db: Session) -> dict[str, Any]:
     orphan_files: list[dict[str, Any]] = []
 
     if resolve_storage_backend(db) == "supabase":
-        for folder in ("images", "subtitles"):
+        for folder in ("images",):
             for item in list_upload_items(folder, db=db):
                 key = f"supabase:{item['relative_path']}"
                 file_item = {

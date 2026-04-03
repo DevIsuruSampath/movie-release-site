@@ -53,11 +53,6 @@ class SupabaseStorageService:
             if not bucket:
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="SUPABASE_IMAGES_BUCKET is not configured")
             return bucket
-        if folder == "subtitles":
-            bucket = settings.SUPABASE_SUBTITLES_BUCKET.strip()
-            if not bucket:
-                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="SUPABASE_SUBTITLES_BUCKET is not configured")
-            return bucket
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
 
     def public_url(self, bucket: str, path: str) -> str:
@@ -220,39 +215,40 @@ class SupabaseStorageService:
         self._bucket_cache.add(bucket)
         items: list[StoredObject] = []
         for item in payload:
-            name = item.get("name")
-            if not name:
+            if item.get("id") is None:
+                continue
+            path = item.get("name")
+            if not path:
                 continue
             items.append(
                 StoredObject(
                     bucket=bucket,
-                    path=name,
-                    public_url=self.public_url(bucket, name),
-                    size=item.get("metadata", {}).get("size"),
-                    updated_at=item.get("updated_at"),
+                    path=path,
+                    public_url=self.public_url(bucket, path),
+                    size=item.get("metadata", {}).get("size") if isinstance(item.get("metadata"), dict) else item.get("size"),
+                    updated_at=item.get("updated_at") or item.get("last_accessed_at") or item.get("created_at"),
                 )
             )
         return items
 
     def delete_object(self, *, bucket: str, path: str) -> None:
         base_url, _ = self._require_config()
-        response = self._request(
-            "DELETE",
-            f"{base_url}/storage/v1/object/{bucket}/{path}",
-            headers=self._headers(),
-        )
-        if response.status_code in {status.HTTP_200_OK, status.HTTP_204_NO_CONTENT, status.HTTP_404_NOT_FOUND}:
-            return
-        detail = self._extract_error_detail(response)
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage delete failed: {detail}")
+        delete_url = f"{base_url}/storage/v1/object/{bucket}/{path}"
+        response = self._request("DELETE", delete_url, headers=self._headers())
+        if response.status_code >= 400 and response.status_code != status.HTTP_404_NOT_FOUND:
+            detail = self._extract_error_detail(response)
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Supabase storage delete failed: {detail}")
 
     def normalize_public_url(self, file_url: str | None) -> str | None:
         if not file_url:
             return None
-        prefix = f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/public/"
-        if not settings.SUPABASE_URL or not file_url.startswith(prefix):
+        parsed = urlparse(file_url)
+        if not parsed.scheme or not parsed.netloc:
             return None
-        return file_url.removeprefix(prefix).strip("/")
+        base_url, _ = self._require_config()
+        if not file_url.startswith(f"{base_url}/storage/v1/object/public/"):
+            return None
+        return file_url.removeprefix(f"{base_url}/storage/v1/object/public/").strip("/")
 
 
 supabase_storage = SupabaseStorageService()
