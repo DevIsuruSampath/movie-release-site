@@ -40,8 +40,8 @@ export default function DashboardPage() {
           <Link href="/admin/movies/new">
             <Button>Add Movie</Button>
           </Link>
-          <Link href="/admin/uploads">
-            <Button variant="outline">Uploads</Button>
+          <Link href="/admin/storage">
+            <Button variant="outline">Storage</Button>
           </Link>
           <Link href="/admin/settings">
             <Button variant="outline">Settings</Button>
@@ -58,19 +58,19 @@ export default function DashboardPage() {
         <StatCard label="Categories" value={data.total_categories} />
         <StatCard label="Tags" value={data.total_tags} />
         <StatCard label="Subtitles" value={data.total_subtitles} />
-        <StatCard label="Uploads" value={data.upload_summary?.total_count || 0} />
+        <StatCard label="Storage Files" value={data.upload_summary?.total_count || 0} />
       </div>
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">Upload Storage</h2>
+            <h2 className="text-lg font-semibold text-white">Media Storage</h2>
             <p className="mt-1 text-sm text-gray-400">
               Configured backend: <span className="text-white">{data.upload_summary?.configured_backend || 'unknown'}</span>
             </p>
           </div>
-          <Link href="/admin/uploads">
-            <Button variant="outline">Open Uploads</Button>
+          <Link href="/admin/storage">
+            <Button variant="outline">Open Storage</Button>
           </Link>
           <Link href="/admin/settings">
             <Button variant="outline">Settings</Button>
@@ -93,7 +93,7 @@ export default function DashboardPage() {
             <div className="mt-2 text-2xl font-semibold text-white">{data.upload_summary?.subtitles_count || 0}</div>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-gray-500">Total uploads</div>
+            <div className="text-xs uppercase tracking-wide text-gray-500">Total files</div>
             <div className="mt-2 text-2xl font-semibold text-white">{data.upload_summary?.total_count || 0}</div>
           </div>
         </div>

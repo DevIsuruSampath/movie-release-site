@@ -65,7 +65,7 @@ export default function AdminSettingsPage() {
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold text-white">Media storage</h2>
-              <p className="mt-1 text-sm text-gray-400">Choose whether new uploads should target local storage or Supabase first.</p>
+              <p className="mt-1 text-sm text-gray-400">Choose whether new media files should target local storage or Supabase first.</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -87,7 +87,7 @@ export default function AdminSettingsPage() {
                   >
                     <div className="text-base font-semibold capitalize">{backend}</div>
                     <div className="mt-1 text-sm text-gray-400">
-                      {backend === 'supabase' ? 'Use Supabase Storage for new image and subtitle uploads.' : 'Store new uploads on the local uploads volume.'}
+                      {backend === 'supabase' ? 'Use Supabase Storage for new image and subtitle files.' : 'Store new media files on the local storage volume.'}
                     </div>
                   </button>
                 )
@@ -140,7 +140,7 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-gray-400">
-              Existing movie and upload URLs are not rewritten automatically. These settings affect new uploads and future movie media URL saves.
+              Existing movie and storage URLs are not rewritten automatically. These settings affect new uploads and future movie media URL saves.
             </div>
           </div>
         </section>

@@ -15,7 +15,9 @@ import type {
   Subtitle,
   Tag,
   TagListResponse,
+  StorageCleanupResult,
   UploadItem,
+  UploadMigrationResult,
   UploadOrphanReport,
   UploadResponse,
   User,
@@ -279,11 +281,23 @@ class ApiClient {
   }
 
   migrateLocalUploads(folder?: 'images' | 'subtitles') {
-    return this.post<{ migrated: number; skipped_missing: number; failed: number; items: Array<Record<string, unknown>> }>(
+    return this.post<UploadMigrationResult>(
       '/api/v1/uploads/migrate-local',
       undefined,
       { params: folder ? { folder } : {} }
     ).then((response) => response.data)
+  }
+
+  cleanupOrphanedStorage(folder?: 'images' | 'subtitles') {
+    return this.post<StorageCleanupResult>('/api/v1/uploads/orphans/cleanup', undefined, {
+      params: folder ? { folder } : {},
+    }).then((response) => response.data)
+  }
+
+  cleanupMissingStorageReferences(folder?: 'images' | 'subtitles') {
+    return this.post<StorageCleanupResult>('/api/v1/uploads/references/cleanup-missing', undefined, {
+      params: folder ? { folder } : {},
+    }).then((response) => response.data)
   }
 }
 

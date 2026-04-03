@@ -258,6 +258,14 @@ export interface UploadMigrationResult {
   items: Array<Record<string, unknown>>
 }
 
+export interface StorageCleanupResult {
+  deleted?: number
+  failed: number
+  cleared?: number
+  skipped?: number
+  items: Array<Record<string, unknown>>
+}
+
 export interface UploadResponse {
   filename: string
   file_url: string

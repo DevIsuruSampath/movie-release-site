@@ -283,8 +283,8 @@ async def save_upload(
     return await _save_local_upload(file=file, folder=folder, filename=filename, max_bytes=max_bytes)
 
 
-def list_upload_items(folder: str) -> list[dict[str, Any]]:
-    if settings.STORAGE_BACKEND == "supabase":
+def list_upload_items(folder: str, db: Session | None = None) -> list[dict[str, Any]]:
+    if resolve_storage_backend(db) == "supabase":
         try:
             return [
                 {
@@ -584,9 +584,9 @@ def scan_orphaned_uploads(db: Session) -> dict[str, Any]:
     files: list[dict[str, Any]] = []
     orphan_files: list[dict[str, Any]] = []
 
-    if settings.STORAGE_BACKEND == "supabase":
+    if resolve_storage_backend(db) == "supabase":
         for folder in ("images", "subtitles"):
-            for item in list_upload_items(folder):
+            for item in list_upload_items(folder, db=db):
                 key = f"supabase:{item['relative_path']}"
                 file_item = {
                     "folder": folder,
@@ -627,4 +627,63 @@ def scan_orphaned_uploads(db: Session) -> dict[str, Any]:
         "total_files": len(files),
         "orphaned_files": orphan_files,
         "files": files,
+    }
+
+
+def cleanup_orphaned_uploads(db: Session, folder: str | None = None) -> dict[str, Any]:
+    report = scan_orphaned_uploads(db)
+    deleted = 0
+    failed = 0
+    items: list[dict[str, Any]] = []
+
+    for file_item in report["orphaned_files"]:
+        if folder and file_item["folder"] != folder:
+            continue
+        try:
+            if delete_managed_upload(file_item["file_url"]):
+                deleted += 1
+                items.append({"relative_path": file_item["relative_path"], "status": "deleted"})
+            else:
+                failed += 1
+                items.append({"relative_path": file_item["relative_path"], "status": "failed", "detail": "File could not be deleted"})
+        except Exception as exc:
+            logger.exception("Orphaned upload cleanup failed", extra={"relative_path": file_item["relative_path"]})
+            failed += 1
+            items.append({"relative_path": file_item["relative_path"], "status": "failed", "detail": str(exc)})
+
+    return {
+        "deleted": deleted,
+        "failed": failed,
+        "items": items,
+    }
+
+
+def cleanup_missing_referenced_uploads(db: Session, folder: str | None = None) -> dict[str, Any]:
+    referenced_items = list_referenced_uploads(db, folder=folder)
+    cleared = 0
+    skipped = 0
+    items: list[dict[str, Any]] = []
+
+    for item in referenced_items:
+        if item.get("storage_source") != "local" or item.get("file_exists") is not False:
+            continue
+        reference_items = item.get("references") or []
+        if not reference_items:
+            skipped += 1
+            items.append({"relative_path": item.get("relative_path"), "status": "skipped"})
+            continue
+        _replace_referenced_upload_url(db, reference_items, "")
+        cleared += 1
+        items.append(
+            {
+                "relative_path": item.get("relative_path"),
+                "status": "cleared",
+                "reference_count": len(reference_items),
+            }
+        )
+
+    return {
+        "cleared": cleared,
+        "skipped": skipped,
+        "items": items,
     }

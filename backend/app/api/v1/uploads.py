@@ -6,6 +6,8 @@ from app.db.database import get_db
 from app.models.user import User
 from app.services.audit_service import create_audit_log
 from app.services.file_storage import (
+    cleanup_missing_referenced_uploads,
+    cleanup_orphaned_uploads,
     list_referenced_uploads,
     list_upload_items,
     migrate_local_referenced_uploads_to_supabase,
@@ -79,13 +81,19 @@ async def upload_subtitle(
 
 
 @router.get("/images")
-def list_images(_: User = Depends(get_current_admin_user)):
-    return list_upload_items("images")
+def list_images(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    return list_upload_items("images", db=db)
 
 
 @router.get("/subtitles")
-def list_subtitles(_: User = Depends(get_current_admin_user)):
-    return list_upload_items("subtitles")
+def list_subtitles(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_admin_user),
+):
+    return list_upload_items("subtitles", db=db)
 
 
 @router.get("/orphans")
@@ -124,6 +132,52 @@ def migrate_local_uploads_to_supabase(
         action="migrate",
         entity_type="upload",
         description="Migrated local uploads to Supabase",
+        metadata_json={"folder": folder, **payload},
+    )
+    db.commit()
+    return payload
+
+
+@router.post("/orphans/cleanup")
+def cleanup_storage_orphans(
+    request: Request,
+    folder: str | None = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
+):
+    if folder not in {None, "images", "subtitles"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
+    payload = cleanup_orphaned_uploads(db, folder=folder)
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="cleanup",
+        entity_type="storage",
+        description="Deleted orphaned storage files",
+        metadata_json={"folder": folder, **payload},
+    )
+    db.commit()
+    return payload
+
+
+@router.post("/references/cleanup-missing")
+def cleanup_missing_storage_references(
+    request: Request,
+    folder: str | None = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user),
+):
+    if folder not in {None, "images", "subtitles"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
+    payload = cleanup_missing_referenced_uploads(db, folder=folder)
+    create_audit_log(
+        db,
+        request,
+        current_admin,
+        action="cleanup",
+        entity_type="storage_reference",
+        description="Cleared broken storage references",
         metadata_json={"folder": folder, **payload},
     )
     db.commit()

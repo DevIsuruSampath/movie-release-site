@@ -31,7 +31,7 @@ export default function LoginPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#ff676f]">MovieHub Admin</p>
           <h1 className="mt-3 text-[2rem] font-semibold leading-tight text-white sm:text-4xl">Admin Login</h1>
           <p className="mt-3 max-w-sm text-sm leading-6 text-gray-400 sm:text-base">
-            Sign in to manage movies, uploads, publishing, and the public catalog.
+            Sign in to manage movies, storage, publishing, and the public catalog.
           </p>
         </div>
         <form
