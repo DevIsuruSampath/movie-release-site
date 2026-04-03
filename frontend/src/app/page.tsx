@@ -112,7 +112,7 @@ function MovieCard({ movie, badgeLabel }: { movie: Movie; badgeLabel?: string })
           <div className="flex flex-wrap gap-2 text-[11px] text-gray-300 sm:text-xs">
             {movie.release_year ? <span className="rounded-full bg-white/10 px-2.5 py-1">{movie.release_year}</span> : null}
             {movie.language ? <span className="rounded-full bg-white/10 px-2.5 py-1">{movie.language}</span> : null}
-            {movie.genre ? <span className="rounded-full bg-white/10 px-2.5 py-1">{movie.genre}</span> : null}
+            {movie.categories[0] ? <span className="rounded-full bg-white/10 px-2.5 py-1">{movie.categories[0].name}</span> : null}
           </div>
         </div>
       </article>
