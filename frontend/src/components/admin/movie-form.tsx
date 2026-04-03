@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { SeoFields } from '@/components/admin/seo-fields'
-import { SubtitleManager } from '@/components/admin/subtitle-manager'
 import { UploadField } from '@/components/admin/upload-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,7 +45,6 @@ const initialPayload: MoviePayload = {
   schema_markup: '',
   category_ids: [],
   tag_ids: [],
-  subtitles: [],
   stream_links: [],
   download_links: [],
 }
@@ -115,7 +113,6 @@ function toPayload(movie?: Movie | null, mediaBaseUrl?: string | null): MoviePay
     schema_markup: movie.schema_markup || '',
     category_ids: movie.categories.map((category) => category.id),
     tag_ids: movie.tags.map((tag) => tag.id),
-    subtitles: movie.subtitles.map(({ created_at, updated_at, movie_id, ...subtitle }) => subtitle),
     stream_links: movie.stream_links.map(({ created_at, updated_at, movie_id, ...streamLink }) => streamLink),
     download_links: movie.download_links.map(({ created_at, updated_at, movie_id, ...downloadLink }) => downloadLink),
   }
@@ -166,7 +163,6 @@ export function MovieForm({
     details: true,
     media: true,
     relations: true,
-    subtitles: false,
     publishing: true,
     seo: false,
   })
@@ -308,9 +304,6 @@ export function MovieForm({
             </div>
           </SectionCard>
 
-          <SectionCard title="Subtitles" description="Manage subtitle assets that power subtitle-ready discovery and playback support." expanded={expandedSections.subtitles} onToggle={() => toggleSection('subtitles')}>
-            <SubtitleManager items={form.subtitles} movieId={movie?.id} onChange={(subtitles) => setForm({ ...form, subtitles })} />
-          </SectionCard>
         </div>
 
         <div className="space-y-6">
@@ -325,7 +318,7 @@ export function MovieForm({
                 Featured in premium homepage/editorial lanes
               </label>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-slate-400">
-                Streaming and download availability are inferred from the media configuration and subtitle/link data above.
+                Streaming and download availability are inferred from the media configuration and link data above.
               </div>
             </div>
           </SectionCard>

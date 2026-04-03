@@ -28,7 +28,7 @@ export default async function MoviesPage() {
   const movies = await getMovies()
   const featuredMovie = movies.find((movie) => movie.featured) || movies[0]
   const latestMovie = movies[0]
-  const subtitleMovie = movies.find((movie) => movie.subtitles && movie.subtitles.length > 0)
+  const qualityMovie = movies.find((movie) => movie.quality)
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -41,7 +41,7 @@ export default async function MoviesPage() {
         stats={[
           { label: 'Titles', value: `${movies.length}` },
           { label: 'Featured', value: `${movies.filter((movie) => movie.featured).length}` },
-          { label: 'Subtitles', value: `${movies.filter((movie) => movie.subtitles && movie.subtitles.length > 0).length}` },
+          { label: 'Watch-ready', value: `${movies.filter((movie) => movie.media_url || movie.stream_links.length || movie.download_links.length).length}` },
         ]}
         primaryAction={{ href: '/search', label: 'Search movies' }}
         secondaryAction={{ href: '/categories', label: 'Browse categories' }}
@@ -62,9 +62,9 @@ export default async function MoviesPage() {
             <div className="mt-2 text-sm leading-6 text-slate-400">Freshly surfaced releases appear first for quick discovery.</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Subtitle lane</div>
-            <div className="mt-2 text-lg font-semibold text-white">{subtitleMovie?.title || 'Curated subtitle picks'}</div>
-            <div className="mt-2 text-sm leading-6 text-slate-400">Use subtitle-ready picks to reduce browsing friction when language support matters.</div>
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Quality spotlight</div>
+            <div className="mt-2 text-lg font-semibold text-white">{qualityMovie?.title || 'Curated quality picks'}</div>
+            <div className="mt-2 text-sm leading-6 text-slate-400">Use quality, language, and category cues to choose faster without extra clutter.</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Browse mode</div>
@@ -93,7 +93,7 @@ export default async function MoviesPage() {
               <div key={movie.id} className="animate-slide-up" style={{ animationDelay: `${(index % 8) * 0.04}s` }}>
                 <CinematicMovieCard
                   movie={movie}
-                  badge={movie.featured ? 'Featured' : movie.subtitles && movie.subtitles.length > 0 ? 'Subtitles ready' : 'Now browsing'}
+                  badge={movie.featured ? 'Featured' : movie.quality ? movie.quality : 'Now browsing'}
                 />
               </div>
             ))}

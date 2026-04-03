@@ -35,17 +35,17 @@ async function getLatestMovies() {
   }
 }
 
-async function getSubtitleReadyMovies() {
+async function getWatchReadyMovies() {
   try {
     const response = await api.get<MovieListResponse>('/api/v1/movies', {
-      params: { is_published: true, has_subtitles: true, limit: 8, sort: 'recently_updated' },
+      params: { is_published: true, limit: 8, sort: 'recently_updated' },
       auth: false,
       cacheMode: 'force-cache',
       revalidateSeconds: 180,
     })
-    return response.data.items || []
+    return (response.data.items || []).filter((movie) => movie.media_url || movie.stream_links.length || movie.download_links.length)
   } catch (error) {
-    console.error('Failed to fetch subtitle-ready movies:', error)
+    console.error('Failed to fetch watch-ready movies:', error)
     return []
   }
 }
@@ -140,10 +140,10 @@ function SectionHeader({ title, description, linkHref, linkLabel }: { title: str
 }
 
 export default async function HomePage() {
-  const [featuredMovies, latestMovies, subtitleReadyMovies] = await Promise.all([
+  const [featuredMovies, latestMovies, watchReadyMovies] = await Promise.all([
     getFeaturedMovies(),
     getLatestMovies(),
-    getSubtitleReadyMovies(),
+    getWatchReadyMovies(),
   ])
 
   const heroMovie = featuredMovies[0]
@@ -173,11 +173,11 @@ export default async function HomePage() {
               <div className="space-y-4">
                 <h1 className="max-w-3xl text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-5xl lg:text-7xl">
                   Discover the latest movies
-                  <span className="block text-gradient">with a sharper, subtitle-ready experience</span>
+                  <span className="block text-gradient">with a sharper, watch-ready experience</span>
                 </h1>
 
                 <p className="max-w-2xl text-base leading-7 text-gray-300 sm:text-lg md:text-xl">
-                  Browse fresh releases, featured picks, and recently updated subtitle-ready titles in a layout built for faster scanning and better watching decisions.
+                  Browse fresh releases, featured picks, and watch-ready titles in a layout built for faster scanning and better viewing decisions.
                 </p>
               </div>
 
@@ -207,8 +207,8 @@ export default async function HomePage() {
                   <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">Featured picks</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gradient-gold sm:text-3xl md:text-4xl">{subtitleReadyMovies.length || 0}</div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">Subtitle ready</div>
+                  <div className="text-2xl font-bold text-gradient-gold sm:text-3xl md:text-4xl">{watchReadyMovies.length || 0}</div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">Watch ready</div>
                 </div>
               </div>
             </div>
@@ -280,15 +280,15 @@ export default async function HomePage() {
           <div className="mt-10 grid gap-4 sm:grid-cols-3 lg:max-w-3xl">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
               <div className="mb-1 text-sm font-semibold text-white">Curated discovery</div>
-              <p className="text-sm leading-6 text-gray-400">Skip clutter and jump straight to featured, recent, and subtitle-ready titles.</p>
+              <p className="text-sm leading-6 text-gray-400">Skip clutter and jump straight to featured, recent, and watch-ready titles.</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
               <div className="mb-1 text-sm font-semibold text-white">Fast visual scanning</div>
               <p className="text-sm leading-6 text-gray-400">Cleaner cards, stronger badges, and tighter hierarchy make choices easier.</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <div className="mb-1 text-sm font-semibold text-white">Subtitle-aware browsing</div>
-              <p className="text-sm leading-6 text-gray-400">Spot updated titles with subtitle support without digging through results.</p>
+              <div className="mb-1 text-sm font-semibold text-white">Watch-ready browsing</div>
+              <p className="text-sm leading-6 text-gray-400">Spot titles with playable or downloadable media without digging through results.</p>
             </div>
           </div>
 
@@ -305,7 +305,7 @@ export default async function HomePage() {
           {[
             { label: 'Fresh releases', value: 'Updated daily' },
             { label: 'Better browsing', value: 'Cleaner card hierarchy' },
-            { label: 'Subtitle-ready picks', value: 'Easy to spot quickly' },
+            { label: 'Watch-ready picks', value: 'Easy to spot quickly' },
             { label: 'Built for movie fans', value: 'Fast, visual, practical' },
           ].map((item) => (
             <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
@@ -341,18 +341,18 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {subtitleReadyMovies.length > 0 ? (
+      {watchReadyMovies.length > 0 ? (
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
           <SectionHeader
-            title="Subtitle-Ready Picks"
-            description="A faster lane for viewers who want subtitle-ready titles without guesswork."
-            linkHref="/search?q=subtitles"
-            linkLabel="Explore Search"
+            title="Watch-Ready Picks"
+            description="A faster lane for viewers who want titles with media ready to open without guesswork."
+            linkHref="/movies"
+            linkLabel="Explore Library"
           />
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 md:gap-6 lg:grid-cols-6">
-            {subtitleReadyMovies.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} badgeLabel="Subtitles ready" />
+            {watchReadyMovies.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} badgeLabel="Watch ready" />
             ))}
           </div>
         </section>
@@ -390,7 +390,7 @@ export default async function HomePage() {
             Ready to start <span className="text-gradient">watching smarter?</span>
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-base text-gray-300 sm:mb-10 sm:text-lg md:text-xl">
-            Explore the newest movies, surface subtitle-ready picks faster, and browse a cleaner release experience built to help you choose quickly.
+            Explore the newest movies, surface featured and watch-ready picks faster, and browse a cleaner release experience built to help you choose quickly.
           </p>
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
             <Link href="/movies">
@@ -406,7 +406,7 @@ export default async function HomePage() {
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-gray-400">
             <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">Fresh releases</span>
-            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">Subtitle-ready picks</span>
+            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">Watch-ready picks</span>
             <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">Fast visual browsing</span>
           </div>
         </div>

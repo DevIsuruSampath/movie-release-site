@@ -186,7 +186,7 @@ export default function StoragePage() {
       <AdminPageHeader
         eyebrow="Storage center"
         title="Manage media health, migration, and cleanup from one place"
-        description="Inspect uploaded images and subtitle assets, monitor broken references, and clean up unused files with a more readable storage operations workflow."
+        description="Inspect uploaded media assets, monitor broken references, and clean up unused files with a more readable storage operations workflow."
         actions={
           <>
             <Button variant="outline" className="rounded-full border-white/15 bg-white/[0.03] px-5 text-white hover:bg-white/10" disabled={cleaningBroken || brokenReferenceCount === 0} onClick={() => void handleBrokenCleanup()}>
@@ -225,10 +225,9 @@ export default function StoragePage() {
       {message ? <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-200">{message}</div> : null}
 
       <StorageSection title="Images" items={images} />
-      <StorageSection title="Subtitles" items={subtitles} />
 
       <AdminPanel>
-        <AdminSectionHeader title="Unused physical files" description="Storage files that are not currently referenced by movies, categories, subtitles, or gallery items." />
+        <AdminSectionHeader title="Unused physical files" description="Storage files that are not currently referenced by movies, categories, or gallery items." />
         <div className="p-5">
           {!orphans || orphans.orphaned_files.length === 0 ? (
             <EmptyState title="No orphaned files" description="Every physical storage file is still referenced by the current catalog." />

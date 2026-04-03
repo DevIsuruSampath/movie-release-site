@@ -235,8 +235,8 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
                   <div className="mt-2 text-sm font-medium text-white">{movie.categories.length ? movie.categories.map((item) => item.name).join(', ') : 'Uncategorized'}</div>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Subtitles</div>
-                  <div className="mt-2 text-sm font-medium text-white">{movie.subtitles.length ? `${movie.subtitles.length} available` : 'None added'}</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Quality</div>
+                  <div className="mt-2 text-sm font-medium text-white">{movie.quality || 'Not specified'}</div>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                   <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Availability</div>

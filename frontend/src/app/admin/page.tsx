@@ -38,7 +38,6 @@ export default function DashboardPage() {
     { label: 'Trailers', value: data.total_trailer_movies, accent: 'violet' as const },
     { label: 'Categories', value: data.total_categories, accent: 'slate' as const },
     { label: 'Tags', value: data.total_tags, accent: 'slate' as const },
-    { label: 'Subtitles', value: data.total_subtitles, accent: 'sky' as const },
   ]
 
   return (
@@ -99,9 +98,9 @@ export default function DashboardPage() {
               <div className="mt-2 text-sm text-slate-400">Poster, backdrop, and thumbnail assets in storage.</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Subtitles</div>
-              <div className="mt-3 text-3xl font-semibold text-white">{data.upload_summary?.subtitles_count || 0}</div>
-              <div className="mt-2 text-sm text-slate-400">Subtitle assets available for subtitle-ready discovery flows.</div>
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Storage sources</div>
+              <div className="mt-3 text-3xl font-semibold text-white">{(data.upload_summary?.storage_sources || []).length}</div>
+              <div className="mt-2 text-sm text-slate-400">Configured media storage targets available for your catalog assets.</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
               <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Total files</div>
@@ -150,10 +149,10 @@ export default function DashboardPage() {
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-medium text-white">Subtitle-ready titles</div>
-                  <div className="mt-1 text-sm text-slate-400">Movies with subtitle support available in the catalog.</div>
+                  <div className="text-sm font-medium text-white">Media-ready titles</div>
+                  <div className="mt-1 text-sm text-slate-400">Movies with media, stream, or download access available in the catalog.</div>
                 </div>
-                <Badge variant={data.total_subtitles > 0 ? 'default' : 'warning'}>{data.total_subtitles} assets</Badge>
+                <Badge variant={data.total_media_ready_movies > 0 ? 'default' : 'warning'}>{data.total_media_ready_movies} ready</Badge>
               </div>
             </div>
           </div>

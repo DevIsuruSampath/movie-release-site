@@ -90,7 +90,7 @@ export default function AdminSettingsPage() {
                   >
                     <div className="text-base font-semibold capitalize">{backend}</div>
                     <div className="mt-1 text-sm leading-6 text-slate-400">
-                      {backend === 'supabase' ? 'Use Supabase Storage for new image and subtitle uploads.' : 'Store newly uploaded media on the local storage volume.'}
+                      {backend === 'supabase' ? 'Use Supabase Storage for new media uploads.' : 'Store newly uploaded media on the local storage volume.'}
                     </div>
                   </button>
                 )

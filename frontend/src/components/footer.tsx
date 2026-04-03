@@ -64,7 +64,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm leading-relaxed text-gray-400">
-              Discover fresh releases, subtitle-ready picks, and a cleaner way to browse what to watch next.
+              Discover fresh releases, featured picks, and a cleaner way to browse what to watch next.
             </p>
           </div>
 
