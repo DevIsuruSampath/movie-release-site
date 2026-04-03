@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -67,13 +68,13 @@ function normalizeSchemaMarkup(schemaMarkup?: string | null): string | null {
   }
 }
 
-async function getMovie(slug: string): Promise<Movie | null> {
+const getMovie = cache(async (slug: string): Promise<Movie | null> => {
   try {
     return await api.get<Movie>(`/api/v1/movies/${slug}`).then((response) => response.data)
   } catch {
     return null
   }
-}
+})
 
 async function getRelatedMovies(slug: string): Promise<Movie[]> {
   try {

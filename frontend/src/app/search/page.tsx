@@ -65,7 +65,6 @@ function SearchPageContent() {
     e.preventDefault()
     const normalizedQuery = query.trim()
     if (normalizedQuery) {
-      void performSearch(normalizedQuery, sort, subtitleOnly)
       router.push(`/search?q=${encodeURIComponent(normalizedQuery)}&sort=${encodeURIComponent(sort)}${subtitleOnly ? '&subtitles=1' : ''}`)
     }
   }
@@ -179,7 +178,6 @@ function SearchPageContent() {
                   key={tag}
                   onClick={() => {
                     setQuery(tag)
-                    void performSearch(tag, sort, subtitleOnly)
                     router.push(`/search?q=${encodeURIComponent(tag)}&sort=${encodeURIComponent(sort)}${subtitleOnly ? '&subtitles=1' : ''}`)
                   }}
                   className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white/5 hover:bg-[#e50914] border border-white/10 hover:border-[#e50914] rounded-full text-xs sm:text-sm text-gray-300 hover:text-white transition-all hover:scale-105 active:scale-95"

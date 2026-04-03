@@ -159,6 +159,10 @@ class Settings(BaseSettings):
         self.SUPABASE_DB_URL = self._normalize_database_url(self.SUPABASE_DB_URL)
         if not self.DB_STARTUP_MODE:
             self.DB_STARTUP_MODE = "bootstrap" if self.APP_ENV in {"development", "test"} else "migrate"
+        elif self.APP_ENV in {"staging", "production"} and self.DB_STARTUP_MODE == "bootstrap":
+            self.DB_STARTUP_MODE = "migrate"
+        if self.APP_ENV in {"staging", "production"} and self.APPLY_RUNTIME_SCHEMA_PATCHES:
+            self.APPLY_RUNTIME_SCHEMA_PATCHES = False
         if self.STORAGE_BACKEND == "supabase" and self._looks_like_publishable_supabase_key(self.SUPABASE_SERVICE_ROLE_KEY):
             raise ValueError(
                 "SUPABASE_SERVICE_ROLE_KEY must be the server-side service role key, not the publishable/anon key."

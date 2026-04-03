@@ -173,7 +173,11 @@ def refresh_token(
     if not refresh_token_value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token required")
 
-    decoded = decode_and_validate_token(refresh_token_value, expected_type="refresh")
+    try:
+        decoded = decode_and_validate_token(refresh_token_value, expected_type="refresh")
+    except HTTPException:
+        _clear_refresh_cookie(response)
+        raise
     user_id = decoded.get("sub")
     try:
         normalized_user_id = int(user_id) if user_id is not None else None
@@ -181,7 +185,9 @@ def refresh_token(
         normalized_user_id = None
     user = db.query(User).filter(User.id == normalized_user_id).first() if normalized_user_id is not None else None
     if not user or not user.is_active:
+        _clear_refresh_cookie(response)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    user = ensure_admin_login_access(db, user)
 
     token_response = _build_token_response(user)
     _set_refresh_cookie(response, token_response.refresh_token or "")

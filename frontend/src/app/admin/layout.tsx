@@ -20,30 +20,47 @@ export default function AdminLayout({
   const accessToken = useAuthStore((state) => state.accessToken)
   const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const fetchedAccessTokenRef = useRef<string | null>(null)
 
   const isLoginPage = pathname === '/admin/login'
 
   useEffect(() => {
     if (!hydrated) return
-    if (!isAuthenticated && !isLoginPage) {
-      router.replace('/admin/login')
-      return
-    }
-    if (isAuthenticated && !isAdmin && !isLoginPage) {
-      router.replace('/admin/login')
-      return
-    }
-    const authFetchKey = accessToken || '__cookie_refresh__'
-    if (isAuthenticated && isAdmin && fetchedAccessTokenRef.current !== authFetchKey) {
-      fetchedAccessTokenRef.current = authFetchKey
-      void fetchCurrentUser()
-    }
-    if (isAuthenticated && isAdmin && isLoginPage) {
-      router.replace('/admin')
-    }
-    if (!isAuthenticated) {
+    let cancelled = false
+
+    async function resolveSession() {
+      if (isLoginPage) {
+        setCheckingSession(false)
+        if (isAuthenticated && isAdmin) {
+          router.replace('/admin')
+        }
+        return
+      }
+
+      if (isAuthenticated && isAdmin) {
+        const authFetchKey = accessToken || '__cookie_refresh__'
+        if (fetchedAccessTokenRef.current !== authFetchKey) {
+          fetchedAccessTokenRef.current = authFetchKey
+          void fetchCurrentUser()
+        }
+        if (!cancelled) setCheckingSession(false)
+        return
+      }
+
       fetchedAccessTokenRef.current = null
+      const user = await fetchCurrentUser()
+      if (cancelled) return
+      if (!user || (!user.is_admin && !user.is_superuser)) {
+        router.replace('/admin/login')
+      }
+      setCheckingSession(false)
+    }
+
+    void resolveSession()
+
+    return () => {
+      cancelled = true
     }
   }, [accessToken, fetchCurrentUser, hydrated, isAdmin, isAuthenticated, isLoginPage, router])
 
@@ -53,7 +70,7 @@ export default function AdminLayout({
 
   if (isLoginPage) return <>{children}</>
 
-  if (!hydrated || !isAuthenticated || !isAdmin) {
+  if (!hydrated || checkingSession || !isAuthenticated || !isAdmin) {
     return <LoadingSpinner label="Loading admin..." />
   }
 
