@@ -145,6 +145,56 @@ function SectionCard({
   )
 }
 
+function ToggleChipSelector({
+  label,
+  items,
+  selectedIds,
+  onToggle,
+  helper,
+  emptyText,
+}: {
+  label: string
+  items: Array<{ id: number; name: string; description?: string | null }>
+  selectedIds: number[]
+  onToggle: (id: number) => void
+  helper: string
+  emptyText: string
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-200">{label}</label>
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-slate-500">
+          {emptyText}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2.5 rounded-2xl border border-white/10 bg-[#11151d] p-3">
+          {items.map((item) => {
+            const selected = selectedIds.includes(item.id)
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onToggle(item.id)}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+                  selected
+                    ? 'border-[#ff676f]/40 bg-[#e50914]/18 text-[#ff9aa0] shadow-[0_10px_24px_rgba(229,9,20,0.14)]'
+                    : 'border-white/10 bg-white/[0.04] text-slate-200 hover:border-white/20 hover:bg-white/[0.08]'
+                }`}
+                aria-pressed={selected}
+              >
+                {selected ? '✓ ' : ''}
+                {item.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      <p className="mt-2 text-xs text-slate-500">{helper}</p>
+    </div>
+  )
+}
+
 export function MovieForm({
   movie,
   submitLabel,
@@ -196,6 +246,24 @@ export function MovieForm({
 
   const toggleSection = (section: string) => {
     setExpandedSections((current) => ({ ...current, [section]: !current[section] }))
+  }
+
+  const toggleCategory = (id: number) => {
+    setForm((current) => ({
+      ...current,
+      category_ids: current.category_ids.includes(id)
+        ? current.category_ids.filter((value) => value !== id)
+        : [...current.category_ids, id],
+    }))
+  }
+
+  const toggleTag = (id: number) => {
+    setForm((current) => ({
+      ...current,
+      tag_ids: current.tag_ids.includes(id)
+        ? current.tag_ids.filter((value) => value !== id)
+        : [...current.tag_ids, id],
+    }))
   }
 
   const submit = async (overridePublished?: boolean) => {
@@ -271,39 +339,24 @@ export function MovieForm({
 
           <SectionCard title="Relations" description="Attach categories and tags so the movie appears in the right curated lanes." expanded={expandedSections.relations} onToggle={() => toggleSection('relations')}>
             <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-200">Categories</label>
-                <select
-                  multiple
-                  value={form.category_ids.map(String)}
-                  onChange={(event) => setForm({ ...form, category_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)) })}
-                  style={{ color: '#ffffff', backgroundColor: '#11151d' }}
-                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[#11151d] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none focus:ring-4 focus:ring-[#e50914]/15"
-                >
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>{category.name}</option>
-                  ))}
-                </select>
-                <p className="mt-2 text-xs text-slate-500">Hold Ctrl/Cmd to select multiple categories.</p>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-200">Tags</label>
-                <select
-                  multiple
-                  value={form.tag_ids.map(String)}
-                  onChange={(event) => setForm({ ...form, tag_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)) })}
-                  style={{ color: '#ffffff', backgroundColor: '#11151d' }}
-                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[#11151d] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none focus:ring-4 focus:ring-[#e50914]/15"
-                >
-                  {tags.map((tag) => (
-                    <option key={tag.id} value={tag.id}>{tag.name}</option>
-                  ))}
-                </select>
-                <p className="mt-2 text-xs text-slate-500">Tags help search, recommendations, and internal organization.</p>
-              </div>
+              <ToggleChipSelector
+                label="Categories"
+                items={categories}
+                selectedIds={form.category_ids}
+                onToggle={toggleCategory}
+                helper="Tap categories to add or remove them. No Ctrl/Cmd needed."
+                emptyText="No categories available yet. Create categories first."
+              />
+              <ToggleChipSelector
+                label="Tags"
+                items={tags}
+                selectedIds={form.tag_ids}
+                onToggle={toggleTag}
+                helper="Tap tags to add or remove them for search and recommendations."
+                emptyText="No tags available yet. Create tags first."
+              />
             </div>
           </SectionCard>
-
         </div>
 
         <div className="space-y-6">
