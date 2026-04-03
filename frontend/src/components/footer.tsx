@@ -63,8 +63,8 @@ export default function Footer() {
                 Movie<span className="text-[#e50914]">Hub</span>
               </span>
             </Link>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Your ultimate destination for premium movie streaming. Discover the latest releases and timeless classics in stunning quality.
+            <p className="text-sm leading-relaxed text-gray-400">
+              Discover fresh releases, subtitle-ready picks, and a cleaner way to browse what to watch next.
             </p>
           </div>
 
@@ -105,7 +105,7 @@ export default function Footer() {
           {/* Social Links */}
           <div>
             <h3 className="text-white font-semibold mb-4 text-sm">Connect</h3>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               {footerLinks.Connect.map((link) => (
                 <a
                   key={link.href}
@@ -124,7 +124,7 @@ export default function Footer() {
         <div className="border-t border-white/10 mb-8" />
 
         {/* Bottom Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+        <div className="flex flex-col items-center justify-between gap-4 text-sm text-gray-500 sm:flex-row">
           <p>
             © {currentYear} MovieHub. All rights reserved.
           </p>

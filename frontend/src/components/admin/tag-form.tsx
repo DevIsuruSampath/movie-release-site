@@ -33,7 +33,7 @@ export function TagForm({
 
   return (
     <form
-      className="space-y-4"
+      className="space-y-5"
       onSubmit={async (event) => {
         event.preventDefault()
         setSubmitting(true)
@@ -44,9 +44,16 @@ export function TagForm({
         }
       }}
     >
-      <Input label="Name" value={value.name || ''} onChange={(event) => setValue({ ...value, name: event.target.value })} />
-      <Input label="Slug" value={value.slug || ''} onChange={(event) => setValue({ ...value, slug: event.target.value })} />
-      <Textarea label="Description" value={value.description || ''} onChange={(event) => setValue({ ...value, description: event.target.value })} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <Input label="Name" hint="Keyword label shown to editors and public filters." value={value.name || ''} onChange={(event) => setValue({ ...value, name: event.target.value })} />
+        <Input label="Slug" hint="URL-safe identifier for API and internal lookups." value={value.slug || ''} onChange={(event) => setValue({ ...value, slug: event.target.value })} />
+      </div>
+      <Textarea
+        label="Description"
+        hint="Optional context for editors about when this tag should be used."
+        value={value.description || ''}
+        onChange={(event) => setValue({ ...value, description: event.target.value })}
+      />
       <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#111111]/95 p-3 backdrop-blur sm:flex-row sm:justify-end">
         {onCancel ? (
           <Button type="button" variant="ghost" className="h-12 rounded-2xl px-5 text-base" onClick={onCancel}>

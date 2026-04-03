@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
+import { AdminInfoPill, AdminPageHeader, AdminPanel, AdminSectionHeader } from '@/components/admin/admin-shell'
 import { Badge } from '@/components/admin/badge'
 import { EmptyState } from '@/components/admin/empty-state'
 import { LoadingSpinner } from '@/components/admin/loading-spinner'
-import api, { toAbsoluteUrl } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import api, { toAbsoluteUrl } from '@/lib/api'
 import type { DashboardStats, StorageCleanupResult, UploadItem, UploadMigrationResult, UploadOrphanReport } from '@/types'
 
 function formatUpdatedAt(value?: number | string) {
@@ -26,17 +27,17 @@ function StoragePreview({ item }: { item: UploadItem }) {
 
   if (!item.file_url.match(/\.(png|jpe?g|webp|gif)$/i)) return null
   if (item.storage_source === 'local' && item.file_exists === false) {
-    return <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-[10px] text-gray-500">Missing</div>
+    return <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-[10px] text-slate-500">Missing</div>
   }
   if (failed) {
-    return <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-[10px] text-gray-500">No preview</div>
+    return <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-[10px] text-slate-500">No preview</div>
   }
 
   return (
     <img
       src={toAbsoluteUrl(item.file_url)}
       alt={item.filename}
-      className="h-14 w-14 rounded-lg object-cover"
+      className="h-14 w-14 rounded-xl object-cover"
       onError={() => setFailed(true)}
     />
   )
@@ -48,10 +49,8 @@ function StorageSection({ title, items }: { title: string; items: UploadItem[] }
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-      <div className="border-b border-white/10 px-5 py-4">
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-      </div>
+    <AdminPanel>
+      <AdminSectionHeader title={title} description={`Tracked ${title.toLowerCase()} currently referenced by your catalog.`} />
       <div className="space-y-3 p-4 md:hidden">
         {items.map((item) => (
           <div key={`${item.storage_source || 'unknown'}:${item.relative_path || item.filename}:mobile`} className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -61,18 +60,18 @@ function StorageSection({ title, items }: { title: string; items: UploadItem[] }
                   <div className="truncate text-sm font-medium text-white">{item.filename}</div>
                   {item.storage_source ? <Badge variant={item.storage_source === 'supabase' ? 'success' : 'default'}>{item.storage_source}</Badge> : null}
                 </div>
-                <div className="mt-1 truncate text-xs text-gray-500">{item.relative_path || item.file_url}</div>
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                <div className="mt-1 truncate text-xs text-slate-500">{item.relative_path || item.file_url}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
                   <span>{formatSize(item.size)}</span>
                   <span>{formatUpdatedAt(item.updated_at)}</span>
-                  {item.storage_source === 'local' && item.file_exists === false ? <span className="text-amber-400">Missing local file</span> : null}
+                  {item.storage_source === 'local' && item.file_exists === false ? <span className="text-amber-300">Missing local file</span> : null}
                 </div>
               </div>
               <StoragePreview item={item} />
             </div>
             {!(item.storage_source === 'local' && item.file_exists === false) ? (
               <div className="mt-4">
-                <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-medium text-[#ff676f] hover:text-white">
+                <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-medium text-[#ff7f86] hover:text-white">
                   Open
                 </a>
               </div>
@@ -88,21 +87,21 @@ function StorageSection({ title, items }: { title: string; items: UploadItem[] }
                 <div className="truncate text-sm font-medium text-white">{item.filename}</div>
                 {item.storage_source ? <Badge variant={item.storage_source === 'supabase' ? 'success' : 'default'}>{item.storage_source}</Badge> : null}
               </div>
-              <div className="mt-1 truncate text-xs text-gray-500">{item.relative_path || item.file_url}</div>
-              <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-400">
+              <div className="mt-1 truncate text-xs text-slate-500">{item.relative_path || item.file_url}</div>
+              <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-400">
                 <span>{formatSize(item.size)}</span>
                 <span>{formatUpdatedAt(item.updated_at)}</span>
-                {item.storage_source === 'local' && item.file_exists === false ? <span className="text-amber-400">Missing local file</span> : null}
+                {item.storage_source === 'local' && item.file_exists === false ? <span className="text-amber-300">Missing local file</span> : null}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {!(item.storage_source === 'local' && item.file_exists === false) ? <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="text-sm text-[#ff676f] hover:text-white">Open</a> : null}
+              {!(item.storage_source === 'local' && item.file_exists === false) ? <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="text-sm text-[#ff7f86] hover:text-white">Open</a> : null}
               <StoragePreview item={item} />
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </AdminPanel>
   )
 }
 
@@ -184,80 +183,65 @@ export default function StoragePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <h1 className="text-3xl font-semibold text-white">Storage</h1>
-        <div className="max-w-3xl space-y-3">
-          <p className="mt-1 text-sm text-gray-400">Inspect database-tracked media, see whether files live locally or in Supabase, and clean up broken or unneeded storage.</p>
-          {dashboard?.upload_summary?.configured_backend === 'supabase' && localReferenceCount > 0 ? (
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-              <p className="text-sm text-amber-100">{localReferenceCount} referenced file{localReferenceCount === 1 ? '' : 's'} still point to local storage because earlier Supabase uploads fell back locally.</p>
-              <div className="mt-3 flex flex-wrap gap-3">
-                <Button type="button" variant="outline" className="h-12 rounded-2xl px-5 text-base font-semibold" disabled={migrating} onClick={() => void handleMigration()}>
-                  {migrating ? 'Migrating...' : 'Migrate local files to Supabase'}
-                </Button>
-              </div>
-            </div>
-          ) : null}
-          {message ? <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-200">{message}</div> : null}
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <div className="text-sm text-gray-400">Images</div>
-          <div className="mt-3 text-3xl font-semibold text-white">{images.length}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <div className="text-sm text-gray-400">Subtitles</div>
-          <div className="mt-3 text-3xl font-semibold text-white">{subtitles.length}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <div className="text-sm text-gray-400">Broken references</div>
-          <div className="mt-3 text-3xl font-semibold text-white">{brokenReferenceCount}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <div className="text-sm text-gray-400">Orphaned files</div>
-          <div className="mt-3 text-3xl font-semibold text-white">{orphanCount}</div>
-        </div>
-      </div>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Maintenance</h2>
-            <p className="mt-1 text-sm text-gray-400">Clean broken database references and remove physical files that are no longer used.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button type="button" variant="outline" className="h-12 rounded-2xl px-5 text-base" disabled={cleaningBroken || brokenReferenceCount === 0} onClick={() => void handleBrokenCleanup()}>
+      <AdminPageHeader
+        eyebrow="Storage center"
+        title="Manage media health, migration, and cleanup from one place"
+        description="Inspect uploaded images and subtitle assets, monitor broken references, and clean up unused files with a more readable storage operations workflow."
+        actions={
+          <>
+            <Button variant="outline" className="rounded-full border-white/15 bg-white/[0.03] px-5 text-white hover:bg-white/10" disabled={cleaningBroken || brokenReferenceCount === 0} onClick={() => void handleBrokenCleanup()}>
               {cleaningBroken ? 'Cleaning...' : 'Clear Broken References'}
             </Button>
-            <Button type="button" variant="outline" className="h-12 rounded-2xl px-5 text-base" disabled={cleaningOrphans || orphanCount === 0} onClick={() => void handleOrphanCleanup()}>
+            <Button variant="outline" className="rounded-full border-white/15 bg-white/[0.03] px-5 text-white hover:bg-white/10" disabled={cleaningOrphans || orphanCount === 0} onClick={() => void handleOrphanCleanup()}>
               {cleaningOrphans ? 'Deleting...' : 'Delete Orphaned Files'}
             </Button>
+          </>
+        }
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <AdminInfoPill label="Configured backend" value={dashboard?.upload_summary?.configured_backend || 'unknown'} />
+        <AdminInfoPill label="Local references" value={localReferenceCount} />
+        <AdminInfoPill label="Broken references" value={brokenReferenceCount} />
+        <AdminInfoPill label="Orphaned files" value={orphanCount} />
+      </div>
+
+      {dashboard?.upload_summary?.configured_backend === 'supabase' && localReferenceCount > 0 ? (
+        <AdminPanel>
+          <AdminSectionHeader title="Migration recommended" description="Some items still point to local storage because earlier uploads fell back locally." />
+          <div className="space-y-4 p-5">
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+              {localReferenceCount} referenced file{localReferenceCount === 1 ? '' : 's'} still point to local storage and can be migrated to Supabase for consistency.
+            </div>
+            <div>
+              <Button type="button" className="rounded-full px-5" disabled={migrating} onClick={() => void handleMigration()}>
+                {migrating ? 'Migrating...' : 'Migrate local files to Supabase'}
+              </Button>
+            </div>
           </div>
-        </div>
-      </section>
+        </AdminPanel>
+      ) : null}
+
+      {message ? <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-200">{message}</div> : null}
 
       <StorageSection title="Images" items={images} />
       <StorageSection title="Subtitles" items={subtitles} />
 
-      <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-        <div className="border-b border-white/10 px-5 py-4">
-          <h2 className="text-lg font-semibold text-white">Unused Physical Files</h2>
-        </div>
+      <AdminPanel>
+        <AdminSectionHeader title="Unused physical files" description="Storage files that are not currently referenced by movies, categories, subtitles, or gallery items." />
         <div className="p-5">
           {!orphans || orphans.orphaned_files.length === 0 ? (
-            <EmptyState title="No orphaned files" description="Every physical storage file is still referenced by a movie, category, subtitle, or gallery item." />
+            <EmptyState title="No orphaned files" description="Every physical storage file is still referenced by the current catalog." />
           ) : (
             <div className="space-y-3">
               {orphans.orphaned_files.map((item) => (
-                <div key={item.relative_path} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                <div key={item.relative_path} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium text-white">{item.relative_path}</div>
-                      <div className="mt-1 text-xs text-gray-500">{formatSize(item.size)}</div>
+                      <div className="mt-1 text-xs text-slate-500">{formatSize(item.size)}</div>
                     </div>
-                    <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="text-sm text-[#ff676f] hover:text-white">
+                    <a href={toAbsoluteUrl(item.file_url)} target="_blank" rel="noreferrer" className="text-sm text-[#ff7f86] hover:text-white">
                       Open
                     </a>
                   </div>
@@ -266,7 +250,7 @@ export default function StoragePage() {
             </div>
           )}
         </div>
-      </section>
+      </AdminPanel>
     </div>
   )
 }

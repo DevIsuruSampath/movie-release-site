@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
+import { AdminPageHeader, AdminPanel, AdminSectionHeader } from '@/components/admin/admin-shell'
 import { CategoryForm } from '@/components/admin/category-form'
 import { ConfirmDialog } from '@/components/admin/confirm-dialog'
 import { EmptyState } from '@/components/admin/empty-state'
@@ -41,27 +42,33 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-white">Categories</h1>
-          <p className="mt-1 text-sm text-gray-400">Manage category taxonomy and images.</p>
-        </div>
-        <Button className="h-12 rounded-2xl px-5 text-base font-semibold" onClick={() => setCreating(true)}>New Category</Button>
-      </div>
+      <AdminPageHeader
+        eyebrow="Taxonomy"
+        title="Shape category browsing with better editorial structure"
+        description="Manage genre lanes, imagery, and category copy with cleaner controls and a more consistent admin workflow."
+        actions={
+          <Button className="rounded-full px-5" onClick={() => setCreating(true)}>
+            New Category
+          </Button>
+        }
+      />
 
       <SearchFilterBar search={search} onSearchChange={setSearch} />
 
       {loading ? (
         <LoadingSpinner label="Loading categories..." />
       ) : items.length === 0 ? (
-        <EmptyState title="No categories found" description="Create your first category." />
+        <EmptyState title="No categories found" description="Create your first category to start shaping public browsing." />
       ) : (
-        <>
-          <div className="space-y-3 md:hidden">
+        <AdminPanel>
+          <AdminSectionHeader title="Category library" description="Review, edit, and remove categories with a cleaner overview." />
+
+          <div className="space-y-3 p-4 md:hidden">
             {items.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div key={item.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="text-base font-semibold text-white">{item.name}</div>
-                <div className="mt-1 text-sm text-gray-400">{item.slug}</div>
+                <div className="mt-1 text-sm text-slate-500">/{item.slug}</div>
+                {item.description ? <div className="mt-2 text-sm leading-6 text-slate-400">{item.description}</div> : null}
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Button variant="outline" className="h-11 rounded-2xl text-sm" onClick={() => setEditing(item)}>
                     Edit
@@ -73,21 +80,25 @@ export default function CategoriesPage() {
               </div>
             ))}
           </div>
-          <div className="hidden overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] md:block">
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-white/10">
               <thead className="bg-white/[0.03]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Slug</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Actions</th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Category</th>
+                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Description</th>
+                  <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-4 text-white">{item.name}</td>
-                    <td className="px-4 py-4 text-sm text-gray-400">{item.slug}</td>
-                    <td className="px-4 py-4">
+                  <tr key={item.id} className="align-top">
+                    <td className="px-5 py-4">
+                      <div className="font-medium text-white">{item.name}</div>
+                      <div className="mt-1 text-sm text-slate-500">/{item.slug}</div>
+                    </td>
+                    <td className="px-5 py-4 text-sm leading-6 text-slate-400">{item.description || 'No description added yet.'}</td>
+                    <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" className="h-10 rounded-xl px-4" onClick={() => setEditing(item)}>
                           Edit
@@ -102,31 +113,33 @@ export default function CategoriesPage() {
               </tbody>
             </table>
           </div>
-        </>
+        </AdminPanel>
       )}
 
-      {(creating || editing) && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="mb-4 text-lg font-semibold text-white">{editing ? 'Edit Category' : 'Create Category'}</h2>
-          <CategoryForm
-            initialValue={editing || undefined}
-            onCancel={() => {
-              setCreating(false)
-              setEditing(null)
-            }}
-            onSubmit={async (value) => {
-              if (editing) {
-                await api.updateCategory(editing.id, value)
-              } else {
-                await api.createCategory(value)
-              }
-              setCreating(false)
-              setEditing(null)
-              await load()
-            }}
-          />
-        </div>
-      )}
+      {(creating || editing) ? (
+        <AdminPanel>
+          <AdminSectionHeader title={editing ? 'Edit category' : 'Create category'} description="Keep naming, slugging, and visual metadata clean and consistent." />
+          <div className="p-5">
+            <CategoryForm
+              initialValue={editing || undefined}
+              onCancel={() => {
+                setCreating(false)
+                setEditing(null)
+              }}
+              onSubmit={async (value) => {
+                if (editing) {
+                  await api.updateCategory(editing.id, value)
+                } else {
+                  await api.createCategory(value)
+                }
+                setCreating(false)
+                setEditing(null)
+                await load()
+              }}
+            />
+          </div>
+        </AdminPanel>
+      ) : null}
 
       <ConfirmDialog
         open={Boolean(deleting)}

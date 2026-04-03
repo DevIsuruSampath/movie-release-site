@@ -4,30 +4,34 @@ import { cn } from '@/lib/utils'
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string
   label?: string
+  hint?: string
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type = 'text', error, label, ...props }, ref) => {
+  ({ className, type = 'text', error, hint, label, id, ...props }, ref) => {
+    const inputId = id || label?.toLowerCase().replace(/\s+/g, '-')
+
     return (
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {label && (
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label htmlFor={inputId} className="block text-sm font-medium text-slate-200">
             {label}
           </label>
         )}
         <input
           ref={ref}
+          id={inputId}
           type={type}
           className={cn(
-            'flex h-10.5 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-[#e50914] focus:ring-2 focus:ring-[#e50914]/20 disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
-            error && 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20',
+            'flex h-12 w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] px-4 py-3 text-base text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all placeholder:text-slate-500 focus:border-[#ff676f]/70 focus:outline-none focus:ring-4 focus:ring-[#e50914]/15 disabled:cursor-not-allowed disabled:opacity-50',
+            error && 'border-red-500/45 focus:border-red-400 focus:ring-red-500/15',
             className
           )}
+          aria-invalid={Boolean(error)}
           {...props}
         />
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
+        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        {!error && hint ? <p className="text-xs leading-5 text-slate-500">{hint}</p> : null}
       </div>
     )
   }

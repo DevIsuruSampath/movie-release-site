@@ -1,9 +1,15 @@
-import { fetchAllPaginated, toAbsoluteUrl } from '@/lib/api'
-import { Movie, MovieListResponse } from '@/types'
-import { Button } from '@/components/ui/button'
+import { fetchAllPaginated } from '@/lib/api'
+import { Movie } from '@/types'
 import Link from 'next/link'
-import Navbar from '@/components/navbar'
+
 import Footer from '@/components/footer'
+import Navbar from '@/components/navbar'
+import {
+  CinematicEmptyState,
+  CinematicMovieCard,
+  CinematicPageHero,
+  CinematicSectionHeader,
+} from '@/components/public-cinema'
 
 async function getMovies() {
   try {
@@ -20,151 +26,95 @@ async function getMovies() {
 
 export default async function MoviesPage() {
   const movies = await getMovies()
+  const featuredMovie = movies.find((movie) => movie.featured) || movies[0]
+  const latestMovie = movies[0]
+  const subtitleMovie = movies.find((movie) => movie.has_subtitles)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative pt-24 md:pt-28 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-20 right-20 w-96 h-96 bg-[#e50914] rounded-full blur-[200px] opacity-10" />
-          <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#b20710] rounded-full blur-[150px] opacity-10" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 mb-6 animate-slide-up">
-            <Link href="/" className="text-gray-400 hover:text-white transition-colors text-sm">
-              Home
-            </Link>
-            <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <span className="text-[#e50914] text-sm font-medium">All Movies</span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            All <span className="text-gradient">Movies</span>
-          </h1>
-          <p className="text-xl text-gray-400 max-w-2xl animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            Browse our complete collection of movies and find your next favorite film
-          </p>
-
-          <div className="flex items-center gap-6 mt-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center gap-2 text-gray-400">
-              <svg className="w-4.5 h-4.5 text-[#e50914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-              </svg>
-              <span className="text-white font-semibold">{movies.length} Movies</span>
+      <CinematicPageHero
+        eyebrow="Complete movie library"
+        title="Browse the full collection with a cleaner, more cinematic flow"
+        description="Explore the full catalog with richer cards, faster scanning, and premium presentation that makes picking your next watch easier on both mobile and desktop."
+        stats={[
+          { label: 'Titles', value: `${movies.length}` },
+          { label: 'Featured', value: `${movies.filter((movie) => movie.featured).length}` },
+          { label: 'Subtitles', value: `${movies.filter((movie) => movie.has_subtitles).length}` },
+        ]}
+        primaryAction={{ href: '/search', label: 'Search movies' }}
+        secondaryAction={{ href: '/categories', label: 'Browse categories' }}
+        artwork={
+          featuredMovie ? (
+            <div className="relative h-full min-h-[480px] overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_30px_90px_rgba(0,0,0,0.32)]">
+              <CinematicMovieCard movie={featuredMovie} badge="Featured spotlight" />
             </div>
-            <Link href="/search">
-              <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 rounded-full text-sm">
-                <svg className="w-3.5 h-3.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                Search
-              </Button>
-            </Link>
+          ) : null
+        }
+      />
+
+      <section className="px-4 pb-6 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-4 rounded-[30px] border border-white/10 bg-[#101114] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:grid-cols-3 lg:p-6">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Latest arrival</div>
+            <div className="mt-2 text-lg font-semibold text-white">{latestMovie?.title || 'Updating soon'}</div>
+            <div className="mt-2 text-sm leading-6 text-slate-400">Freshly surfaced releases appear first for quick discovery.</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Subtitle lane</div>
+            <div className="mt-2 text-lg font-semibold text-white">{subtitleMovie?.title || 'Curated subtitle picks'}</div>
+            <div className="mt-2 text-sm leading-6 text-slate-400">Use subtitle-ready picks to reduce browsing friction when language support matters.</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Browse mode</div>
+            <div className="mt-2 text-lg font-semibold text-white">Editorial card layout</div>
+            <div className="mt-2 text-sm leading-6 text-slate-400">Cleaner metadata, better spacing, and stronger hover/focus states across the grid.</div>
           </div>
         </div>
       </section>
 
-      {/* Movies Grid */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <CinematicSectionHeader
+          title="All Movies"
+          description="A premium overview of every published title, arranged for faster scanning and a more polished movie-browsing experience."
+          action={{ href: '/', label: 'Back home' }}
+        />
+
         {movies.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/5 flex items-center justify-center">
-              <svg className="w-9 h-9 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No movies available</h3>
-            <p className="text-gray-400 mb-6">Check back later for new releases</p>
-            <Link href="/">
-              <Button variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-full">
-                Back to Home
-              </Button>
-            </Link>
-          </div>
+          <CinematicEmptyState
+            title="No movies available yet"
+            description="The library is currently empty. Check back later for fresh releases and curated picks."
+            action={{ href: '/', label: 'Return home' }}
+          />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
             {movies.map((movie, index) => (
-              <Link
-                key={movie.id}
-                href={`/movies/${movie.slug}`}
-                className="group"
-              >
-                <div className="card-hover bg-[#141414] rounded-xl overflow-hidden animate-slide-up" style={{ animationDelay: `${(index % 6 + 1) * 0.05}s` }}>
-                  <div className="movie-poster relative">
-                    {movie.poster_url || movie.thumbnail_url || movie.backdrop_url ? (
-                      <img
-                        src={toAbsoluteUrl(movie.poster_url || movie.thumbnail_url || movie.backdrop_url)}
-                        alt={movie.title}
-                        className="card-image w-full h-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-white/5 text-sm text-gray-500">
-                        No poster
-                      </div>
-                    )}
-
-                    {/* Quality Badge */}
-                    {movie.quality && (
-                      <div className="quality-badge">{movie.quality}</div>
-                    )}
-
-                    {/* Rating Badge */}
-                    {movie.imdb_rating && (
-                      <div className="rating-badge text-yellow-400 text-xs">
-                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        {movie.imdb_rating}
-                      </div>
-                    )}
-
-                    {/* Featured Badge */}
-                    {movie.featured && (
-                      <div className="absolute top-2 left-2 px-2 py-1 bg-[#e50914] text-white text-xs font-semibold rounded-md">
-                        Featured
-                      </div>
-                    )}
-
-                    {/* Play Button Overlay */}
-                    <div className="play-overlay">
-                      <div className="play-button">
-                        <svg className="w-3.5 h-3.5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <h3 className="text-white font-semibold text-sm mb-2 line-clamp-2 group-hover:text-[#e50914] transition-colors">
-                      {movie.title}
-                    </h3>
-
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      {movie.release_year && (
-                        <span className="px-2 py-0.5 bg-white/10 rounded-full">
-                          {movie.release_year}
-                        </span>
-                      )}
-                      {movie.language && (
-                        <span className="px-2 py-0.5 bg-white/10 rounded-full">
-                          {movie.language}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <div key={movie.id} className="animate-slide-up" style={{ animationDelay: `${(index % 8) * 0.04}s` }}>
+                <CinematicMovieCard
+                  movie={movie}
+                  badge={movie.featured ? 'Featured' : movie.has_subtitles ? 'Subtitles ready' : 'Now browsing'}
+                />
+              </div>
             ))}
           </div>
         )}
+      </section>
+
+      <section className="px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] px-6 py-8 shadow-[0_30px_90px_rgba(0,0,0,0.24)] sm:px-8 lg:flex lg:items-center lg:justify-between lg:gap-8">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ff7f86]">Keep exploring</div>
+            <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">Want a faster path to your next pick?</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-400 sm:text-base">
+              Jump into categories for mood-based browsing or use search when you already know what you want.
+            </p>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3 lg:mt-0">
+            <Link href="/categories" className="cinema-chip">View categories</Link>
+            <Link href="/search" className="cinema-chip">Open search</Link>
+          </div>
+        </div>
       </section>
 
       <Footer />

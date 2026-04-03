@@ -52,13 +52,8 @@ const initialPayload: MoviePayload = {
 }
 
 function isSimpleMediaUrlMovie(movie: Movie): boolean {
-  if (movie.stream_links.length === 0 && movie.download_links.length === 0) {
-    return true
-  }
-
-  if (movie.stream_links.length !== 1 || movie.download_links.length !== 1) {
-    return false
-  }
+  if (movie.stream_links.length === 0 && movie.download_links.length === 0) return true
+  if (movie.stream_links.length !== 1 || movie.download_links.length !== 1) return false
 
   const [streamLink] = movie.stream_links
   const [downloadLink] = movie.download_links
@@ -72,19 +67,12 @@ function toEditorMediaUrl(mediaUrl: string | null | undefined, mediaBaseUrl: str
   const normalizedBase = (mediaBaseUrl || '').trim().replace(/\/+$/, '')
   if (!normalizedBase) return normalizedUrl
 
-  const baseWithProtocol =
-    normalizedBase.startsWith('http://') || normalizedBase.startsWith('https://')
-      ? normalizedBase
-      : `https://${normalizedBase}`
+  const baseWithProtocol = normalizedBase.startsWith('http://') || normalizedBase.startsWith('https://') ? normalizedBase : `https://${normalizedBase}`
 
-  if (!normalizedUrl.startsWith(baseWithProtocol)) {
-    return normalizedUrl
-  }
+  if (!normalizedUrl.startsWith(baseWithProtocol)) return normalizedUrl
 
   const relativePath = normalizedUrl.slice(baseWithProtocol.length)
-  if (!relativePath.startsWith('/')) {
-    return normalizedUrl
-  }
+  if (!relativePath.startsWith('/')) return normalizedUrl
 
   return relativePath || normalizedUrl
 }
@@ -92,6 +80,7 @@ function toEditorMediaUrl(mediaUrl: string | null | undefined, mediaBaseUrl: str
 function toPayload(movie?: Movie | null, mediaBaseUrl?: string | null): MoviePayload {
   if (!movie) return initialPayload
   const useSimpleMediaUrl = isSimpleMediaUrlMovie(movie)
+
   return {
     title: movie.title,
     slug: movie.slug,
@@ -132,6 +121,33 @@ function toPayload(movie?: Movie | null, mediaBaseUrl?: string | null): MoviePay
   }
 }
 
+function SectionCard({
+  title,
+  description,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string
+  description: string
+  expanded: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
+      <button type="button" onClick={onToggle} className="flex w-full items-center justify-between px-5 py-5 text-left sm:px-6">
+        <div>
+          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <p className="mt-1 text-sm text-slate-400">{description}</p>
+        </div>
+        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{expanded ? 'Hide' : 'Show'}</span>
+      </button>
+      {expanded ? <div className="border-t border-white/10 p-5 sm:p-6">{children}</div> : null}
+    </section>
+  )
+}
+
 export function MovieForm({
   movie,
   submitLabel,
@@ -149,7 +165,7 @@ export function MovieForm({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     details: true,
     media: true,
-    relations: false,
+    relations: true,
     subtitles: false,
     publishing: true,
     seo: false,
@@ -177,12 +193,8 @@ export function MovieForm({
     void loadOptions()
   }, [])
 
-  const persistMediaRemoval = async (
-    field: 'poster_url' | 'backdrop_url' | 'thumbnail_url' | 'open_graph_image'
-  ) => {
-    if (!movie?.id) {
-      return
-    }
+  const persistMediaRemoval = async (field: 'poster_url' | 'backdrop_url' | 'thumbnail_url' | 'open_graph_image') => {
+    if (!movie?.id) return
     await api.updateMovie(movie.id, { [field]: '' })
   }
 
@@ -213,17 +225,12 @@ export function MovieForm({
     <div className="space-y-6">
       {error ? <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div> : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
         <div className="space-y-6">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
-            <button type="button" onClick={() => toggleSection('details')} className="flex w-full items-center justify-between px-5 py-4 text-left">
-              <h2 className="text-lg font-semibold text-white">Details</h2>
-              <span className="text-sm text-gray-400">{expandedSections.details ? 'Hide' : 'Show'}</span>
-            </button>
-            {expandedSections.details ? <div className="border-t border-white/10 p-5">
+          <SectionCard title="Details" description="Core metadata, timing, and editorial movie information." expanded={expandedSections.details} onToggle={() => toggleSection('details')}>
             <div className="grid gap-4 md:grid-cols-2">
-              <Input label="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
-              <Input label="Slug" value={form.slug || ''} onChange={(event) => setForm({ ...form, slug: event.target.value })} />
+              <Input label="Title" hint="Public movie title used across listings." value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
+              <Input label="Slug" hint="URL-safe identifier for the movie page." value={form.slug || ''} onChange={(event) => setForm({ ...form, slug: event.target.value })} />
               <Input label="Original title" value={form.original_title || ''} onChange={(event) => setForm({ ...form, original_title: event.target.value })} />
               <Input label="Release date" type="date" value={form.release_date || ''} onChange={(event) => setForm({ ...form, release_date: event.target.value })} />
               <Input label="Release year" type="number" value={form.release_year ?? ''} onChange={(event) => setForm({ ...form, release_year: Number(event.target.value) || undefined })} />
@@ -231,174 +238,99 @@ export function MovieForm({
               <Input label="Country" value={form.country || ''} onChange={(event) => setForm({ ...form, country: event.target.value })} />
               <Input label="Language" value={form.language || ''} onChange={(event) => setForm({ ...form, language: event.target.value })} />
               <Input label="IMDb rating" type="number" step="0.1" value={form.imdb_rating ?? ''} onChange={(event) => setForm({ ...form, imdb_rating: Number(event.target.value) || undefined })} />
+              <Input label="Quality" hint="Example: WEB-DL, BluRay, 1080p." value={form.quality || ''} onChange={(event) => setForm({ ...form, quality: event.target.value })} />
               <div className="md:col-span-2">
                 <Input
                   label="Media URL"
+                  hint="Paste a full URL or a relative path like /folder/nKjlObikMY."
                   value={form.media_url || ''}
                   onChange={(event) => setForm({ ...form, media_url: event.target.value })}
                 />
-                <p className="mt-2 text-xs leading-5 text-gray-500">
-                  Use one direct URL here for both watch and download. You can paste a full URL or a relative path like
-                  {' '}
-                  <span className="text-gray-300">/folder/nKjlObikMY</span>
-                  {' '}
-                  and the admin settings media domain will turn it into a full URL automatically.
-                </p>
               </div>
               <div className="md:col-span-2">
                 <Input
                   label="Trailer URL"
+                  hint="Supports YouTube or Vimeo trailer links."
                   value={form.trailer_url || ''}
                   onChange={(event) => setForm({ ...form, trailer_url: event.target.value })}
                 />
-                <p className="mt-2 text-xs text-gray-500">Paste a YouTube or Vimeo trailer link to show the trailer on the movie page.</p>
               </div>
               <div className="md:col-span-2">
-                <Textarea label="Short description" value={form.short_description || ''} onChange={(event) => setForm({ ...form, short_description: event.target.value })} />
+                <Textarea label="Short description" hint="Used in cards, hero previews, and fast scanning contexts." value={form.short_description || ''} onChange={(event) => setForm({ ...form, short_description: event.target.value })} />
               </div>
               <div className="md:col-span-2">
-                <Textarea label="Full description" value={form.description || ''} onChange={(event) => setForm({ ...form, description: event.target.value })} className="min-h-[200px]" />
+                <Textarea label="Full description" hint="The primary detail-page synopsis and editorial copy." value={form.description || ''} onChange={(event) => setForm({ ...form, description: event.target.value })} className="min-h-[220px]" />
               </div>
             </div>
-            </div> : null}
-          </section>
+          </SectionCard>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
-            <button type="button" onClick={() => toggleSection('media')} className="flex w-full items-center justify-between px-5 py-4 text-left">
-              <h2 className="text-lg font-semibold text-white">Media</h2>
-              <span className="text-sm text-gray-400">{expandedSections.media ? 'Hide' : 'Show'}</span>
-            </button>
-            {expandedSections.media ? <div className="border-t border-white/10 p-5">
+          <SectionCard title="Media" description="Upload and manage poster, backdrop, thumbnail, and social preview artwork." expanded={expandedSections.media} onToggle={() => toggleSection('media')}>
             <div className="grid gap-5 md:grid-cols-2">
-              <UploadField
-                label="Poster"
-                value={form.poster_url || ''}
-                onChange={(poster_url) => setForm({ ...form, poster_url })}
-                mediaRole="poster"
-                movieId={movie?.id}
-                onRemove={() => persistMediaRemoval('poster_url')}
-              />
-              <UploadField
-                label="Backdrop"
-                value={form.backdrop_url || ''}
-                onChange={(backdrop_url) => setForm({ ...form, backdrop_url })}
-                mediaRole="backdrop"
-                movieId={movie?.id}
-                onRemove={() => persistMediaRemoval('backdrop_url')}
-              />
-              <UploadField
-                label="Thumbnail"
-                value={form.thumbnail_url || ''}
-                onChange={(thumbnail_url) => setForm({ ...form, thumbnail_url })}
-                mediaRole="thumbnail"
-                movieId={movie?.id}
-                onRemove={() => persistMediaRemoval('thumbnail_url')}
-              />
-              <UploadField
-                label="Open Graph Image"
-                value={form.open_graph_image || ''}
-                onChange={(open_graph_image) => setForm({ ...form, open_graph_image })}
-                mediaRole="other"
-                movieId={movie?.id}
-                onRemove={() => persistMediaRemoval('open_graph_image')}
-              />
+              <UploadField label="Poster" value={form.poster_url || ''} onChange={(poster_url) => setForm({ ...form, poster_url })} mediaRole="poster" movieId={movie?.id} onRemove={() => persistMediaRemoval('poster_url')} />
+              <UploadField label="Backdrop" value={form.backdrop_url || ''} onChange={(backdrop_url) => setForm({ ...form, backdrop_url })} mediaRole="backdrop" movieId={movie?.id} onRemove={() => persistMediaRemoval('backdrop_url')} />
+              <UploadField label="Thumbnail" value={form.thumbnail_url || ''} onChange={(thumbnail_url) => setForm({ ...form, thumbnail_url })} mediaRole="thumbnail" movieId={movie?.id} onRemove={() => persistMediaRemoval('thumbnail_url')} />
+              <UploadField label="Open Graph Image" value={form.open_graph_image || ''} onChange={(open_graph_image) => setForm({ ...form, open_graph_image })} mediaRole="other" movieId={movie?.id} onRemove={() => persistMediaRemoval('open_graph_image')} />
             </div>
-            </div> : null}
-          </section>
+          </SectionCard>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
-            <button type="button" onClick={() => toggleSection('relations')} className="flex w-full items-center justify-between px-5 py-4 text-left">
-              <h2 className="text-lg font-semibold text-white">Relations</h2>
-              <span className="text-sm text-gray-400">{expandedSections.relations ? 'Hide' : 'Show'}</span>
-            </button>
-            {expandedSections.relations ? <div className="border-t border-white/10 p-5">
+          <SectionCard title="Relations" description="Attach categories and tags so the movie appears in the right curated lanes." expanded={expandedSections.relations} onToggle={() => toggleSection('relations')}>
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">Categories</label>
+                <label className="mb-2 block text-sm font-medium text-slate-200">Categories</label>
                 <select
                   multiple
                   value={form.category_ids.map(String)}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      category_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)),
-                    })
-                  }
-                  className="min-h-[180px] w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white focus:border-[#e50914] focus:outline-none"
+                  onChange={(event) => setForm({ ...form, category_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)) })}
+                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none"
                 >
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
+                    <option key={category.id} value={category.id}>{category.name}</option>
                   ))}
                 </select>
+                <p className="mt-2 text-xs text-slate-500">Hold Ctrl/Cmd to select multiple categories.</p>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">Tags</label>
+                <label className="mb-2 block text-sm font-medium text-slate-200">Tags</label>
                 <select
                   multiple
                   value={form.tag_ids.map(String)}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      tag_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)),
-                    })
-                  }
-                  className="min-h-[180px] w-full rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white focus:border-[#e50914] focus:outline-none"
+                  onChange={(event) => setForm({ ...form, tag_ids: Array.from(event.target.selectedOptions).map((option) => Number(option.value)) })}
+                  className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] px-3 py-3 text-sm text-white focus:border-[#ff676f]/70 focus:outline-none"
                 >
                   {tags.map((tag) => (
-                    <option key={tag.id} value={tag.id}>
-                      {tag.name}
-                    </option>
+                    <option key={tag.id} value={tag.id}>{tag.name}</option>
                   ))}
                 </select>
+                <p className="mt-2 text-xs text-slate-500">Tags help search, recommendations, and internal organization.</p>
               </div>
             </div>
-            </div> : null}
-          </section>
+          </SectionCard>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
-            <button type="button" onClick={() => toggleSection('subtitles')} className="flex w-full items-center justify-between px-5 py-4 text-left">
-              <h2 className="text-lg font-semibold text-white">Subtitles</h2>
-              <span className="text-sm text-gray-400">{expandedSections.subtitles ? 'Hide' : 'Show'}</span>
-            </button>
-            {expandedSections.subtitles ? <div className="border-t border-white/10 p-5">
+          <SectionCard title="Subtitles" description="Manage subtitle assets that power subtitle-ready discovery and playback support." expanded={expandedSections.subtitles} onToggle={() => toggleSection('subtitles')}>
             <SubtitleManager items={form.subtitles} movieId={movie?.id} onChange={(subtitles) => setForm({ ...form, subtitles })} />
-            </div> : null}
-          </section>
-
+          </SectionCard>
         </div>
 
         <div className="space-y-6">
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
-            <button type="button" onClick={() => toggleSection('publishing')} className="flex w-full items-center justify-between px-5 py-4 text-left">
-              <h2 className="text-lg font-semibold text-white">Publishing</h2>
-              <span className="text-sm text-gray-400">{expandedSections.publishing ? 'Hide' : 'Show'}</span>
-            </button>
-            {expandedSections.publishing ? <div className="border-t border-white/10 p-5">
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 text-sm text-gray-300">
+          <SectionCard title="Publishing" description="Control visibility and homepage promotion status." expanded={expandedSections.publishing} onToggle={() => toggleSection('publishing')}>
+            <div className="space-y-4">
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-slate-200">
                 <input type="checkbox" checked={form.is_published || false} onChange={(event) => setForm({ ...form, is_published: event.target.checked })} />
-                Published
+                Published and visible on the public site
               </label>
-              <label className="flex items-center gap-3 text-sm text-gray-300">
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm text-slate-200">
                 <input type="checkbox" checked={form.featured || false} onChange={(event) => setForm({ ...form, featured: event.target.checked })} />
-                Featured
+                Featured in premium homepage/editorial lanes
               </label>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-slate-400">
+                Streaming and download availability are inferred from the media configuration and subtitle/link data above.
+              </div>
             </div>
-            <p className="mt-4 text-xs text-gray-500">Streaming and download availability are set automatically from the Media URL.</p>
-            </div> : null}
-          </section>
+          </SectionCard>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
-            <button type="button" onClick={() => toggleSection('seo')} className="flex w-full items-center justify-between px-5 py-4 text-left">
-              <h2 className="text-lg font-semibold text-white">SEO</h2>
-              <span className="text-sm text-gray-400">{expandedSections.seo ? 'Hide' : 'Show'}</span>
-            </button>
-            {expandedSections.seo ? <div className="border-t border-white/10 p-5">
+          <SectionCard title="SEO" description="Fine-tune metadata, canonical behavior, and schema markup for discoverability." expanded={expandedSections.seo} onToggle={() => toggleSection('seo')}>
             <SeoFields value={form} onChange={(next) => setForm({ ...form, ...next })} />
-            </div> : null}
-          </section>
+          </SectionCard>
         </div>
       </div>
 

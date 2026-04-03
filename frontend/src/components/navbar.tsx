@@ -1,140 +1,133 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+
 import { Button } from '@/components/ui/button'
 
+const navLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/movies', label: 'Movies' },
+  { href: '/categories', label: 'Categories' },
+  { href: '/search', label: 'Search' },
+]
+
 export default function Navbar() {
+  const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const pathname = usePathname()
 
-  // Handle scroll effect
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
-    }
+    const handleScroll = () => setIsScrolled(window.scrollY > 20)
+    handleScroll()
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden'
-      document.body.classList.add('mobile-menu-open')
-    } else {
-      document.body.style.overflow = ''
-      document.body.classList.remove('mobile-menu-open')
-    }
+    document.body.classList.toggle('mobile-menu-open', isMobileMenuOpen)
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : ''
+
     return () => {
-      document.body.style.overflow = ''
       document.body.classList.remove('mobile-menu-open')
+      document.body.style.overflow = ''
     }
   }, [isMobileMenuOpen])
 
-  // Handle Escape key to close menu
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileMenuOpen) {
-        setIsMobileMenuOpen(false)
-      }
-    }
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [isMobileMenuOpen])
-
-  // Close menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [pathname])
 
-  const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/movies', label: 'Movies' },
-    { href: '/categories', label: 'Categories' },
-    { href: '/search', label: 'Search' },
-  ]
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMobileMenuOpen(false)
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [])
 
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[#0a0a0a]/95 backdrop-blur-sm shadow-lg shadow-black/30'
-            : 'bg-gradient-to-b from-[#0a0a0a]/90 to-transparent'
+            ? 'border-b border-white/10 bg-[#07080d]/82 shadow-[0_14px_50px_rgba(0,0,0,0.32)] backdrop-blur-2xl'
+            : 'bg-gradient-to-b from-[#07080d]/92 via-[#07080d]/55 to-transparent'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="relative w-9 h-9 flex items-center justify-center bg-[#e50914] rounded-lg group-hover:scale-110 transition-transform">
-                <svg className="w-4.5 h-4.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between gap-4 md:h-20">
+            <Link href="/" className="group flex items-center gap-3" aria-label="MovieHub home">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#ff4655,#b20710)] text-white shadow-[0_14px_34px_rgba(229,9,20,0.35)] transition-transform duration-300 group-hover:scale-105">
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-white">
-                Movie<span className="text-[#e50914]">Hub</span>
-              </span>
+              <div>
+                <div className="text-base font-semibold tracking-[-0.03em] text-white sm:text-lg">
+                  Movie<span className="text-[#ff6b72]">Hub</span>
+                </div>
+                <div className="hidden text-[11px] uppercase tracking-[0.24em] text-slate-500 sm:block">
+                  Cinematic discovery
+                </div>
+              </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`nav-link text-base font-medium transition-colors ${
-                    pathname === link.href
-                      ? 'text-[#e50914] active'
-                      : 'text-gray-300 hover:text-white'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+            <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] p-1.5 backdrop-blur-xl md:flex">
+              {navLinks.map((link) => {
+                const active = pathname === link.href
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`rounded-full px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? 'bg-white text-[#11131a] shadow-[0_8px_24px_rgba(255,255,255,0.12)]'
+                        : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )
+              })}
             </div>
 
-            {/* Right Actions - Desktop */}
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden items-center gap-3 md:flex">
               <Link href="/search">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-gray-300 hover:text-white hover:bg-white/10"
-                  aria-label="Search"
+                  className="h-11 rounded-full border border-white/10 bg-white/[0.03] px-4 text-slate-200 hover:bg-white/10"
+                  aria-label="Search movies"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-5.6-5.6m1.6-4.4a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
+                  Search
                 </Button>
               </Link>
               <Link href="/admin/login">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-white/20 text-white hover:bg-white/10 rounded-full text-sm"
-                >
+                <Button variant="outline" size="sm" className="h-11 rounded-full border-white/15 bg-white/[0.03] px-5 text-white hover:bg-white/10">
                   Admin
                 </Button>
               </Link>
             </div>
 
-            {/* Mobile Menu Button */}
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
+              type="button"
+              onClick={() => setIsMobileMenuOpen((current) => !current)}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-white transition active:scale-[0.97] md:hidden"
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={isMobileMenuOpen}
               aria-controls="mobile-menu"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 {isMobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 7h16M4 12h16M4 17h16" />
                 )}
               </svg>
             </button>
@@ -142,97 +135,68 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile Menu Container - Contains both backdrop and drawer */}
       <div
-        id="mobile-menu-container"
-        className={`fixed inset-0 z-[60] md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}
+        className={`fixed inset-0 z-[60] transition ${isMobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} md:hidden`}
         aria-hidden={!isMobileMenuOpen}
       >
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          onClick={() => setIsMobileMenuOpen(false)}
-          aria-hidden="true"
-        />
-
-        {/* Mobile Menu Drawer */}
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
         <div
           id="mobile-menu"
-          className="absolute inset-y-0 right-0 w-full max-w-sm bg-[#0a0a0a] shadow-2xl transform transition-transform duration-300 ease-out flex flex-col"
-          aria-label="Mobile navigation menu"
+          className={`absolute inset-x-3 top-3 rounded-[28px] border border-white/10 bg-[#0b0d12]/96 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-2xl transition duration-300 ${
+            isMobileMenuOpen ? 'translate-y-0 scale-100' : '-translate-y-4 scale-[0.98]'
+          }`}
         >
-          {/* Mobile Menu Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
-            <span className="text-lg font-bold text-white">
-              Menu
-            </span>
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div>
+              <div className="text-lg font-semibold text-white">MovieHub</div>
+              <div className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-500">Cinematic navigation</div>
+            </div>
             <button
+              type="button"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors min-h-[44px] min-w-[44px]"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-white"
               aria-label="Close menu"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          {/* Mobile Menu Content */}
-          <div className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
-                  pathname === link.href
-                    ? 'bg-[#e50914]/15 text-[#e50914] border border-[#e50914]/30'
-                    : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                {link.href === '/' && (
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          <div className="space-y-2 py-4">
+            {navLinks.map((link) => {
+              const active = pathname === link.href
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex min-h-[52px] items-center justify-between rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                    active
+                      ? 'border-[#ff6b72]/40 bg-[#e50914]/16 text-[#ff7f86]'
+                      : 'border-white/8 bg-white/[0.03] text-slate-200 hover:bg-white/[0.06]'
+                  }`}
+                >
+                  <span>{link.label}</span>
+                  <svg className="h-4 w-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
                   </svg>
-                )}
-                {link.href === '/movies' && (
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                  </svg>
-                )}
-                {link.href === '/categories' && (
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                )}
-                {link.href === '/search' && (
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                )}
-                {link.label}
-              </Link>
-            ))}
-
-            <div className="border-t border-white/10 my-4" />
-
-            <Link
-              href="/admin/login"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all min-h-[44px]"
-            >
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Admin Login
-            </Link>
+                </Link>
+              )
+            })}
           </div>
 
-          {/* Mobile Menu Footer */}
-          <div className="p-4 border-t border-white/10 shrink-0">
-            <p className="text-xs text-gray-500 text-center">
-              Press Escape to close
-            </p>
+          <div className="grid gap-3 border-t border-white/10 pt-4">
+            <Link href="/search" onClick={() => setIsMobileMenuOpen(false)}>
+              <Button variant="ghost" className="h-12 w-full justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-white hover:bg-white/10">
+                Search catalog
+              </Button>
+            </Link>
+            <Link href="/admin/login" onClick={() => setIsMobileMenuOpen(false)}>
+              <Button variant="outline" className="h-12 w-full justify-center rounded-2xl border-white/15 bg-white/[0.03] text-white hover:bg-white/10">
+                Admin login
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
