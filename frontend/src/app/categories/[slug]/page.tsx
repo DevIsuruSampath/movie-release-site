@@ -84,7 +84,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <CinematicSectionHeader
           title={`${categoryName} collection`}
-          description="This lane groups related titles into a cleaner editorial browsing flow, making it easier to keep exploring without losing context."
+          description={`Browse ${movies.length} ${categoryName.toLowerCase()} titles in a cleaner editorial flow.`}
+          eyebrow={categoryName}
         />
 
         {movies.length === 0 ? (

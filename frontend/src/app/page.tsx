@@ -105,12 +105,13 @@ function MovieCard({ movie, badgeLabel }: { movie: Movie; badgeLabel?: string })
               {movie.title}
             </h3>
             <p className="line-clamp-2 min-h-[2.5rem] text-xs leading-5 text-gray-400 sm:text-sm">
-              {movie.short_description || 'Discover release details, quality info, and availability at a glance.'}
+              {movie.short_description || 'Explore release details, quality info, and streaming availability.'}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2 text-[11px] text-gray-300 sm:text-xs">
             {movie.release_year ? <span className="rounded-full bg-white/10 px-2.5 py-1">{movie.release_year}</span> : null}
+            {movie.duration_minutes ? <span className="rounded-full bg-white/10 px-2.5 py-1">{Math.floor(movie.duration_minutes / 60)}h {movie.duration_minutes % 60}m</span> : null}
             {movie.language ? <span className="rounded-full bg-white/10 px-2.5 py-1">{movie.language}</span> : null}
             {movie.categories[0] ? <span className="rounded-full bg-white/10 px-2.5 py-1">{movie.categories[0].name}</span> : null}
           </div>
@@ -146,7 +147,7 @@ export default async function HomePage() {
     getWatchReadyMovies(),
   ])
 
-  const heroMovie = featuredMovies[0]
+  const heroMovie = featuredMovies[0] || latestMovies[0]
   const heroPoster = heroMovie ? heroMovie.poster_url || heroMovie.thumbnail_url || heroMovie.backdrop_url : null
 
   return (
@@ -200,15 +201,15 @@ export default async function HomePage() {
               <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-sm sm:grid-cols-3 sm:gap-4 sm:p-5 md:pt-5">
                 <div>
                   <div className="text-2xl font-bold text-gradient-gold sm:text-3xl md:text-4xl">{latestMovies.length || 0}</div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">Latest tracked</div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">{latestMovies.length === 1 ? 'Release tracked' : 'Latest tracked'}</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gradient-gold sm:text-3xl md:text-4xl">{featuredMovies.length || 0}</div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">Featured picks</div>
+                  <div className="text-2xl font-bold text-gradient-gold sm:text-3xl md:text-4xl">{featuredMovies.length > 0 ? featuredMovies.length : '—'}</div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">{featuredMovies.length === 1 ? 'Featured pick' : 'Featured picks'}</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-gradient-gold sm:text-3xl md:text-4xl">{watchReadyMovies.length || 0}</div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">Watch ready</div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-gray-400 sm:text-sm">{watchReadyMovies.length === 1 ? 'Watch ready' : 'Watch ready'}</div>
                 </div>
               </div>
             </div>
@@ -245,34 +246,52 @@ export default async function HomePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex h-[500px] items-center justify-center rounded-[28px] border border-white/10 bg-white/5 text-gray-400 shadow-2xl">
-                    Featured showcase loading
+                  <div className="flex h-[500px] flex-col items-center justify-center gap-4 rounded-[28px] border border-white/10 bg-white/5 shadow-2xl">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <svg className="h-7 w-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0118 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 7.746 6 7.125v-1.5M4.875 8.25C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0118 7.125v-1.5m1.125 2.625c-.621 0-1.125.504-1.125 1.125v1.5m2.625-2.625c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M18 5.625v5.25M7.125 12h9.75m-9.75 0A1.125 1.125 0 016 10.875M7.125 12C6.504 12 6 12.504 6 13.125m0-2.25C6 11.496 5.496 12 4.875 12M18 10.875c0 .621-.504 1.125-1.125 1.125M18 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 .9.504.9 1.125m-1.875 0h.375a.375.375 0 01.375.375v.375m0-.75a.375.375 0 01.375.375v.375" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-slate-400">Browse our movie library</p>
+                    <Link href="/movies">
+                      <Button variant="outline" className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10">
+                        View All Movies
+                      </Button>
+                    </Link>
                   </div>
                 )}
 
-                {featuredMovies[1] && (featuredMovies[1].poster_url || featuredMovies[1].thumbnail_url || featuredMovies[1].backdrop_url) ? (
-                  <div className="absolute -right-8 -top-8 w-40 overflow-hidden rounded-2xl border border-white/10 shadow-xl animate-float" style={{ animationDelay: '1s' }}>
-                    <img
-                      src={toAbsoluteUrl(featuredMovies[1].poster_url || featuredMovies[1].thumbnail_url || featuredMovies[1].backdrop_url)}
-                      alt={featuredMovies[1].title}
-                      className="h-56 w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                ) : null}
+                {(() => {
+                  const thumb1 = featuredMovies[1] || latestMovies[1]
+                  const thumb1Poster = thumb1 ? thumb1.poster_url || thumb1.thumbnail_url || thumb1.backdrop_url : null
+                  return thumb1Poster ? (
+                    <div className="absolute -right-8 -top-8 w-40 overflow-hidden rounded-2xl border border-white/10 shadow-xl animate-float" style={{ animationDelay: '1s' }}>
+                      <img
+                        src={toAbsoluteUrl(thumb1Poster)}
+                        alt={thumb1!.title}
+                        className="h-56 w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  ) : null
+                })()}
 
-                {featuredMovies[2] && (featuredMovies[2].poster_url || featuredMovies[2].thumbnail_url || featuredMovies[2].backdrop_url) ? (
-                  <div className="absolute -bottom-8 -left-8 w-40 overflow-hidden rounded-2xl border border-white/10 shadow-xl animate-float" style={{ animationDelay: '2s' }}>
-                    <img
-                      src={toAbsoluteUrl(featuredMovies[2].poster_url || featuredMovies[2].thumbnail_url || featuredMovies[2].backdrop_url)}
-                      alt={featuredMovies[2].title}
-                      className="h-56 w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                ) : null}
+                {(() => {
+                  const thumb2 = featuredMovies[2] || latestMovies[2]
+                  const thumb2Poster = thumb2 ? thumb2.poster_url || thumb2.thumbnail_url || thumb2.backdrop_url : null
+                  return thumb2Poster ? (
+                    <div className="absolute -bottom-8 -left-8 w-40 overflow-hidden rounded-2xl border border-white/10 shadow-xl animate-float" style={{ animationDelay: '2s' }}>
+                      <img
+                        src={toAbsoluteUrl(thumb2Poster)}
+                        alt={thumb2!.title}
+                        className="h-56 w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  ) : null
+                })()}
               </div>
             </div>
           </div>

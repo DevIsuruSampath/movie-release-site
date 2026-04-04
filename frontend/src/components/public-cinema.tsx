@@ -85,15 +85,17 @@ export function CinematicSectionHeader({
   title,
   description,
   action,
+  eyebrow,
 }: {
   title: string
   description: string
   action?: { href: string; label: string }
+  eyebrow?: string
 }) {
   return (
     <div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ff7f86]">Editorial Browse</p>
+        {eyebrow ? <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#ff7f86]">{eyebrow}</p> : null}
         <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">{title}</h2>
         <p className="mt-3 text-sm leading-6 text-slate-400 sm:text-base">{description}</p>
       </div>
@@ -157,12 +159,15 @@ export function CinematicMovieCard({
             <h3 className="line-clamp-2 text-base font-semibold leading-6 text-white transition-colors group-hover:text-[#ff6b72]">
               {movie.title}
             </h3>
-            <p className="mt-2 line-clamp-2 min-h-[2.75rem] text-sm leading-6 text-slate-400">
-              {movie.short_description || 'Curated release details, quick quality context, and clean visual scanning.'}
-            </p>
+            {movie.short_description ? (
+              <p className="mt-2 line-clamp-2 min-h-[2.75rem] text-sm leading-6 text-slate-400">
+                {movie.short_description}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2 text-[11px] font-medium text-slate-300">
             {movie.release_year ? <span className="rounded-full bg-white/8 px-2.5 py-1">{movie.release_year}</span> : null}
+            {movie.duration_minutes ? <span className="rounded-full bg-white/8 px-2.5 py-1">{Math.floor(movie.duration_minutes / 60)}h {movie.duration_minutes % 60}m</span> : null}
             {movie.language ? <span className="rounded-full bg-white/8 px-2.5 py-1">{movie.language}</span> : null}
             {movie.categories[0] ? <span className="rounded-full bg-white/8 px-2.5 py-1">{movie.categories[0].name}</span> : null}
           </div>

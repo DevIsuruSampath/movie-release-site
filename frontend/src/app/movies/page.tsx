@@ -78,6 +78,7 @@ export default async function MoviesPage() {
         <CinematicSectionHeader
           title="All Movies"
           description="A premium overview of every published title, arranged for faster scanning and a more polished movie-browsing experience."
+          eyebrow="Full collection"
           action={{ href: '/', label: 'Back home' }}
         />
 

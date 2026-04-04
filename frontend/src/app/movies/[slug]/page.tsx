@@ -231,15 +231,17 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
 
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Categories</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Categories</div>
                   <div className="mt-2 text-sm font-medium text-white">{movie.categories.length ? movie.categories.map((item) => item.name).join(', ') : 'Uncategorized'}</div>
                 </div>
+                {movie.quality ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Quality</div>
+                    <div className="mt-2 text-sm font-medium text-white">{movie.quality}</div>
+                  </div>
+                ) : null}
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Quality</div>
-                  <div className="mt-2 text-sm font-medium text-white">{movie.quality || 'Not specified'}</div>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Availability</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Availability</div>
                   <div className="mt-2 text-sm font-medium text-white">{hasDirectMedia ? 'Ready to watch' : 'Metadata only'}</div>
                 </div>
               </div>
@@ -251,12 +253,12 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.9fr)]">
           <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:p-8">
-            <CinematicSectionHeader title="Story and details" description="A richer detail view with cleaner reading rhythm and metadata grouping." />
+            <CinematicSectionHeader title="Story and details" description={`Synopsis, themes, and category context for ${movie.title}.`} />
             {movie.description ? <p className="mt-2 text-base leading-8 text-slate-300">{movie.description}</p> : <p className="mt-2 text-base leading-8 text-slate-400">No description available for this title yet.</p>}
 
             {movie.categories.length > 0 ? (
               <div className="mt-8">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Browse by category</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Browse by category</h3>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {movie.categories.map((cat) => (
                     <Link key={cat.id} href={`/categories/${cat.slug}`} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-sm text-white transition hover:bg-[#e50914]/18 hover:text-[#ff7f86]">
@@ -292,7 +294,7 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
               </div>
             ) : null}
 
-            {movie.short_description ? (
+            {movie.description && movie.short_description && movie.description !== movie.short_description ? (
               <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
                 <h3 className="text-lg font-semibold text-white">Quick take</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-300">{movie.short_description}</p>
@@ -304,7 +306,7 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
 
       {relatedMovies.length > 0 ? (
         <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-          <CinematicSectionHeader title="Related titles" description="More picks surfaced from shared categories, language, quality, and nearby content signals." action={{ href: '/movies', label: 'Browse all' }} />
+          <CinematicSectionHeader title="Related titles" description={`More picks like ${movie.title}, surfaced from shared categories and content signals.`} action={{ href: '/movies', label: 'Browse all' }} />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 md:gap-5 xl:grid-cols-5 2xl:grid-cols-6">
             {relatedMovies.map((relatedMovie, index) => (
               <div key={relatedMovie.id} className="animate-slide-up" style={{ animationDelay: `${(index % 8) * 0.04}s` }}>

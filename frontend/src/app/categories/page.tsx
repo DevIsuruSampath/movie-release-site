@@ -98,6 +98,7 @@ export default async function CategoriesPage() {
         <CinematicSectionHeader
           title="Movie Categories"
           description="Each category is presented like a curated lane, making exploration feel closer to a premium streaming experience than a generic grid."
+          eyebrow="Browse by genre"
         />
 
         {categories.length === 0 ? (
