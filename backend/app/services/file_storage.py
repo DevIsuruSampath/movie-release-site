@@ -216,7 +216,6 @@ async def save_upload(
             media_role=media_role,
         )
         filename = f"{uuid4().hex}{extension}"
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported upload folder")
 
     if resolve_storage_backend(db) == "supabase":
         try:
