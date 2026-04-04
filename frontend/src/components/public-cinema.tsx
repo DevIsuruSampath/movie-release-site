@@ -185,20 +185,23 @@ export function CinematicCategoryCard({
     <Link href={`/categories/${category.slug}`} className="group block">
       <article className="cinema-panel relative overflow-hidden rounded-[28px] p-2 transition duration-300 hover:-translate-y-1 hover:border-white/20">
         <div className="relative overflow-hidden rounded-[22px] p-6 sm:p-7">
-          <div className={`absolute inset-0 opacity-80 ${accentClassName}`} />
           {category.image_url ? (
             <>
               <img
                 src={toAbsoluteUrl(category.image_url)}
                 alt={category.name}
-                className="absolute inset-0 h-full w-full object-cover opacity-35 transition duration-500 group-hover:scale-105"
+                className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 loading="lazy"
                 decoding="async"
               />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,6,10,0.1),rgba(5,6,10,0.9))]" />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,6,10,0.15),rgba(5,6,10,0.65))]" />
+              <div className={`absolute inset-0 mix-blend-overlay opacity-15 ${accentClassName}`} />
             </>
           ) : (
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_36%),linear-gradient(180deg,rgba(10,12,16,0.22),rgba(10,12,16,0.88))]" />
+            <>
+              <div className={`absolute inset-0 opacity-80 ${accentClassName}`} />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_36%),linear-gradient(180deg,rgba(10,12,16,0.22),rgba(10,12,16,0.88))]" />
+            </>
           )}
 
           <div className="relative z-10 flex min-h-[250px] flex-col justify-between">
