@@ -37,7 +37,7 @@ export default function AdminNavbar({
           </div>
           <div>
             <div className="text-base font-semibold text-white">MovieHub</div>
-            <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Admin console</div>
+            <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Admin console</div>
           </div>
         </Link>
       </div>
@@ -65,7 +65,7 @@ export default function AdminNavbar({
                   : 'border-transparent text-slate-400 hover:border-white/8 hover:bg-white/[0.03] hover:text-white'
               )}
             >
-              <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl border transition', active ? 'border-[#ff7f86]/25 bg-[#e50914]/18 text-[#ff7f86]' : 'border-white/8 bg-white/[0.03] text-slate-500')}>
+              <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl border transition', active ? 'border-[#ff7f86]/25 bg-[#e50914]/18 text-[#ff7f86]' : 'border-white/8 bg-white/[0.03] text-slate-400')}>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={link.icon} />
                 </svg>

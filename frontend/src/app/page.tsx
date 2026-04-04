@@ -66,7 +66,7 @@ function MovieCard({ movie, badgeLabel }: { movie: Movie; badgeLabel?: string })
               decoding="async"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-white/5 px-4 text-center text-sm text-gray-500">
+            <div className="flex h-full w-full items-center justify-center bg-white/5 px-4 text-center text-sm text-gray-400">
               Poster unavailable
             </div>
           )}
@@ -101,7 +101,7 @@ function MovieCard({ movie, badgeLabel }: { movie: Movie; badgeLabel?: string })
 
         <div className="space-y-3 p-4">
           <div className="space-y-2">
-            <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-white transition-colors group-hover:text-[#ff6b72] sm:text-[15px]">
+            <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-white transition-colors group-hover:text-[#ff7f86] sm:text-[15px]">
               {movie.title}
             </h3>
             <p className="line-clamp-2 min-h-[2.5rem] text-xs leading-5 text-gray-400 sm:text-sm">
@@ -150,7 +150,7 @@ export default async function HomePage() {
   const heroPoster = heroMovie ? heroMovie.poster_url || heroMovie.thumbnail_url || heroMovie.backdrop_url : null
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div id="main-content" className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
 
       <section className="relative flex min-h-[85vh] items-center overflow-hidden pt-20 md:min-h-[calc(100vh-5rem)] md:pt-24">

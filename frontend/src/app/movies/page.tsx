@@ -31,7 +31,7 @@ export default async function MoviesPage() {
   const qualityMovie = movies.find((movie) => movie.quality)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div id="main-content" className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
 
       <CinematicPageHero

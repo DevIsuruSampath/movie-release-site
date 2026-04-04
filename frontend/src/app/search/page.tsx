@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import api, { toAbsoluteUrl } from '@/lib/api'
 import { Movie, MovieListResponse } from '@/types'
@@ -18,20 +18,7 @@ function SearchPageContent() {
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
-  useEffect(() => {
-    const nextQuery = searchParams.get('q') || ''
-    const nextSort = searchParams.get('sort') || 'latest'
-    setQuery(nextQuery)
-    setSort(nextSort)
-    if (nextQuery.trim()) {
-      void performSearch(nextQuery, nextSort)
-    } else {
-      setResults([])
-      setHasSearched(false)
-    }
-  }, [searchParams])
-
-  const performSearch = async (searchQuery: string, searchSort = sort) => {
+  const performSearch = useCallback(async (searchQuery: string, searchSort = sort) => {
     const normalizedQuery = searchQuery.trim()
     if (!normalizedQuery) {
       setResults([])
@@ -45,6 +32,7 @@ function SearchPageContent() {
       const response = await api.get<MovieListResponse>('/api/v1/movies', {
         params: {
           search: normalizedQuery,
+          is_published: true,
           limit: 50,
           sort: searchSort,
         },
@@ -55,7 +43,20 @@ function SearchPageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [sort])
+
+  useEffect(() => {
+    const nextQuery = searchParams.get('q') || ''
+    const nextSort = searchParams.get('sort') || 'latest'
+    setQuery(nextQuery)
+    setSort(nextSort)
+    if (nextQuery.trim()) {
+      void performSearch(nextQuery, nextSort)
+    } else {
+      setResults([])
+      setHasSearched(false)
+    }
+  }, [searchParams, performSearch])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,8 +67,7 @@ function SearchPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      <Navbar />
+    <div id="main-content" className="min-h-screen bg-[#0a0a0a]">      <Navbar />
 
       <section className="relative overflow-hidden px-4 pb-12 pt-28 sm:px-6 md:pb-16 md:pt-36 lg:px-8">
         <div className="absolute inset-0 z-0">
@@ -284,8 +284,7 @@ function SearchPageContent() {
 export default function SearchPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0a]">
-        <Navbar />
+      <div id="main-content" className="min-h-screen bg-[#0a0a0a]">        <Navbar />
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#e50914] border-t-transparent sm:h-16 sm:w-16" />
         </div>

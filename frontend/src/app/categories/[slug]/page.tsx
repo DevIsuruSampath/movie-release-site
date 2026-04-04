@@ -44,7 +44,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const featuredMovie = movies.find((movie) => movie.featured) || movies[0]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div id="main-content" className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
 
       <CinematicPageHero

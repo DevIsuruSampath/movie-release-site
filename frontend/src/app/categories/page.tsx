@@ -49,7 +49,7 @@ export default async function CategoriesPage() {
   const categories = await getAllCategories()
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div id="main-content" className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
 
       <CinematicPageHero

@@ -105,21 +105,6 @@ def _ensure_schema_compatibility() -> None:
         if "updated_at" not in download_columns:
             connection.execute(text("ALTER TABLE download_links ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"))
 
-        subtitle_columns = _column_names(inspector, "subtitles")
-        if "label" not in subtitle_columns:
-            connection.execute(text("ALTER TABLE subtitles ADD COLUMN IF NOT EXISTS label VARCHAR(100)"))
-            if "language" in subtitle_columns:
-                connection.execute(text("UPDATE subtitles SET label = COALESCE(language, 'Subtitle') WHERE label IS NULL"))
-            connection.execute(text("UPDATE subtitles SET label = 'Subtitle' WHERE label IS NULL"))
-            connection.execute(text("ALTER TABLE subtitles ALTER COLUMN label SET NOT NULL"))
-        if "file_url" not in subtitle_columns:
-            connection.execute(text("ALTER TABLE subtitles ADD COLUMN IF NOT EXISTS file_url VARCHAR(500)"))
-            if "url" in subtitle_columns:
-                connection.execute(text("UPDATE subtitles SET file_url = url WHERE file_url IS NULL"))
-            connection.execute(text("ALTER TABLE subtitles ALTER COLUMN file_url SET NOT NULL"))
-        if "updated_at" not in subtitle_columns:
-            connection.execute(text("ALTER TABLE subtitles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ"))
-
         audit_columns = _column_names(inspector, "audit_logs")
         if "actor_id" not in audit_columns:
             connection.execute(text("ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS actor_id INTEGER"))

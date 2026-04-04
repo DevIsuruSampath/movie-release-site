@@ -69,7 +69,7 @@ export default function Navbar() {
                 <div className="text-base font-semibold tracking-[-0.03em] text-white sm:text-lg">
                   Movie<span className="text-[#ff6b72]">Hub</span>
                 </div>
-                <div className="hidden text-[11px] uppercase tracking-[0.24em] text-slate-500 sm:block">
+                <div className="hidden text-[11px] uppercase tracking-[0.24em] text-slate-400 sm:block">
                   Cinematic discovery
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function Navbar() {
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div>
               <div className="text-lg font-semibold text-white">MovieHub</div>
-              <div className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-500">Cinematic navigation</div>
+              <div className="mt-1 text-xs uppercase tracking-[0.24em] text-slate-400">Cinematic navigation</div>
             </div>
             <button
               type="button"

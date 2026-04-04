@@ -169,7 +169,7 @@ export default async function MovieDetailsPage({ params }: MoviePageProps) {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div id="main-content" className="min-h-screen bg-[#0a0a0a] text-white">
       <Navbar />
 
       {schemaMarkup ? <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: schemaMarkup }} /> : null}

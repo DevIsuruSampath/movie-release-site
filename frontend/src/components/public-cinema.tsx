@@ -66,7 +66,7 @@ export function CinematicPageHero({
               <div className="grid gap-3 sm:grid-cols-3">
                 {stats.map((item) => (
                   <div key={item.label} className="cinema-stat">
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{item.label}</div>
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">{item.label}</div>
                     <div className="mt-2 text-xl font-semibold text-white sm:text-2xl">{item.value}</div>
                   </div>
                 ))}
@@ -130,7 +130,7 @@ export function CinematicMovieCard({
               decoding="async"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-white/5 px-4 text-center text-sm text-slate-500">
+            <div className="flex h-full w-full items-center justify-center bg-white/5 px-4 text-center text-sm text-slate-400">
               Artwork unavailable
             </div>
           )}
@@ -154,7 +154,7 @@ export function CinematicMovieCard({
 
         <div className="space-y-3 px-2 pb-2 pt-4">
           <div>
-            <h3 className="line-clamp-2 text-base font-semibold leading-6 text-white transition-colors group-hover:text-[#ff7f86]">
+            <h3 className="line-clamp-2 text-base font-semibold leading-6 text-white transition-colors group-hover:text-[#ff6b72]">
               {movie.title}
             </h3>
             <p className="mt-2 line-clamp-2 min-h-[2.75rem] text-sm leading-6 text-slate-400">
@@ -238,7 +238,7 @@ export function CinematicEmptyState({
   return (
     <div className="cinema-panel mx-auto max-w-3xl rounded-[28px] px-6 py-12 text-center sm:px-10">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
-        <svg className="h-7 w-7 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-7 w-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 7h16M4 12h16M4 17h10" />
         </svg>
       </div>
